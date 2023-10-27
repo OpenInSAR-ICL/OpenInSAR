@@ -85,5 +85,3 @@ def test_single_page_application(lock_resource):
     assert "text/html" in response.headers["Content-Type"], "Response was not HTML"
     # Check the response is the index.html file
     assert "I am index.html" in response.text, "Response was not index.html"
-
-    spas.stop()

@@ -5,13 +5,12 @@ from http.server import SimpleHTTPRequestHandler
 
 class SinglePageApplicationHandler(SimpleHTTPRequestHandler):
     """Redirect all requests to the index.html file. This is useful for single page applications (SPAs) that use client side routing."""
-    spa_index = "/"
+    spa_index = "index.html"
 
     def do_GET(self):
         """Serve a GET request."""
         # If the path is not a file, assume it's a request for a Vue route and serve index.html
         if not exists(self.translate_path(self.path)):
-            print(f"Redirecting {self.path} to {self.spa_index}")
             self.path = self.spa_index
         # Call the parent class to serve the file
         super().do_GET()
