@@ -49,10 +49,9 @@ intersphinx_mapping = {
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'alabaster'
-html_static_path = ['./static/']
+html_static_path = ['static/']
 html_logo = '../../res/logo/logo.png'
-html_favicon = '../../res/logo/favicon.ico'
-html_css_files = ['custom.css']
+html_css_files = ['static/custom.css']
 html_js_files = ['custom.js']
 
 # -- Options for sidebars ----------------------------------------------------
