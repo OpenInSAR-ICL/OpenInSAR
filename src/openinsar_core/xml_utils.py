@@ -7,7 +7,7 @@ In general, however, :class:`XmlObject` is basically a wrapper around the Elemen
 """
 
 import xml.etree.ElementTree as ET
-from typing import Self
+from typing_extensions import Self
 
 
 class XmlObject:

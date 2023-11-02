@@ -7,7 +7,7 @@ def found_octave():
     try:
         subprocess.check_output(["octave-cli", "--version"], shell=True)
         return True
-    except FileNotFoundError or AssertionError:
+    except FileNotFoundError or AssertionError or subprocess.CalledProcessError:
         return False
 
 @pytest.mark.skipif(not found_octave(), reason="Octave not found on command line")
