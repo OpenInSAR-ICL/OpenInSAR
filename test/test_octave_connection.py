@@ -1,13 +1,19 @@
+"""
+test_octave_connection.py
+-------------------------
+Check if octave is installed and can be called from python.
+"""
+
 import pytest
 import subprocess
 
 
 def found_octave():
-    """Check if octave is installed"""
+    """Check if Octave is installed on the host system."""
     try:
         subprocess.check_output(["octave-cli", "--version"], shell=True)
         return True
-    except FileNotFoundError or AssertionError or subprocess.CalledProcessError:
+    except (FileNotFoundError, subprocess.CalledProcessError):
         return False
 
 @pytest.mark.skipif(not found_octave(), reason="Octave not found on command line")
