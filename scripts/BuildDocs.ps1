@@ -5,6 +5,11 @@ $startDir = Get-Location
 
 # Set the location to this file's directory
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Activate the virtual environment
+. $here/../venv/Scripts/activate
+
+# Set the location to the doc directory
 Set-Location $here/../doc
 
 # sphinx-apidoc: Generate Sphinx source files from code in the repository

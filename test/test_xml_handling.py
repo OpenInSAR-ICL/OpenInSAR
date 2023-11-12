@@ -101,7 +101,9 @@ class XmlToJsonTestCase:
 
 
 xml_to_json_test_cases = [
-    XmlToJsonTestCase(xml_string='<e/>',expected_json={'e': None}),
+    XmlToJsonTestCase(
+        xml_string='<e/>',
+        expected_json={'e': None}),
     XmlToJsonTestCase(
         xml_string='<e>text</e>',
         expected_json={'e': 'text'},
@@ -109,27 +111,22 @@ xml_to_json_test_cases = [
     XmlToJsonTestCase(
         xml_string='<e name="value" />',
         expected_json={'e': {'@name': 'value'}},
-
     ),
     XmlToJsonTestCase(
         xml_string='<e name="value">text</e>',
         expected_json={'e': {'@name': 'value', '#text': 'text'}},
-
     ),
     XmlToJsonTestCase(
         xml_string='<e> <a>text</a> <b>text</b> </e>',
         expected_json={'e': {'a': 'text', 'b': 'text'}},
-
     ),
     XmlToJsonTestCase(
         xml_string='<e> <a>text</a> <a>text</a> </e>',
         expected_json={'e': {'a': ['text', 'text']}},
-
     ),
     XmlToJsonTestCase(
         xml_string='<e> text <a>text</a> </e>',
         expected_json={'e': {'#text': 'text', 'a': 'text'}},
-
     ),
 ]
 

@@ -1,6 +1,14 @@
 test package
 ============
 
+Module contents
+---------------
+
+.. automodule:: test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -8,14 +16,6 @@ test.TestUtilities module
 -------------------------
 
 .. automodule:: test.TestUtilities
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-test.conftest module
---------------------
-
-.. automodule:: test.conftest
    :members:
    :undoc-members:
    :show-inheritance:
@@ -64,14 +64,6 @@ test.test\_xml\_handling module
 -------------------------------
 
 .. automodule:: test.test_xml_handling
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: test
    :members:
    :undoc-members:
    :show-inheritance:
