@@ -8,6 +8,7 @@ import logging
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
 
+
 class Job:
     """A job to be executed by the JobServer."""
 
@@ -37,8 +38,17 @@ class JobServerHandler(SimpleHTTPRequestHandler):
 
     def add_job(self, job_str: str) -> None:
         """Add a job to the queue."""
-        # convert the string to a Job object
-        job = Job(**json.loads(job_str))
+
+        # if its a query string, parse it
+        if "octave_query=" in job_str:
+            body = dict(qc.split("=") for qc in job_str.split("&"))
+            # remove the octave_query key
+            body.pop("octave_query")
+            job = Job(**body)
+        else:  # otherwise, its a json string
+            # convert the string to a Job object
+            job = Job(**json.loads(job_str))
+
         self.job_queue.append(job)
 
     def print_job_queue(self) -> None:
@@ -133,6 +143,7 @@ def main():
         config = DeploymentConfig.for_render()
     elif platform == "local":
         config = DeploymentConfig.for_local()
+        config.use_threading = False
     else:
         raise ValueError(f"Unknown platform: {platform}")
 
