@@ -5,6 +5,9 @@ import json
 from typing import Dict, Any
 import logging
 
+logging.basicConfig()
+logging.getLogger().setLevel(logging.INFO)
+
 class Job:
     """A job to be executed by the JobServer."""
 
