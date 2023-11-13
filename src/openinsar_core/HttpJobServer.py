@@ -121,7 +121,7 @@ class HttpJobServer(ThreadedHttpServer):
         super().__init__(*args, handler=JobServerHandler, **kwargs)
 
 
-def main():
+def main() -> HttpJobServer:
     """
     Example usage. Runs the server on the specified platform:
     - render: Run the server on render.com
@@ -147,10 +147,29 @@ def main():
     else:
         raise ValueError(f"Unknown platform: {platform}")
 
+    # Override any config options with command line arguments
+    if len(sys.argv) > 2:
+        for arg in sys.argv[2:]:
+            key, value = arg.split("=")
+            if hasattr(config, key):
+                # map the value to the correct type
+                if type(getattr(config, key)) == bool:
+                    value = value.lower() == "true"
+                elif type(getattr(config, key)) == int:
+                    value = int(value)
+                elif type(getattr(config, key)) == float:
+                    value = float(value)
+                assert isinstance(getattr(config, key), type(value)), f"Type mismatch for {key}: {type(getattr(config, key))} != {type(value)}"
+                setattr(config, key, value)
+            else:
+                raise ValueError(f"Unknown config option: {key}")
+
     # Initialise the server
     html_server = HttpJobServer(config=config)
     # Start the server
     html_server.launch()
+
+    return html_server  # to keep the server alive if we're running in a thread
 
 
 if __name__ == "__main__":

@@ -64,3 +64,23 @@ def test_get_jobs_nonexistent_user(server):
     assert response.status_code == 200
     assert 'jobs' in response.json()
     assert len(response.json()['jobs']) == 0
+
+
+@pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
+def test_deployment_via_main(lock_resource):
+    """Test deployment via the main method"""
+    import sys
+    # override command line arguments
+    sys.argv = ["HttpJobServer", "local", "use_threading=True", "port=" + str(BASE_PORT)]
+    # import the main method
+    from src.openinsar_core.HttpJobServer import main
+    # run the main method
+    server_inst = main()
+
+    # send a request to the server
+    response = requests.get(f'{BASE_URL}/jobs')
+    assert response.status_code == 200
+    assert 'jobs' in response.json()
+
+    # stop the server
+    server_inst.stop()
