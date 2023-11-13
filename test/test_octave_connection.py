@@ -16,6 +16,7 @@ def found_octave():
     except (FileNotFoundError, subprocess.CalledProcessError):
         return False
 
+
 @pytest.mark.skipif(not found_octave(), reason="Octave not found on command line")
 def test_command_octave():
     """Call Octave script from python. Skips if octave-cli is not available on the command line."""

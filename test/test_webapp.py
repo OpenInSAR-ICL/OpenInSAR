@@ -61,7 +61,7 @@ def test_single_page_application(lock_resource):
     import requests
 
     # Launch the server
-    spas = ThreadedHttpServer("localhost", port=8002, handler=SinglePageApplicationHandler)
+    spas = ThreadedHttpServer(host="localhost", port=8002, handler=SinglePageApplicationHandler)
     spas.launch(directory=APP_DIR)
 
     # Check the index.html file exists

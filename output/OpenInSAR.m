@@ -10,7 +10,7 @@
 % Properties are an instance of the engine class
 % an instance of a ui for logging
 % and a configuration structure
-classdef OpenInSAR 
+classdef OpenInSAR
 
 properties
     engine = OI.Engine();
@@ -73,7 +73,7 @@ methods
             end
         end
     end
-                                                                    
+
     function this = load_object( this, varargin )
         % Load a data object
         % This will check the database for any existing files
@@ -139,14 +139,22 @@ methods
         % Create a new project
         this.ui.log('info', 'Creating a new project\n');
         % For now we will just copy the template examples
-        newProjectPath = fullfile(fileparts(pwd), 'OIProject.oi');
-        copyfile('+OI/Examples/CurrentProject_template.xml', 'CurrentProject.xml');
+        newProjectPath = fullfile(fileparts(pwd), 'ExampleProject.oi');
+        curr_proj_template = ...
+            fullfile('+OI','Examples','CurrentProject_template.xml');
+        example_proj_template = ...
+            fullfile('+OI','Examples','ExampleProject_template.oi');
+        copyfile(curr_proj_template, 'CurrentProject.xml');
         % Don't overwrite an existing project
         if exist(newProjectPath, 'file')
-            warning('A project already exists at %s\nThis was not overwritten.', newProjectPath)
+            warning( ...
+            'A project already exists at %s\nThis was not overwritten.', ...
+            newProjectPath)
         else
-            this.engine.ui.log('info', 'Creating a new project at %s\n', newProjectPath')
-            copyfile('+OI/Examples/ExampleProject_template.oi', newProjectPath);
+            this.engine.ui.log('info', ...
+                'Creating a new project at %s\n', ...
+                strrep(newProjectPath,'\','/')) % Octave doesn't like '\'
+            copyfile(example_proj_template, newProjectPath);
         end
 
         % Throw an error to stop execution
@@ -157,8 +165,8 @@ methods
         'CurrentProject.xml should contain the path to the current project file\n', ...
         ], ...
         newProjectPath);
-        error('Please read instructions above before continuing\n')
-        
+        error('Please read instructions above before continuing')
+
     end
 end
 

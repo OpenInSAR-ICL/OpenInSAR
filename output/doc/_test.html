@@ -16,7 +16,6 @@
     <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="openinsar_core package" href="openinsar_core.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -35,6 +34,10 @@
             
   <section id="test-package">
 <h1>test package<a class="headerlink" href="#test-package" title="Link to this heading">¶</a></h1>
+<section id="module-test">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-test" title="Link to this heading">¶</a></h2>
+<p>This directory contains pytest tests for the project. These are written in Python, but might test other programs and functionality via e.g. system calls.</p>
+</section>
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
 </section>
@@ -100,26 +103,6 @@ If the name of the resource to lock is not provided or is not a string.</p>
 <dt class="sig sig-object py" id="test.TestUtilities.script_dir">
 <span class="sig-prename descclassname"><span class="pre">test.TestUtilities.</span></span><span class="sig-name descname"><span class="pre">script_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#test.TestUtilities.script_dir" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
-
-</section>
-<section id="module-test.conftest">
-<span id="test-conftest-module"></span><h2>test.conftest module<a class="headerlink" href="#module-test.conftest" title="Link to this heading">¶</a></h2>
-<p>pytest configuration file. See <a class="reference external" href="https://docs.pytest.org/en/stable/reference/fixtures.html#conftest" title="(in pytest v0.1.dev81+g2390610)"><span>Fixture availability</span></a>. This module is loaded automatically by pytest before running any tests, and then
-<a class="reference internal" href="#test.conftest.pytest_configure" title="test.conftest.pytest_configure"><code class="xref py py-func docutils literal notranslate"><span class="pre">pytest_configure()</span></code></a> is called.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="test.conftest.add_executables_to_path">
-<span class="sig-prename descclassname"><span class="pre">test.conftest.</span></span><span class="sig-name descname"><span class="pre">add_executables_to_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#test.conftest.add_executables_to_path" title="Link to this definition">¶</a></dt>
-<dd><p>Adds the virtual environment executables to the system path.
-For example, sphinx, sphinx-apidoc, pip, etc.
-There’s an issue with VS Code pytest not finding these, this is a workaround.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="test.conftest.pytest_configure">
-<span class="sig-prename descclassname"><span class="pre">test.conftest.</span></span><span class="sig-name descname"><span class="pre">pytest_configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#test.conftest.pytest_configure" title="Link to this definition">¶</a></dt>
-<dd><p>Called after command line options have been parsed and
-all plugins and initial conftest files been loaded.</p>
-</dd></dl>
 
 </section>
 <section id="module-test.test_documentation">
@@ -224,21 +207,10 @@ all plugins and initial conftest files been loaded.</p>
 <section id="module-test.test_websocket_server">
 <span id="test-test-websocket-server-module"></span><h2>test.test_websocket_server module<a class="headerlink" href="#module-test.test_websocket_server" title="Link to this heading">¶</a></h2>
 <dl class="py function">
-<dt class="sig sig-object py" id="test.test_websocket_server.client_send_multiple_messages">
-<span class="sig-prename descclassname"><span class="pre">test.test_websocket_server.</span></span><span class="sig-name descname"><span class="pre">client_send_multiple_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">address</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_wss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#test.test_websocket_server.client_send_multiple_messages" title="Link to this definition">¶</a></dt>
-<dd><p>Create a client, send a message, receive a message, close the client, return the message.</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="test.test_websocket_server.client_send_recieve">
-<span class="sig-prename descclassname"><span class="pre">test.test_websocket_server.</span></span><span class="sig-name descname"><span class="pre">client_send_recieve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_to_send</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">address</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_wss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#test.test_websocket_server.client_send_recieve" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">test.test_websocket_server.</span></span><span class="sig-name descname"><span class="pre">client_send_recieve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_to_send</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">address</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_wss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#test.test_websocket_server.client_send_recieve" title="Link to this definition">¶</a></dt>
 <dd><p>Create a client, send a message, receive a message, close the client, return the message.</p>
 </dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="test.test_websocket_server.test_message_handler_logs_received_messages">
-<span class="sig-prename descclassname"><span class="pre">test.test_websocket_server.</span></span><span class="sig-name descname"><span class="pre">test_message_handler_logs_received_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lock_resource</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#test.test_websocket_server.test_message_handler_logs_received_messages" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="test.test_websocket_server.test_websocket_echo">
@@ -306,14 +278,10 @@ all plugins and initial conftest files been loaded.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="test.test_xml_handling.test_xml_to_json_converter">
-<span class="sig-prename descclassname"><span class="pre">test.test_xml_handling.</span></span><span class="sig-name descname"><span class="pre">test_xml_to_json_converter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x2j_test_case</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#test.test_xml_handling.XmlToJsonTestCase" title="test.test_xml_handling.XmlToJsonTestCase"><span class="pre">XmlToJsonTestCase</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#test.test_xml_handling.test_xml_to_json_converter" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">test.test_xml_handling.</span></span><span class="sig-name descname"><span class="pre">test_xml_to_json_converter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x2j_test_case</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="test.html#test.test_xml_handling.XmlToJsonTestCase" title="test.test_xml_handling.XmlToJsonTestCase"><span class="pre">XmlToJsonTestCase</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#test.test_xml_handling.test_xml_to_json_converter" title="Link to this definition">¶</a></dt>
 <dd><p>Test converting XML to JSON. See <a class="reference external" href="https://www.xml.com/pub/a/2006/05/31/converting-between-xml-and-json.html">https://www.xml.com/pub/a/2006/05/31/converting-between-xml-and-json.html</a></p>
 </dd></dl>
 
-</section>
-<section id="module-test">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-test" title="Link to this heading">¶</a></h2>
-<p>This directory contains pytest tests for the project. These are written in Python, but might test other programs and functionality via e.g. system calls.</p>
 </section>
 </section>
 
@@ -338,21 +306,14 @@ all plugins and initial conftest files been loaded.</p>
 
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">OpenInSAR Modules</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="openinsar_core.html">openinsar_core package</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">test package</a></li>
-</ul>
-</li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">OpenInSAR Modules</a></li>
 </ul>
 
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-  <li><a href="modules.html">OpenInSAR Modules</a><ul>
-      <li>Previous: <a href="openinsar_core.html" title="previous chapter">openinsar_core package</a></li>
-  </ul></li>
   </ul></li>
 </ul>
 </div>
@@ -378,7 +339,7 @@ all plugins and initial conftest files been loaded.</p>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
-      <a href="_sources/test.rst.txt"
+      <a href="_sources/_test.rst.txt"
           rel="nofollow">Page source</a>
     </div>
 

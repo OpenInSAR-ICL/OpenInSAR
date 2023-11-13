@@ -1,5 +1,6 @@
 import subprocess
 import os
+# from typing import assert_type
 from .TestUtilities import ROOT_DIR, SCRIPT_DIR, DOCS_DIR
 import pytest
 
@@ -24,6 +25,8 @@ def check_sphinx_apidoc(tmp_path):
         module_path = tmp_path / f"{module_name}.py"
         output_dir = tmp_path / "docs"
         output_file_path = output_dir / f"{module_name}.rst"
+
+        assert tmp_path.exists(), f"Temporary directory {tmp_path} does not exist."
 
         try:
             # Create a new Python module
@@ -69,6 +72,35 @@ def check_sphinx_apidoc(tmp_path):
     if tmp_path.exists():
         import shutil
         shutil.rmtree(tmp_path)
+
+
+def test_sphinx_apidoc_installed():
+    import shutil
+    import os
+    if os.name == "nt":
+        sphinx_dir = os.path.join(ROOT_DIR, "venv", "Scripts")
+        executable = "sphinx-apidoc"
+    else:
+        sphinx_dir = os.path.join(ROOT_DIR, "venv", "bin")
+        executable = "sphinx-apidoc"
+
+    # Check the venv directory exists
+    assert os.path.isdir(sphinx_dir), "Failed to find venv directory"
+
+    # Add the venv/bin directory to the PATH
+    # os.environ["PATH"] += os.pathsep + sphinx_dir
+
+    # Find the sphinx-apidoc executable
+    executable_path = shutil.which(executable)
+    assert executable_path is not None, f"Failed to find {executable} in PATH"
+
+    # Check that sphinx-apidoc is working
+    process = subprocess.run(
+        [executable, "--version"], capture_output=True, text=True, env=os.environ, shell=False, cwd=sphinx_dir
+    )
+    assert (
+        process.returncode == 0
+    ), f"sphinx-apidoc failed with return code {process.returncode}. Output:\n{process.stdout + process.stderr}"
 
 
 # Usage of the fixture
