@@ -20,7 +20,7 @@ class SinglePageApplicationHandler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     """Example usage"""
     # Initialise the server
-    html_server = ThreadedHttpServer("localhost", 8000, handler=SinglePageApplicationHandler)
+    html_server = ThreadedHttpServer(host="localhost", port=8000, handler=SinglePageApplicationHandler)
     # Start the server
     html_server.launch(directory=".")
     # Do something else, in this case wait for a KeyboardInterrupt

@@ -6,7 +6,7 @@ from websockets.sync.client import connect
 assert lock_resource is not None  # Just to shut up the linters who think its unused
 
 
-def client_send_recieve(message_to_send: str, port: int, address: str = "localhost", is_wss: bool = False) -> str:
+def client_send_recieve(message_to_send: str, port: int, address: str = "localhost", is_wss: bool = False) -> str | None:
     """Create a client, send a message, receive a message, close the client, return the message."""
     # Create a websocket client
     protocol = "wss" if is_wss else "ws"
@@ -22,6 +22,9 @@ def client_send_recieve(message_to_send: str, port: int, address: str = "localho
         result = None
     # Close the client
     conn.close()
+    # Make the linter happy
+    if result is not None:
+        result = str(result)
     return result
 
 
@@ -43,7 +46,7 @@ def client_send_multiple_messages(messages: list[str], port: int, address: str =
         pass
     # Close the client
     conn.close()
-    return result
+    return str(result)
 
 
 @pytest.mark.parametrize("lock_resource", ["port8765"], indirect=True, ids=["Use port 8765"])  # Mutex for the port

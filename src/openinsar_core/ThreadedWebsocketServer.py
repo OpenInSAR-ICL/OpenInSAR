@@ -37,6 +37,7 @@ class WebsocketMessageHandler:
 
     def __call__(self, conn: ServerConnection) -> None:
         for message in conn:
+            assert isinstance(message, str), "Message is not a string"
             self.log_message_in(message)
             conn.send(message)
             self.log_message_out(message)
