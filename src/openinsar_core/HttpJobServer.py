@@ -3,7 +3,7 @@ from http.server import SimpleHTTPRequestHandler
 import json
 # from typing import Callable
 from typing import Dict, Any
-
+import logging
 
 class Job:
     """A job to be executed by the JobServer."""
@@ -54,6 +54,7 @@ class JobServerHandler(SimpleHTTPRequestHandler):
         This handles the GET request. This includes:
         - /jobs: Return the job queue
         """
+        logging.info(f"GET request,\nPath: {self.path}\nHeaders:\n{self.headers}\n")
         # check the path
         if "/jobs" in self.path:
             # get the query string
@@ -80,6 +81,8 @@ class JobServerHandler(SimpleHTTPRequestHandler):
         Handle post requests. This includes:
         - /add_job: Add a job to the queue
         """
+        logging.info(f"POST request,\nPath: {self.path}\nHeaders:\n{self.headers}\n")
+        # check the path
         if "/add_job" in self.path:
             # get the content length
             content_length = int(self.headers["Content-Length"])
@@ -87,6 +90,8 @@ class JobServerHandler(SimpleHTTPRequestHandler):
             body = self.rfile.read(content_length)
             # decode the body
             body = body.decode("utf-8")
+            # log the request
+            logging.info(f"POST request,\nPath: {self.path}\nHeaders:\n{self.headers}\nBody:\n{body}\n")
             # add the job to the queue
             self.add_job(body)
             # send the json response
