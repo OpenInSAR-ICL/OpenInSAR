@@ -2,7 +2,7 @@ import http.server
 import threading
 import ssl
 from pathlib import Path
-from .DeploymentConfig import DeploymentConfig
+from src.openinsar_core.DeploymentConfig import DeploymentConfig
 
 
 class DefaultHandler(http.server.SimpleHTTPRequestHandler):
@@ -28,19 +28,20 @@ class ThreadedHttpServer:
         handler: type[http.server.BaseHTTPRequestHandler] | None = DefaultHandler
     ):
         if config is not None:
-            host = config.host
-            port = config.port
-            use_https = config.use_https
-            use_threading = config.use_threading
+            self.host = config.host
+            self.port = config.port
+            self.use_https = config.use_https
+            self.use_threading = config.use_threading
         else:
             self.host = host
             self.port = port
-            self.server = server
-            self.thread = thread
             self.use_https = use_https
             self.use_threading = use_threading
-            self.directory = directory
-            self.handler = handler
+        # Options not in the config:
+        self.server = server
+        self.thread = thread
+        self.directory = directory
+        self.handler = handler
 
     def handle_from_directory(self, directory: str | None = None, handler: type[http.server.BaseHTTPRequestHandler] | None = None):
         """Create a handler that serves files from the given directory."""

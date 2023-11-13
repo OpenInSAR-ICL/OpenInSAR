@@ -104,12 +104,23 @@ class HttpJobServer(ThreadedHttpServer):
 
 
 def main():
-    """Example usage"""
+    """
+    Example usage. Runs the server on the specified platform:
+    - render: Run the server on render.com
+        >  python -m src.openinsar_core.HttpJobServer render
+    - local: Run the server locally
+        >  python -m src.openinsar_core.HttpJobServer local
+    """
     import sys
-    import DeploymentConfig
+    import src.openinsar_core.DeploymentConfig as DeploymentConfig
 
     # Get target platform from command line arguments
-    platform = sys.argv[1]
+    if len(sys.argv) > 1:
+        platform = sys.argv[1]
+    else:
+        platform = "local"
+
+    # Switch the config based on the platform
     if platform == "render":
         config = DeploymentConfig.for_render()
     elif platform == "local":
