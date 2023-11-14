@@ -16,22 +16,25 @@ class Job:
         self.assigned_to = assigned_to
         self.task = task
 
-    def __repr__(self) -> str:
-        return f"Job(assigned_to={self.assigned_to}, task={self.task})"
-
-    def __str__(self) -> str:
-        return f"Job assigned to {self.assigned_to}: {self.task}"
-
-    def to_json(self) -> Dict[str, str]:
+    def to_json(self) -> Dict[str, Any]:
+        """Convert the job to a JSON object."""
         return {'assigned_to': self.assigned_to, 'task': self.task}
+
+
+class Worker:
+    """A worker which can be assigned jobs"""
+
+    def __init__(self, worker_id: str) -> None:
+        self.worker_id = worker_id
 
 
 class JobServerHandler(SimpleHTTPRequestHandler):
     """A handler for the JobServer. This is a subclass of SimpleHTTPRequestHandler that adds a job queue and a method for adding jobs to the queue."""
 
-    def __init__(self, *args, job_queue: list[Job] = [], **kwargs) -> None:
+    def __init__(self, *args, job_queue: list[Job] = [], worker_registry: list[Worker] = [], **kwargs) -> None:
         """Initialise the handler with a job queue."""
         self.job_queue = job_queue
+        self.worker_registry = worker_registry
         # Filter out any kwargs that are not accepted by the SimpleHTTPRequestHandler
         kwargs = {key: value for key, value in kwargs.items() if key in SimpleHTTPRequestHandler.__init__.__code__.co_varnames}
         super().__init__(*args, **kwargs)
@@ -50,6 +53,24 @@ class JobServerHandler(SimpleHTTPRequestHandler):
             job = Job(**json.loads(job_str))
 
         self.job_queue.append(job)
+
+    def add_worker(self, worker_str: str) -> None:
+        """Add a worker to the queue."""
+
+        # if its a query string, parse it
+        if "octave_query=" in worker_str:
+            body = dict(qc.split("=") for qc in worker_str.split("&"))
+            # remove the octave_query key
+            body.pop("octave_query")
+            # remove anything not in the Worker constructor
+            body = {key: value for key, value in body.items() if key in Worker.__init__.__code__.co_varnames}
+            worker = Worker(**body)
+        else:  # otherwise, its a json string
+            # convert the string to a Job object
+            worker = Worker(**json.loads(worker_str))
+
+        # add the worker to the registry
+        self.worker_registry.append(worker)
 
     def print_job_queue(self) -> None:
         """Print the job queue."""
@@ -109,6 +130,20 @@ class JobServerHandler(SimpleHTTPRequestHandler):
             self.add_job(body)
             # send the json response
             self.send_json_response(200, {"message": "Job posted successfully"})
+        if '/worker' in self.path:
+            # get the content length
+            content_length = int(self.headers["Content-Length"])
+            assert content_length > 0, "Empty post request"
+            # get the body
+            body = self.rfile.read(content_length)
+            # decode the body
+            body = body.decode("utf-8")
+            # log the request
+            logging.info(f"POST request,\nPath: {self.path}\nHeaders:\n{self.headers}\nBody:\n{body}\n")
+            # register the worker
+            self.add_worker(body)
+            # send the json response
+            self.send_json_response(200, {"message": "Worker registered successfully"})
         else:
             # send a 404
             self.send_response(404)
@@ -116,6 +151,7 @@ class JobServerHandler(SimpleHTTPRequestHandler):
 
 class HttpJobServer(ThreadedHttpServer):
     def __init__(self, *args, **kwargs):
+        self.handler: JobServerHandler
         # filter out any kwargs that are not accepted by the ThreadedHttpServer
         kwargs = {key: value for key, value in kwargs.items() if key in ThreadedHttpServer.__init__.__code__.co_varnames}
         super().__init__(*args, handler=JobServerHandler, **kwargs)

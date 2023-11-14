@@ -3,7 +3,8 @@
 import pytest
 import requests
 from .TestUtilities import lock_resource
-
+from src.openinsar_core.HttpJobServer import HttpJobServer
+from typing import Generator
 
 assert lock_resource is not None  # Just to shut up the linters who think its unused
 
@@ -14,9 +15,8 @@ BASE_URL = f'{BASE_ADDRESS}'
 
 
 @pytest.fixture
-def server(lock_resource):
+def server(lock_resource) -> Generator[HttpJobServer, None, None]:
     """Launch the server, return the server object"""
-    from src.openinsar_core.HttpJobServer import HttpJobServer
     server_process = HttpJobServer(port=BASE_PORT)
     server_process.launch()
     yield server_process
@@ -24,7 +24,7 @@ def server(lock_resource):
 
 
 @pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
-def test_server(server):
+def test_server(server: HttpJobServer):
     """Test setting up the server and receiving a message"""
     response = requests.get(BASE_ADDRESS)
     assert response.status_code == 200
