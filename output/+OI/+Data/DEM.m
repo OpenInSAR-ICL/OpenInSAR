@@ -12,6 +12,7 @@ classdef DEM < OI.Data.DataObj
     %     SRTM1_TILE_SZ = [3601,3601];
     %     SRTM3_TILE_SZ = [1201,1201];
     % end
+ 
 
     methods
         function this = DEM(varargin)
@@ -152,79 +153,60 @@ classdef DEM < OI.Data.DataObj
             % load in the data from the .hgt file
             fid = fopen(filename, 'r', 'ieee-be');
             if fid == -1
-                error('Could not open file: %s', filename);
+                warning('Could not open file: %s', filename);
+                tileData = -ones(3601,3601,'like',int16(1));
+                % Don't return. We still want to adjust for geoid to avoid
+                % jumps. Then we can check for sea via: 
+                %(dem -lt geoid_height)
+                % return;
+            else
+                tileData = fread(fid, [3601,3601], 'int16=>int16');
+                fclose(fid);
             end
-            tileData = fread(fid, [3601,3601], 'int16=>int16');
-            fclose(fid);
             
             % Get coordinates from filename
             extent = OI.Data.DEM.srtm1_tile_extent(filename);
             latAxis=linspace(extent.south(),extent.north(),3601);
             lonAxis=linspace(extent.west(),extent.east(),3601);
-            [lon, lat] = meshgrid(latAxis,lonAxis);
-            
-            geoidAtGrid = OI.Data.DEM.get_geoid_height(extent, lat, lon);
+            [lon, lat] = meshgrid(lonAxis,latAxis);
+%             return
+            geoidAtGrid = OI.Data.DEM.get_geoid_height(lat,lon);
 
-
-            % Calculate geoid undulation (mean sea level) at coordinates
-            geoidAtExtentBoundaries = geoidheight(extent.lat, extent.lon, 'EGM96');
-
-            % Fit a 2d linear polynomial to the geoid undulation at the extent
-            nSamples = numel(geoidAtExtentBoundaries(:));
-            geoidFitCoefficients = [extent.lat(:), extent.lon(:), ones(nSamples,1)] \ geoidAtExtentBoundaries(:);
-
-            % Interpolate the geoid undulation on the grid
-            geoidAtGrid = [lat(:), lon(:), ones(numel(lat),1)] * geoidFitCoefficients;
-            geoidAtGrid = reshape(geoidAtGrid,size(tileData));
+%             % Calculate geoid undulation (mean sea level) at coordinates
+%             geoidAtExtentBoundaries = get_geoid_height(extent.lat, extent.lon, 'EGM96');
+% 
+%             % Fit a 2d linear polynomial to the geoid undulation at the extent
+%             nSamples = numel(geoidAtExtentBoundaries(:));
+%             geoidFitCoefficients = [extent.lat(:), extent.lon(:), ones(nSamples,1)] \ geoidAtExtentBoundaries(:);
+% 
+%             % Interpolate the geoid undulation on the grid
+%             geoidAtGrid = [lat(:), lon(:), ones(numel(lat),1)] * geoidFitCoefficients;
+%             geoidAtGrid = reshape(geoidAtGrid,size(tileData));
             
             % Remove geoid undulation (mean sea level) from elevation data
-            tileData = tileData - int16(geoidAtGrid); % [m] 
+            tileData = tileData + int16(geoidAtGrid); % [m] 
         end
-    
-    
-        function geoidAtGrid = get_geoid_height( extent, lat, lon)
-            try 
-                % Calculate geoid undulation (mean sea level) at coordinates
-                geoidAtExtentBoundaries = geoidheight(extent.lat, extent.lon, 'EGM96');
         
-                % Fit a 2d linear polynomial to the geoid undulation at the extent
-                nSamples = numel(geoidAtExtentBoundaries(:));
-                geoidFitCoefficients = [extent.lat(:), extent.lon(:), ones(nSamples,1)] \ geoidAtExtentBoundaries(:);
-        
-                % Interpolate the geoid undulation on the grid
-                geoidAtGrid = [lat(:), lon(:), ones(numel(lat),1)] * geoidFitCoefficients;
-            catch
-                try
-                    geoidModel = imread('egm96-5.pgm');
-                catch ERR
-                    whereIsEgmPgm = [ ...
-                        'The geoidheight function could not be found.', ...
-                        ' As a fallback we can use the egm96-5.pgm file,', ...
-                        ' but this could not be found in the OpenInSAR ', ...
-                        'directory. You can download it from, e.g.: ', ...
-                        'https://sourceforge.net/projects/geographiclib/', ...
-                        'files/geoids-distrib/egm96-5.zip which I found at', ...
-                        ' https://geographiclib.sourceforge.io/C++/doc/', ...
-                        'geoid.html#geoidinterp'
-                    ];
-                    error([ERR.message,'\n\n%s'],whereIsEgmPgm)
-                end
-                % weirdly this is in steps of 3mm??
-                geoidModel = double(geoidModel)*3/1e3; % metres
-                % And possitively offset by 108
-                geoidModel = geoidModel - 108;
-                % the model array starts at 0 longitude...
-                geoidModel = fftshift(geoidModel,2);
+        function interpHeight = get_geoid_height( queryLat, queryLon)
+
+            % Replace this with your actual data or computation based on the provided model
+            geoidHeight = OI.Data.DEM.get_geoid();
+            lat = linspace(-92,92,737);
+            lon = linspace(-2,362,1457);
                 
-                gLon = linspace(-180,180,size(geoidModel,2));
-                gLat = linspace(90,-90,size(geoidModel,1));
-    
-                % imagesc(gLon,gLat,geoidModel);set(gca,'Ydir','normal')
-    
-                geoidAtGrid = interp2(gLon,gLat,geoidModel,lon,lat);
-            end
+            assert( all(queryLat(:)>-90) && all(queryLat(:)<90) && all(queryLon(:)>-180) && all(queryLon(:)<180) );
+            % Perform 2D cubic interpolation
+            interpHeight = interp2(lon, lat, geoidHeight, queryLon, queryLat, 'cubic');
         end
-    
+        
+        function data = get_geoid()
+            persistent geoidGrid
+            if isempty(geoidGrid)
+                % Lazy loading of the data file
+                geoidGrid = load('egm96.mat');
+            end
+            data = geoidGrid.egm96;
+        end
     end % methods (Static = true)
 
 end % classdef

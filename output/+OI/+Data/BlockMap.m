@@ -49,6 +49,36 @@ classdef BlockMap < OI.Data.DataObj
             end
         end
 
+        function [size, azStart, azEnd, rgStart, rgEnd] = get_block_position(this, stackInd, blockInd, referenceFrame)
+
+            % Default to output reference frame
+            if nargin == 3
+                referenceFrame = 'output';
+            end
+
+            whichReferenceFrame = find(strcmpi( ...
+                referenceFrame, ...
+                {'output','input'}));
+                
+            if isempty(whichReferenceFrame)
+                warning('Unknown reference frame')
+            end
+
+            size = this.stacks(stackInd).blocks(blockInd).size;
+            if whichReferenceFrame == 1
+                azStart = this.stacks(stackInd).blocks(blockInd).azOutputStart;
+                rgStart = this.stacks(stackInd).blocks(blockInd).rgOutputStart;
+                azEnd = this.stacks(stackInd).blocks(blockInd).azOutputEnd;
+                rgEnd = this.stacks(stackInd).blocks(blockInd).rgOutputEnd;
+            elseif whichReferenceFrame == 2
+                azStart = this.stacks(stackInd).blocks(blockInd).azDataStart;
+                rgStart = this.stacks(stackInd).blocks(blockInd).rgDataStart;
+                azEnd = this.stacks(stackInd).blocks(blockInd).azDataEnd;
+                rgEnd = this.stacks(stackInd).blocks(blockInd).rgDataEnd;
+            end
+
+        end
+
         function [this, blockMapArray] = get_map_for_stack(this, stackInd)
 
             stack = this.stacks(stackInd);
@@ -64,10 +94,6 @@ classdef BlockMap < OI.Data.DataObj
                     block.rgOutputStart:block.rgOutputEnd) = ii;
             end
             this.stacks(stackInd).map = blockMapArray;
-        end
-
-        function [az, rg, size] = get_block_position(stackInd,blockInd)
-
         end
 
 

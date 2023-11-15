@@ -41,9 +41,9 @@ methods
         
         % choose the best date in the best track as reference
         % loop thru tracks
-        
+        stackCount = 0;
         for referenceTrackInd = trackPriorityInd
-                
+            stackCount = stackCount + 1;
             bestVisitScore = max(trackCoverageByVisit{referenceTrackInd});
             bestVisits = find( bestVisitScore == ...
                 trackCoverageByVisit{referenceTrackInd} );
@@ -187,7 +187,7 @@ methods
                 isempty( fieldnames( this.outputs{1}.stack ) ) 
                 this.outputs{1}.stack = stack([],1);
             end
-            this.outputs{1}.stack(referenceTrackInd) = stack;
+            this.outputs{1}.stack(stackCount) = stack;
         end
         engine.save( this.outputs{1} );
 
@@ -230,14 +230,23 @@ methods (Static = true)
     function trackPriorityInd = prioritise_opposing_look( ...
             trackPriorityInd, cat, visitsForEachTrack)
         
+        % Pull the orbit direction from metadata
         firstSafeInTracks = cellfun( @(x) x{1}(1), visitsForEachTrack);
         trackDirections = cellfun(@(x) x.direction(1), ...
             cat.safes(firstSafeInTracks));
-        nextOpposingTrack = ...
-            find(trackDirections~=trackDirections(1),1);
-        if nextOpposingTrack ~= 2
-            trackPriorityInd(nextOpposingTrack) = trackPriorityInd(2);
-            trackPriorityInd(2) = nextOpposingTrack;
+        
+        % Arrange the track directions in our order of priority
+        prioritisedTrackDirections = trackDirections(trackPriorityInd);
+        % Find the first direction dissimilar to our top-priority track
+        firstOppositeTrackIndex = ...
+            find(prioritisedTrackDirections~=prioritisedTrackDirections(1),1);
+        
+        if firstOppositeTrackIndex ~= 2
+            existingSecondTrack = trackPriorityInd(2);
+            newSecondTrack = trackPriorityInd(firstOppositeTrackIndex);
+            % switcheroo
+            trackPriorityInd(firstOppositeTrackIndex) = existingSecondTrack;
+            trackPriorityInd(2) = newSecondTrack;
         end
     end % function prioritise_opposing_look
 

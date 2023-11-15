@@ -89,7 +89,30 @@ methods
         end
 
         this.plugin = this.plugin.validate( this );
-
+        
+        argInd = 0;
+        for argCell = job.arguments
+            argInd=argInd+1;
+            isString = OI.Compatibility.is_string(argCell{1});
+            isForce = strcmpi(argCell,'force');
+            if ~isString || isForce
+                continue
+            end
+            
+            % check if another arg is given
+            if numel(job.arguments)<argInd+1
+                arg = numel(job.arguments)<argInd+1;
+                isStringAndTrue = (OI.Compatibility.is_string(arg) && any(strcmpi(arg,{'true','yes','y','1'})));
+                isNumberAndTrue = isnumeric(arg) && arg ~= 0;
+                isLogicalAndTrue = islogical(arg) && arg;
+                this.plugin.isFinished = ~(isStringAndTrue || isNumberAndTrue || isLogicalAndTrue);
+                this.plugin.isReady = true;
+            else
+                this.plugin.isFinished = false;
+                this.plugin.isReady = true;
+            end
+        end
+        
         if this.plugin.isFinished
             this.ui.log('info', 'Plugin %s already finished\n', this.plugin.id);
             this.queue.remove_job(job);

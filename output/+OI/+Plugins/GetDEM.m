@@ -25,10 +25,10 @@ classdef GetDEM < OI.Plugins.PluginBase
                 if isempty( stacks.stack(stackInd).segments )
                     continue
                 end
-                maxLat = max([stacks.stack(stackInd).segments.lat(:); maxLat]);
-                minLat = min([stacks.stack(stackInd).segments.lat(:); minLat]);
-                maxLon = max([stacks.stack(stackInd).segments.lon(:); maxLon]);
-                minLon = min([stacks.stack(stackInd).segments.lon(:); minLon]);
+                maxLat = max([stacks.stack(stackInd).segments.lat(:); maxLat]) +.1;
+                minLat = min([stacks.stack(stackInd).segments.lat(:); minLat]) -.1;
+                maxLon = max([stacks.stack(stackInd).segments.lon(:); maxLon]) +.1;
+                minLon = min([stacks.stack(stackInd).segments.lon(:); minLon]) -.1;
             end
 
             % directory to save
@@ -66,8 +66,10 @@ classdef GetDEM < OI.Plugins.PluginBase
             %         fullfile(previewDir, [tileName,'.kml']), ...
             %         tileData);
             % end
+            if any(strcmpi(varargin{1},'overwrite'))
+                this.outputs{1}.overwrite=1;
+            end
             engine.save( this.outputs{1} );
-
         end
 
     end

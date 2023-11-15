@@ -53,6 +53,7 @@ function tilepaths = get_srtm_tiles(minLat, maxLat, minLon, maxLon, directory, u
     % Check if the file already exists
     needsDownload = zeros(n,1);
     needsUnzip = zeros(n,1);
+    
     for n = 1:numel(tilepaths)
         fileExists = exist(tilepaths{n},'file');
         zipExists = exist([tilepaths{n},'.zip'],'file');
@@ -72,20 +73,48 @@ function tilepaths = get_srtm_tiles(minLat, maxLat, minLon, maxLon, directory, u
             %     remoteaddress ...
             % );
             % [s,w] = system(cURLCommand);
-            wgetCommand = sprintf( ...
-                "wget -c -q -O %s --user=%s --password=%s %s --no-check-certificate", ...
-                localaddress, username, password, remoteaddress);
-            [s,w] = system(wgetCommand);
-            if s==6
-                error( [ 'USERNAME/PASSWORD ERROR ' ...
-                        ' URL:\n%s\nUSERNAME: %s' ], ...
-                    NASA_URL, ...
-                    username );
-            end
+            if OI.OperatingSystem.isUnix
+                wgetCommand = sprintf( ...
+                    'wget -c -q -O %s --user=%s --password=%s %s --no-check-certificate', ...
+                    localaddress, username, password, remoteaddress);
+                [s,w] = system(wgetCommand);
+                
+                if s==6
+                    error( [ 'USERNAME/PASSWORD ERROR ' ...
+                            ' URL:\n%s\nUSERNAME: %s' ], ...
+                            NASA_URL, ...
+                            username );
+                end
 
-            if s
-                warning('Error code %d',s);
-                disp(w);
+                if s
+                    warning('Error code %d',s);
+                    disp(w);
+
+                end
+
+            elseif OI.OperatingSystem.isWindows
+                % Create an HTTP options object with basic authentication
+                options = weboptions( ...
+                    'Username', username, 'Password', password);
+                try % Download the file
+%                     webwrite(localaddress, ... %???
+                    demBinary = webread(remoteaddress, options); %, options);
+                    fid = fopen(localaddress,'w');
+                    sc = fwrite(fid, demBinary, 'uint8');
+                    fclose(fid);
+                catch
+                    warning('Failed to download SRTM tile %s from %s .', ...
+                        localaddress, remoteaddress);
+                end
+            end
+            
+            
+
+            
+            % Skip unzip if error and no file - will assume it's sea.
+            if ~exist(localaddress,'file')
+                needsUnzip(n) = 0;
+                warning('Skipping extraction of %s',localaddress)
             end
         end % if needsDownload
 
