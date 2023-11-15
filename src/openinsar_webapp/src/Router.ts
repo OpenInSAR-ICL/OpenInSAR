@@ -1,24 +1,52 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
-
-// Import your Vue components
-
-// Get the base URL from the environment variable
-const BASE_URL = 'app';
+import { createRouter, createWebHistory } from 'vue-router'
+import Todo from './components/Todo.vue'
+import NotFound from './components/NotFound.vue'
+import Home from './components/HomePage.vue'
+import HtmlLoader from './components/HtmlLoader.vue'
 
 // Define your routes
-const routes: Array<RouteRecordRaw> = [
+const routes = [
+  {
+    path: '/',
+    name: 'Home1',
+    component: Home
+  },
   // Add route for todo list
   {
     path: `/todo`,
-    name: 'Home',
-    component: () => import('./components/Todo.vue'),
+    name: 'Todo',
+    component: Todo
   },
-];
+  {
+    path: '/todo/:id',
+    name: 'Todo2',
+    component: Todo
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFoundA',
+    component: NotFound
+  },
+  { 
+    path: '/html/:htmlFile',
+    component: HtmlLoader
+  },
+  {
+    path: '/*',
+    name: 'NotFoundB',
+    component: NotFound
+  },
+  // Add catch-all route
+  {
+    path: '/:catchAll(.*)',
+    component: NotFound
+  }
+]
 
 // Create the router instance
 const router = createRouter({
   history: createWebHistory(),
-  routes,
-});
+  routes
+})
 
-export default router;
+export default router

@@ -2,6 +2,7 @@ import http.server
 import threading
 import ssl
 from pathlib import Path
+from src.openinsar_core.DeploymentConfig import DeploymentConfig
 
 
 class DefaultHandler(http.server.SimpleHTTPRequestHandler):
@@ -16,19 +17,29 @@ class DefaultHandler(http.server.SimpleHTTPRequestHandler):
 class ThreadedHttpServer:
     def __init__(
         self,
+        config: DeploymentConfig | None = None,
         host: str = "localhost",
         port: int = 8000,
         server: http.server.ThreadingHTTPServer | None = None,
         thread: threading.Thread | None = None,
-        is_https: bool = False,
+        use_threading: bool = True,
+        use_https: bool = False,
         directory: str = ".",
         handler: type[http.server.BaseHTTPRequestHandler] | None = DefaultHandler
     ):
-        self.host = host
-        self.port = port
+        if config is not None:
+            self.host = config.host
+            self.port = config.port
+            self.use_https = config.use_https
+            self.use_threading = config.use_threading
+        else:
+            self.host = host
+            self.port = port
+            self.use_https = use_https
+            self.use_threading = use_threading
+        # Options not in the config:
         self.server = server
         self.thread = thread
-        self.is_https = is_https
         self.directory = directory
         self.handler = handler
 
@@ -76,17 +87,21 @@ class ThreadedHttpServer:
                 (self.host, self.port), self.handle_from_directory()
             )
 
-            if self.is_https:
+            if self.use_https:
                 self.setup_https()
             else:
                 self.setup_http()
 
-            # set the thread to run in directory
-            self.thread = threading.Thread(
-                target=self.server.serve_forever, daemon=True
-            )
-            self.thread.start()
-            print("Serving HTML on http" + ("", "s")[self.is_https] + f"://{self.host}:{self.port}/")
+            if self.use_threading:
+                # set the thread to run in directory
+                self.thread = threading.Thread(
+                    target=self.server.serve_forever, daemon=True
+                )
+                self.thread.start()
+                print("Serving HTML on http" + ("", "s")[self.use_https] + f"://{self.host}:{self.port}/")
+            else:
+                # If the use_threading flag is not set, run the server in the main thread forever (blocking)
+                self.server.serve_forever()
 
     def stop(self):
         if self.server is not None:
@@ -99,7 +114,7 @@ class ThreadedHttpServer:
 if __name__ == "__main__":
     """Example usage"""
     # Initialise the server
-    html_server = ThreadedHttpServer("localhost", 8000)
+    html_server = ThreadedHttpServer(host="localhost", port=8000)
     # Start the server
     html_server.launch(directory=".")
     # Do something else, in this case wait for a KeyboardInterrupt
