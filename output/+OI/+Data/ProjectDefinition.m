@@ -65,10 +65,10 @@ properties
     id = 'ProjectDefinition';
 
     PROJECT_NAME
-    
+
     AOI
-    START_DATE
-    END_DATE
+    START_DATE = OI.Data.Datetime('20000101','yyyymmdd')
+    END_DATE = OI.Data.Datetime('20301231','yyyymmdd')
 
     TRACKS
     INPUT_DATA_LIST
@@ -77,7 +77,7 @@ properties
 
     BLOCK_SIZE = 5000; %m
     MASK_SEA = 1;
-    
+
     HERE
     HOME
     ROOT
@@ -88,10 +88,13 @@ properties
     pathVars = {'HERE','HOME','ROOT','WORK','INPUT_DATA_DIR','OUTPUT_DATA_DIR','ORBITS_DIR'}
 
 
+    required_vars = {'PROJECT_NAME', 'AOI', ''}
+
+
     SECRETS_FILEPATH = '$HERE$/secrets.txt'
 end
 
-methods 
+methods
 
     function this = ProjectDefinition( filename )
         if nargin > 0
@@ -99,48 +102,13 @@ methods
         end
     end
 
-    
-    function str = to_string( this )
-        str = sprintf( '# Project Definition:\n' );
-        props = properties( this );
-        for i = 1:length(props)
-            switch props{i}
-                case 'filepath'
-                    continue;
-                case 'name'
-                    continue;
-                case 'generator'
-                    continue;
-                case 'fileextension'
-                    continue;
-                case 'ROOT'
-                    continue;
-                case 'WORK'
-                    continue;
-                case 'HOME'
-                    continue;
-                case 'HERE'
-                    continue;
-                case 'hasFile'
-                    continue;
-                
-                otherwise
-                    if OI.Compatibility.is_string( this.(props{i}) )
-                        str = sprintf( '%s\t%s=%s\n', str, props{i}, this.(props{i}) );
-                    else
-                        str = sprintf( '%s\t%s=%s\n', str, props{i}, this.(props{i}).to_string() );
-                    end
-            end
-        end
-    end%to_string
+    function this = get_relative_paths(this)
 
-    function this = get_special_paths(this)
-        
         % get 'ROOT':
         %   the root directory of the OpenInSAR script
         this.ROOT = fileparts(fileparts(fileparts( mfilename( 'fullpath' ) )));
 
-        % get 'HERE': 
+        % get 'HERE':
         %   the directory of the project definition file
         hereFolder = fileparts( this.filepath );
         if isempty(hereFolder)
@@ -152,6 +120,38 @@ methods
         this.HOME = OI.OperatingSystem.get_usr_dir();
     end
 
+    function this = format_properties( this, optionsStruct )
+
+        % split the optionsStruct into key/value pairs
+        keys = fieldnames( optionsStruct );
+        for ii = 1:length(keys)
+            key = keys{ii};
+            value = optionsStruct.(key);
+            switch key
+            case 'OUTPUT_DATA_DIR'
+                this.OUTPUT_DATA_DIR = value;
+                this.WORK = value;
+            case 'PROJECT_NAME'
+                this.PROJECT_NAME = value;
+                OI.Functions.mkdirs( fullfile( this.HERE, value, 'work' ));
+                OI.Functions.mkdirs( fullfile( this.HERE, value, 'work','preview' ));
+                OI.Functions.mkdirs( fullfile( this.HERE, value, 'input','preview' ));
+                OI.Functions.mkdirs( fullfile( this.HERE, value, 'postings','preview' ));
+            case 'AOI'
+                this.AOI = OI.Data.AreaOfInterest( value );
+            case {'START_DATE', 'END_DATE'}
+                switch numel(value) % handle different date formats here
+                    case 8
+                        this.(key) = OI.Data.Datetime(value,'yyyymmdd');
+                    otherwise
+                        this.(key) = OI.Data.Datetime(value); % see what we get
+                end
+            otherwise
+                this.(key) = value;
+            end % switch
+        end % for
+    end
+
 end% methods
 
 methods (Static)
@@ -161,16 +161,45 @@ methods (Static)
         this.filepath = filename;
 
         % get special paths like ROOT, HERE, HOME
-        this = this.get_special_paths();
+        this = this.get_relative_paths();
 
         % read in file
         fId = fopen( filename, 'r' );
-        file = fread( fId, Inf,  '*char' )';
+        fileContent = fread( fId, Inf,  '*char' )';
         fclose( fId );
 
+        % now switch based on file being XML or old format
+        if ~isempty( regexp( fileContent, '<\?xml', 'once' ) )
+            this = this.load_from_xml( fileContent );
+        else
+            this = this.load_from_legacy_file( fileContent );
+        end
+
+        % string interpolation of the properties
+        props = properties( this );
+        for i = 1:length(props)
+            if OI.Compatibility.is_string( this.(props{i}) )
+                this.(props{i}) = this.string_interpolation( this.(props{i}) );
+            end
+        end
+    end%load constructor
+
+
+    function optionsStruct = load_from_xml( fileContent )
+        assert( nargin > 0, 'must provide a char/string of xml, and a cell of properties to load' );
+        assert( ischar( fileContent ), 'content must be a char/string' );
+        x = OI.Data.XmlFile( fileContent );
+        optionsStruct = x.to_struct();
+    end % load from xml
+
+
+    function optionsStruct = load_from_legacy_file( fileContent )
+
+        optionsStruct = struct();
+
         % split into lines
-        lines = strsplit( file,'\n' );
-        
+        lines = strsplit( fileContent,'\n' );
+
         % remove anything after a # (comments)
         lines = cellfun( @(x) strsplit( x, '#' ), lines, 'UniformOutput', false );
         lines = cellfun( @(x) x{1}, lines, 'UniformOutput', false );
@@ -187,72 +216,20 @@ methods (Static)
         % remove empty cells
         kv = cellfun( @(x) x( ~cellfun( @isempty, x ) ), kv, 'UniformOutput', false );
 
-
         % Set the properties
         for i = 1:length(kv)
-            if isempty( kv{i} )
-                continue;
+            % remove empty line at end
+            if isempty(kv{i})
+               continue
             end
             key = kv{i}{1};
             value = kv{i}{2};
             if numel(value) && value(end) == ';'
                 value = value(1:end-1);
             end
-
-            switch key
-                case 'PROCESSING_SCHEME'
-                    this.PROCESSING_SCHEME = value;
-                case 'INPUT_DATA_LIST'
-                    this.INPUT_DATA_LIST = value;
-                case 'INPUT_DATA_DIR'
-                    this.INPUT_DATA_DIR = value;
-                case 'OUTPUT_DATA_DIR'
-                    this.OUTPUT_DATA_DIR = value;
-                    this.WORK = value;
-                case 'ORBITS_DIR'
-                    this.ORBITS_DIR = value;
-                case 'PROJECT_NAME'
-                    this.PROJECT_NAME = value;
-                    OI.Functions.mkdirs( fullfile( this.HERE, value, 'work' ));
-                    OI.Functions.mkdirs( fullfile( this.HERE, value, 'work','preview' ));
-                    OI.Functions.mkdirs( fullfile( this.HERE, value, 'input','preview' ));
-                    OI.Functions.mkdirs( fullfile( this.HERE, value, 'postings','preview' ));
-                case 'AOI'
-                    this.AOI = OI.Data.AreaOfInterest( value );
-                case 'TRACKS'
-                    this.TRACKS = value;
-                case {'START_DATE', 'END_DATE'}
-                    switch numel(value)
-                        case 8
-                            this.(key) = OI.Data.Datetime(value,'yyyymmdd');
-                        otherwise
-                            this.(key) = OI.Data.Datetime(value); % see what we get
-                    end
-                otherwise
-                    try 
-                        this.(kv{i}{1}) = kv{i}{2};
-                    catch
-                        warning( 'Unknown key: %s in file %s', kv{i}{1}, filename );
-                    end
-            end%switch
+            optionsStruct.(key) = value;
         end%read in properties
-
-        % string interpolation of the properties
-        props = properties( this );
-        for i = 1:length(props)
-            if OI.Compatibility.is_string( this.(props{i}) )
-                this.(props{i}) = this.string_interpolation( this.(props{i}) );
-            end
-        end
-        % easiest to just do it again...
-        for i = 1:length(props)
-            if OI.Compatibility.is_string( this.(props{i}) )
-                this.(props{i}) = this.string_interpolation( this.(props{i}) );
-            end
-        end
-
-    end%load constructor
-    
+    end % function
 
 end% methods (Static
 

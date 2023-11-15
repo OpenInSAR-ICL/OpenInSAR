@@ -12,15 +12,19 @@ from src.openinsar_core.HttpJobServer import HttpJobServer
 
 
 JOB_SERVER_PORT = 8080
+OCTAVE_RUN_COMMAND = 'octave-cli'
 
 
 def found_octave():
     """Check if Octave is installed on the host system."""
     try:
-        subprocess.check_output(["octave-cli", "--version"], shell=True)
+        subprocess.check_output([OCTAVE_RUN_COMMAND, "--version"], shell=True)
         return True
     except (FileNotFoundError, subprocess.CalledProcessError):
         return False
+
+
+FOUND_OCTAVE = found_octave()
 
 
 @pytest.mark.skipif(not found_octave(), reason="Octave not found on command line")
@@ -39,11 +43,10 @@ def test_command_octave():
     """Call Octave script from python. Skips if octave-cli is not available on the command line."""
 
     # Get the path to the octave binary
-    octave_path = 'octave-cli'
     command = "disp('hello from octave')"
 
     # Run the octave command
-    o = subprocess.check_output([octave_path, "--eval", command], shell=True)
+    o = subprocess.check_output([OCTAVE_RUN_COMMAND, "--eval", command], shell=True)
 
     # Decode the output
     o = o.decode('utf-8')
@@ -56,7 +59,6 @@ def test_command_octave():
 def test_worker_client():
     """Call the worker client. See if it is behaving properly."""
     # Get the path to the octave binary
-    octave_path = 'octave-cli'
     command = """
     cd ./output/;
     w = WorkerClient()
@@ -66,7 +68,7 @@ def test_worker_client():
 
     # Run the octave command
     try:
-        o = subprocess.check_output([octave_path, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True)
+        o = subprocess.check_output([OCTAVE_RUN_COMMAND, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True)
     except subprocess.CalledProcessError as e:
         o = e.output
         logging.warning(e.output)
@@ -92,7 +94,6 @@ def test_http_communication(server: HttpJobServer):
     assert response.status_code == 200, "Request failed"
 
     # Get the path to the octave binary
-    octave_path = 'octave-cli'
     command = f"""
     cd ./output/;
     w = WorkerClient();
@@ -106,7 +107,7 @@ def test_http_communication(server: HttpJobServer):
 
     # Run the octave command. It should get a job from the server.
     try:
-        o = subprocess.check_output([octave_path, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True)
+        o = subprocess.check_output([OCTAVE_RUN_COMMAND, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True)
     except subprocess.CalledProcessError as e:
         o = e.output
         logging.warning(e.output)
@@ -118,4 +119,5 @@ def test_http_communication(server: HttpJobServer):
     # Get the job from the server
     response = requests.get(f'http://localhost:{JOB_SERVER_PORT}/get_jobs', json={'assigned_to': worker_id})
     assert response.status_code == 200, "Request failed"
-    assert all([j['assigned_to'] == worker_id for j in response.json()['jobs']]), "Task not properly assigned to worker"
+    match = lambda j: j['assigned_to'] == worker_id and j['task'] == task
+    assert any(match(j) for j in response.json()['jobs']]), "Task not properly assigned to worker"

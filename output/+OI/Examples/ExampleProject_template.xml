@@ -1,0 +1,16 @@
+<PROJECT_DEFINITION>
+    <!-- ExampleProject.xml -->
+    <!-- Some values have defaults: -->
+    <!-- $HERE$ = the directory where the project file is located -->
+    <!-- $REPO_ROOT$ = the directory where the OpenInSAR scripts are located -->
+    <PROJECT_NAME>OpenInSAR_Project_X</PROJECT_NAME> <!-- Name of the project -->
+    <PROCESSING_SCHEME>PSI</PROCESSING_SCHEME> <!-- Processing scheme to use -->
+    <INPUT_DATA_LIST>$HERE$/$PROJECT_NAME$/input_data.txt</INPUT_DATA_LIST> <!-- File containing a list of data to process -->
+    <INPUT_DATA_DIR>$HERE$/$PROJECT_NAME$/input</INPUT_DATA_DIR> <!-- Directory where the data will be downloaded to or loaded from -->
+    <OUTPUT_DATA_DIR>$HERE$/$PROJECT_NAME$/work</OUTPUT_DATA_DIR> <!-- Directory where the output will be written to -->
+    <SECRETS_FILEPATH>$HOME$/secrets.txt</SECRETS_FILEPATH>
+    <AOI>[51.8, -2.9, 51.3, -3.9]</AOI> <!-- Rectangular, NESW, WGS84 lat/lon -->
+    <START_DATE>20180101</START_DATE> <!-- Start date of the data to search -->
+    <END_DATE>20190101</END_DATE> <!-- End date of the data to search -->
+    <TRACKS>30</TRACKS>
+</PROJECT_DEFINITION>

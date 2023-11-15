@@ -13,6 +13,9 @@ class Job:
     def to_json(self) -> dict[str, str]:
         """Convert the job to a JSON object."""
         return {'assigned_to': self.assigned_to, 'task': self.task}
+    
+    def __repr__(self) -> str:
+        return f"Job(assigned_to={self.assigned_to}, task={self.task})"
 
 
 class Worker:
