@@ -18,10 +18,10 @@ methods (Static)
         % Create message object
         messageObj = OI.Message();
         messageObj.httpMethod = 'POST';
-        messageObj.endpoint = 'worker';
+        messageObj.endpoint = 'add_worker';
         messageObj.contentType = 'json';
         messageObj.content = {'worker_id',worker_id,'octave_query','workaround'};
-        
+
     end % register_worker
 
     function messageObj = get_job(worker_id)
@@ -33,10 +33,10 @@ methods (Static)
         % Create message object
         messageObj = OI.Message();
         messageObj.httpMethod = 'GET';
-        messageObj.endpoint = 'jobs';
+        messageObj.endpoint = 'get_jobs';
         messageObj.contentType = 'json';
         messageObj.content = {'worker_id',worker_id,'octave_query','workaround'};
-        
+
     end % get_task
 
     function messageObj = ready_for_job(worker_id)
@@ -48,10 +48,10 @@ methods (Static)
         % Create message object
         messageObj = OI.Message();
         messageObj.httpMethod = 'POST';
-        messageObj.endpoint = 'jobs';
+        messageObj.endpoint = 'get_jobs';
         messageObj.contentType = 'json';
         messageObj.content = {'worker_id','manager', 'requested_by',worker_id, 'octave_query','workaround'};
-        
+
     end
 
     function str = arg_to_string(arg)

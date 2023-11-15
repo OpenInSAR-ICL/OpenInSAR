@@ -52,7 +52,6 @@ methods
 
         if nargin>2 % content
             if ~ischar(content) && ~iscellstr(content)
-                content
                 error('Content must be stringy, or cell array of stringys');
             end
         else % default content

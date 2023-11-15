@@ -116,6 +116,6 @@ def test_http_communication(server: HttpJobServer):
     assert task.lower() in o.lower(), "Task not found in output"
 
     # Get the job from the server
-    response = requests.get(f'http://localhost:{JOB_SERVER_PORT}/jobs', json={'assigned_to': worker_id})
+    response = requests.get(f'http://localhost:{JOB_SERVER_PORT}/get_jobs', json={'assigned_to': worker_id})
     assert response.status_code == 200, "Request failed"
     assert all([j['assigned_to'] == worker_id for j in response.json()['jobs']]), "Task not properly assigned to worker"

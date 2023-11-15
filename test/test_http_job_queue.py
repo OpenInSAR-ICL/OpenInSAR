@@ -34,12 +34,12 @@ def test_server(server: HttpJobServer):
 def test_post_job(server):
     response = requests.post(f'{BASE_URL}/add_job', json={'assigned_to': 'user1', 'task': 'Task 1'})
     assert response.status_code == 200
-    assert response.json()['message'] == 'Job posted successfully'
+    assert 'success' in response.json().keys()
 
 
 @pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
 def test_get_jobs_all(server):
-    response = requests.get(f'{BASE_URL}/jobs')
+    response = requests.get(f'{BASE_URL}/get_jobs')
     assert response.status_code == 200, "Request failed"
     assert len(response.content) > 0, "Response was empty"
     assert 'jobs' in response.json(), "Response did not contain jobs json"
@@ -51,7 +51,7 @@ def test_get_jobs_assigned_to_user(server):
     requests.post(f'{BASE_URL}/add_job', json={'assigned_to': 'user2', 'task': 'Task 2'})
     requests.post(f'{BASE_URL}/add_job', json={'assigned_to': 'user3', 'task': 'Task 3'})
 
-    response = requests.get(f'{BASE_URL}/jobs?assigned_to=user2')
+    response = requests.get(f'{BASE_URL}/get_jobs?assigned_to=user2')
     assert response.status_code == 200
     assert 'jobs' in response.json()
     assert len(response.json()['jobs']) == 1
@@ -60,7 +60,7 @@ def test_get_jobs_assigned_to_user(server):
 
 @pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
 def test_get_jobs_nonexistent_user(server):
-    response = requests.get(f'{BASE_URL}/jobs?assigned_to=nonexistent_user')
+    response = requests.get(f'{BASE_URL}/get_jobs?assigned_to=nonexistent_user')
     assert response.status_code == 200
     assert 'jobs' in response.json()
     assert len(response.json()['jobs']) == 0
@@ -78,7 +78,7 @@ def test_deployment_via_main(lock_resource):
     server_inst = main()
 
     # send a request to the server
-    response = requests.get(f'{BASE_URL}/jobs')
+    response = requests.get(f'{BASE_URL}/get_jobs')
     assert response.status_code == 200
     assert 'jobs' in response.json()
 

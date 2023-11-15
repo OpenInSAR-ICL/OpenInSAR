@@ -1,7 +1,7 @@
 classdef MessengerBase
 
     methods (Abstract)
-        function send(obj, message)
+        function send(~, ~)
         end
     end
 
