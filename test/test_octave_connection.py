@@ -68,7 +68,7 @@ def test_worker_client() -> None:
     try:
         o: str = subprocess.check_output([OCTAVE_RUN_COMMAND, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True).decode('utf-8')
     except subprocess.CalledProcessError as e:
-        o = e.output
+        o = e.output.decode('utf-8')
         logging.warning(e.output)
 
     logging.getLogger().error(o)

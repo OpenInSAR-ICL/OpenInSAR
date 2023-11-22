@@ -1,5 +1,8 @@
-from .MessageHandling import handle_get_jobs, handle_add_job, get_content, handle_add_worker
-messages = {
+from .MessageHandling import handle_get_jobs, handle_add_job, get_content, handle_add_worker, handle_add_queue, handle_get_queue
+from typing import Any
+
+
+messages: dict[str, dict[str, Any]] = {
     'get_jobs': {
         'method': 'GET',
         'decoder': get_content,

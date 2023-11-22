@@ -134,7 +134,7 @@ start_matlab() {
                 break
             fi  
         done
-
+    done
 }
 
 # Help message
