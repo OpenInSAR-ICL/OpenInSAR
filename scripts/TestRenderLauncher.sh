@@ -100,7 +100,7 @@ check_command() {
 
 # Help message
 help() {
-	echo $help_message
+	echo "$help_message"
 	exit 0
 }
 
