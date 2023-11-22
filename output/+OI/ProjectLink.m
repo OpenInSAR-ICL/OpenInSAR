@@ -11,6 +11,7 @@ properties ( GetAccess = private, SetAccess = private )
     unix_path = ''
     windows_path = ''
     xmlStruct = struct()
+    user = '';
 end
 
 methods
@@ -32,6 +33,7 @@ methods
         else
             this = this.parse_link_file();
         end
+
         this.check_project_file_exists();
     end % ProjectLink
 
@@ -61,14 +63,14 @@ methods ( Access = private )
         % Example usage
         if OI.OperatingSystem.isWindows
             OS = 'windows';
-            user = getenv('USERNAME');
+            this.user = getenv('USERNAME');
         elseif OI.OperatingSystem.isUnix
             OS = 'unix';
-            user = getenv('USER');
+            this.user = getenv('USER');
         end
 
         % Construct the key based on the user and OS
-        key = [user, '_', OS];
+        key = [this.user, '_', OS];
 
         % check if the key exists in the map
         if isKey(userPaths, key)
@@ -110,6 +112,9 @@ methods ( Access = private )
     end % get_project_path
 
     function this = resolve_relative_path(this)
+        
+        % replace the username
+        this.projectPath = strrep(this.projectPath, '$USERNAME', this.user);
         % resolve any relative paths
         this.projectPath = OI.Functions.abspath( this.projectPath );
     end

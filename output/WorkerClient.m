@@ -59,16 +59,20 @@ methods
     end % function
 
     function this = set_role(this, role)
+        % Default is to get role from env
+        if nargin == 1
+            role = this.workerInfo.role;
+        end
         % Set the role of the worker
         if strcmpi(role, 'manager')
-            this.engine = OI.DistributionEngine(this.workerInfo);
+            this.engine = OI.DistributionEngine();
             this.role = 'manager';
         elseif strcmpi(role, 'relay')
-            this.engine = OI.Engine(this.workerInfo);
+            this.engine = OI.Engine();
             this.role = 'relay';
         else 
             % if strcmpi(role, 'processor')
-            this.engine = OI.Engine(this.workerInfo);
+            this.engine = OI.Engine();
             this.role = 'processor';
         end % if
     end % function

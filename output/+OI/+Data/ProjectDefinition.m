@@ -169,7 +169,7 @@ methods (Static)
         fclose( fId );
 
         % now switch based on file being XML or old format
-        if ~isempty( regexp( fileContent, '<\?xml', 'once' ) )
+        if OI.Compatibility.contains(filename,'.xml') || ~isempty( regexp( fileContent, '<\?xml', 'once' ) )
             this = this.load_from_xml( fileContent );
         else
             this = this.load_from_legacy_file( fileContent );
