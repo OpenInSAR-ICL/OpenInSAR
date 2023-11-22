@@ -31,13 +31,12 @@ methods
 
     function obj = get_max_cpus( obj )
         % get number of available cores
-        nCpuEnvVar = getenv('nCpus');
-        if ~isempty(nCpuEnvVar)
-            nCpu = str2num(nCpuEnvVar); %#ok<ST2NM>
-        else
-            warning('nCpus environment variable not set. Using 4.');
-            nCpu = 4; % Pure guess
+        nCpu = getenv('ICL_LAUNCHER_ARG_NUM_CORES'); % default to 1
+        % nCpu = getenv('nCpu') % old name
+        if isempty(nCpu)
+            nCpu = '1';
         end
+        nCpi = str2double(nCpu);
         obj.nCpus = nCpu;
     end
 

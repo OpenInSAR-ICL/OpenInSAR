@@ -19,6 +19,18 @@ messages = {
         'action': handle_add_worker,
         'content_type': 'application/json',
         'required_parameters': ['worker_id']
-    }
+    },
+    'add_queue': {
+        'method': 'POST',
+        'decoder': get_content,
+        'action': handle_add_queue,
+        'content_type': 'application/json',
+    },
+    'get_queue': {
+        'method': 'GET',
+        'decoder': get_content,
+        'action': handle_get_queue,
+        'content_type': 'application/json',
+    },
     # ... (other routes)
 }

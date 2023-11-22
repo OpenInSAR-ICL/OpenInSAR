@@ -3,9 +3,10 @@
 import pytest
 import requests
 from .TestUtilities import lock_resource
+from .test_octave_connection import found_octave
 from src.openinsar_core.HttpJobServer import HttpJobServer
 from typing import Generator
-
+import subprocess
 assert lock_resource is not None  # Just to shut up the linters who think its unused
 
 
@@ -31,15 +32,37 @@ def test_server(server: HttpJobServer):
 
 
 @pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
+def test_no_queues(server: HttpJobServer):
+    """Test that the server starts with no queues"""
+    response = requests.get(f'{BASE_URL}/get_queue')
+    assert response.status_code == 200
+    assert 'queues' in response.json()
+    assert len(response.json()['queues']) == 0
+
+
+@pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
+def test_add_queue(server: HttpJobServer):
+    """Test adding a queue to the server"""
+    response = requests.post(f'{BASE_URL}/add_queue', json={'queue_id': 'queue1'})
+    assert response.status_code == 200
+    assert 'success' in response.json().keys()
+    # Check that the queue was added
+    response = requests.get(f'{BASE_URL}/get_queue')
+    assert response.status_code == 200
+    assert 'queues' in response.json()
+    assert len(response.json()['queues']) == 1
+
+
+@pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
 def test_post_job(server):
-    response = requests.post(f'{BASE_URL}/add_job', json={'assigned_to': 'user1', 'task': 'Task 1'})
+    response: Response = requests.post(f'{BASE_URL}/add_job', json={'assigned_to': 'user1', 'task': 'Task 1'})
     assert response.status_code == 200
     assert 'success' in response.json().keys()
 
 
 @pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
 def test_get_jobs_all(server):
-    response = requests.get(f'{BASE_URL}/get_jobs')
+    response: Response = requests.get(f'{BASE_URL}/get_jobs')
     assert response.status_code == 200, "Request failed"
     assert len(response.content) > 0, "Response was empty"
     assert 'jobs' in response.json(), "Response did not contain jobs json"
@@ -84,3 +107,16 @@ def test_deployment_via_main(lock_resource):
 
     # stop the server
     server_inst.stop()
+
+
+@pytest.mark.skipif(not found_octave(), reason="Octave not found on command line")
+@pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
+def test_send_job_via_octave(lock_resource):
+    octave_path = 'octave-cli'
+    command = """
+    cd ./output/;
+    w = WorkerClient()
+    """
+    # Remove newlines
+    command = command.replace('\n', ' ')
+    o = subprocess.check_output([octave_path, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True)

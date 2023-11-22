@@ -2,6 +2,7 @@ import json
 from .ThreadedHttpServer import ThreadedHttpServer
 from .MessageHandling import Job, Worker, BaseJobServerHandler
 from .Messages import messages
+from typing import Any
 
 
 class JobServerHandler(BaseJobServerHandler):
@@ -9,10 +10,11 @@ class JobServerHandler(BaseJobServerHandler):
 
     def __init__(self, *args, job_queue: list[Job] = [], worker_registry: list[Worker] = [], **kwargs) -> None:
         """Initialise the handler with a job queue."""
-        self.job_queue = job_queue
-        self.worker_registry = worker_registry
+        self.job_queues: dict[Any, Any] = {}
+        self.worker_registry: list[Any] = worker_registry
+
         # Filter out any kwargs that are not accepted by the SimpleHTTPRequestHandler
-        kwargs = {key: value for key, value in kwargs.items() if key in BaseJobServerHandler.__init__.__code__.co_varnames}
+        kwargs: dict[str, Any]: = {key: value for key, value in kwargs.items() if key in BaseJobServerHandler.__init__.__code__.co_varnames}
         super().__init__(*args, **kwargs)
 
     def do_GET(self) -> None:
@@ -20,29 +22,29 @@ class JobServerHandler(BaseJobServerHandler):
         This handles the GET request. This includes:
         - /jobs: Return the job queue
         """
-        self.handle_message('GET')
+        self.handle_message(method='GET')
 
     def do_POST(self) -> None:
         """
         Handle post requests. This includes:
         - /add_job: Add a job to the queue
         """
-        self.handle_message('POST')
+        self.handle_message(method='POST')
 
     def log_request(self, code: int | str = "-", size: int | str = "-") -> None:
         """Override to prevent stderr logging."""
         print(f"{self.address_string()} - - [{self.log_date_time_string()}] {self.requestline} {code} {size}")
 
-    def failure_response(self):
+    def failure_response(self) -> None:
         self.send_response(500, "Not found")
 
-    def success_response(self):
+    def success_response(self) -> None:
         self.send_response(200, "OK")
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+        self.wfile.write(json.dumps(obj={"success": True}).encode(encoding="utf-8"))
 
-    def handle_message(self, method):
+    def handle_message(self, method) -> None:
         """Handle a message based on the path."""
         path_no_query = self.path.split("?")[0]
         if any([path_no_query is None, path_no_query == '', path_no_query == '/']):  # if the path is empty, return the index page
@@ -83,10 +85,10 @@ class JobServerHandler(BaseJobServerHandler):
 
 
 class HttpJobServer(ThreadedHttpServer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.handler: JobServerHandler
         # filter out any kwargs that are not accepted by the ThreadedHttpServer
-        kwargs = {key: value for key, value in kwargs.items() if key in ThreadedHttpServer.__init__.__code__.co_varnames}
+        kwargs: dict[str, Any] = {key: value for key, value in kwargs.items() if key in ThreadedHttpServer.__init__.__code__.co_varnames}
         super().__init__(*args, handler=JobServerHandler, **kwargs)
 
 
@@ -99,7 +101,7 @@ def main() -> HttpJobServer:
         >  python -m src.openinsar_core.HttpJobServer local
     """
     import sys
-    import src.openinsar_core.DeploymentConfig as DeploymentConfig
+    from . import DeploymentConfig
 
     # Get target platform from command line arguments
     if len(sys.argv) > 1:
