@@ -51,19 +51,22 @@ methods
         this.queue.clear();
     end
 
-    function run_next_job( this )
+    function run_next_job( this, messenger )
+        if nargin < 2
+            messenger = ''; % default to no messenger
+        end
         this.throw_error_if_no_project_loaded();
         nextJob = this.queue.next_job();
         if ~isempty(nextJob)
             this.ui.log('debug', 'Running job %s\n', nextJob.to_string());
             this.currentJob = nextJob.to_string();
-            this.run_job(nextJob);
+            this.run_job(nextJob, messenger);
         else
             this.ui.log('info', 'No jobs in queue\n');
         end
     end
 
-    function run_job( this, job )
+    function run_job( this, job, messenger )
         this.throw_error_if_no_project_loaded();
         % if its a string, convert to a job object
         if ischar(job)
@@ -101,7 +104,7 @@ methods
             % time the plugin run
             ticPlugin = tic;
             % actually run the plugin!
-            this.run_plugin( job );
+            this.run_plugin( job, messenger );
             % log the time
             tocPlugin = toc(ticPlugin);
             this.finish_job(job, tocPlugin)

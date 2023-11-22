@@ -1,4 +1,16 @@
+"""
+Virtual environments and packages can be a bit awkward on HPC. 
+This script offers a message broker for jobs without requiring external packages.
+This is useful for development and getting things running.
+"""
+
+import os
+import sys
+import time
 import json
+import uuid
+import http.server
+import threading
 from typing import Any
 from http.server import SimpleHTTPRequestHandler
 
@@ -104,27 +116,26 @@ def handle_add_worker(handler, worker_str: str) -> None:
     send_json_response(handler, 200, {"success": True})
 
 
-def handle_add_queue(handler, queue_str: str) -> None:
-    """Create a new queue."""
-    
-    # if its a query string, parse it
-    if "octave_query=" in queue_str:
-        body = dict(qc.split("=") for qc in queue_str.split("&"))
-        # remove the octave_query key
-        body.pop("octave_query")
-        # remove anything not in the Worker constructor
-        body = {key: value for key, value in body.items() if key in Worker.__init__.__code__.co_varnames}
-        queue = Queue(**body)
-    else:  # otherwise, its a json string
-        # convert the string to a Job object
-        queue = Queue(**json.loads(queue_str))
-
-    # add the queue to the registry
-    handler.queue_registry.append(queue)
-    send_json_response(handler, 200, {"success": True})
-
-
-def handle_get_queue(handler, queue_id: str) -> None:
-    """Get a queue from the registry."""
-
-    
+messages = {
+    'get_jobs': {
+        'method': 'GET',
+        'decoder': get_content,
+        'action': handle_get_jobs,
+        'content_type': 'application/json',
+        'optional_parameters': ['worker_id']
+    },
+    'add_job': {
+        'method': 'POST',
+        'decoder': get_content,
+        'action': handle_add_job,
+        'content_type': 'application/json',
+    },
+    'add_worker': {
+        'method': 'POST',
+        'decoder': get_content,
+        'action': handle_add_worker,
+        'content_type': 'application/json',
+        'required_parameters': ['worker_id']
+    }
+    # ... (other routes)
+}
