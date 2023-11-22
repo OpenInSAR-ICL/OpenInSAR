@@ -14,7 +14,7 @@ class JobServerHandler(BaseJobServerHandler):
         self.worker_registry: list[Any] = worker_registry
 
         # Filter out any kwargs that are not accepted by the SimpleHTTPRequestHandler
-        kwargs: dict[str, Any]: = {key: value for key, value in kwargs.items() if key in BaseJobServerHandler.__init__.__code__.co_varnames}
+        kwargs = {key: value for key, value in kwargs.items() if key in BaseJobServerHandler.__init__.__code__.co_varnames}
         super().__init__(*args, **kwargs)
 
     def do_GET(self) -> None:
@@ -88,7 +88,7 @@ class HttpJobServer(ThreadedHttpServer):
     def __init__(self, *args, **kwargs) -> None:
         self.handler: JobServerHandler
         # filter out any kwargs that are not accepted by the ThreadedHttpServer
-        kwargs: dict[str, Any] = {key: value for key, value in kwargs.items() if key in ThreadedHttpServer.__init__.__code__.co_varnames}
+        kwargs = {key: value for key, value in kwargs.items() if key in ThreadedHttpServer.__init__.__code__.co_varnames}
         super().__init__(*args, handler=JobServerHandler, **kwargs)
 
 

@@ -5,7 +5,7 @@ import requests
 from .TestUtilities import lock_resource
 from .test_octave_connection import found_octave
 from src.openinsar_core.HttpJobServer import HttpJobServer
-from typing import Generator
+from typing import Generator, Any
 import subprocess
 assert lock_resource is not None  # Just to shut up the linters who think its unused
 
@@ -54,15 +54,15 @@ def test_add_queue(server: HttpJobServer):
 
 
 @pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
-def test_post_job(server):
-    response: Response = requests.post(f'{BASE_URL}/add_job', json={'assigned_to': 'user1', 'task': 'Task 1'})
+def test_post_job(server: HttpJobServer) -> None:
+    response: requests.Response = requests.post(f'{BASE_URL}/add_job', json={'assigned_to': 'user1', 'task': 'Task 1'})
     assert response.status_code == 200
     assert 'success' in response.json().keys()
 
 
 @pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
-def test_get_jobs_all(server):
-    response: Response = requests.get(f'{BASE_URL}/get_jobs')
+def test_get_jobs_all(server: HttpJobServer):
+    response: requests.Response = requests.get(f'{BASE_URL}/get_jobs')
     assert response.status_code == 200, "Request failed"
     assert len(response.content) > 0, "Response was empty"
     assert 'jobs' in response.json(), "Response did not contain jobs json"
@@ -118,5 +118,5 @@ def test_send_job_via_octave(lock_resource):
     w = WorkerClient()
     """
     # Remove newlines
-    command = command.replace('\n', ' ')
-    o = subprocess.check_output([octave_path, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True)
+    command: str = command.replace('\n', ' ')
+    o: str = subprocess.check_output([octave_path, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True).decode('utf-8')

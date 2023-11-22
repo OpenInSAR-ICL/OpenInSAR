@@ -26,6 +26,7 @@ methods
                 end % if
             end % while
         catch ERR
+            disp(ERR)
             this.handle_uncaught_exception(ERR);
             exit(1);
         end % try
@@ -99,6 +100,12 @@ methods
 
     function handle_uncaught_exception(this, ERR)
         % Error is unhandled. Restart matlab via the calling script.
+        % check we have workerInfo, otherwise we don't know how to restart
+        if isempty(this.workerInfo)
+            % We probably haven't initialised successfully
+            rethrow(ERR);
+        end % if
+
         % First, log the error:
         workerId = this.id();
         if isnumeric(workerId)
@@ -128,6 +135,11 @@ methods
     end % run
 
     function id = id( this )
+        if isempty(this.workerInfo)
+            id = 'Unknown';
+            return
+        end
+
         % Shortcut to get the id from the worker info struct
         id = this.workerInfo.id;
     end % function
@@ -240,7 +252,7 @@ methods
 
         % Try to load some target data. This will add jobs to the queue.
         thingToDo = OI.Data.PsiSummary();
-        this.engine.load( thingToDoList{end} )
+        this.engine.load( thingToDo )
 
         % Main loop for managing tasks
         while true
@@ -292,7 +304,7 @@ methods
             % Check if the queue is empty
             if this.engine.queue.is_empty()
                 % Load some more data
-                this.engine.load( thingToDoList{end} )
+                this.engine.load( thingToDo )
                 % if the queue is still empty, we are done
                 if this.engine.queue.is_empty()
                     this.messenger.send( OI.Message.status('manager_queue', 'empty') );

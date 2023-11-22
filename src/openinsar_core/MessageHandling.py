@@ -13,9 +13,24 @@ class Job:
     def to_json(self) -> dict[str, str]:
         """Convert the job to a JSON object."""
         return {'assigned_to': self.assigned_to, 'task': self.task}
-    
+
     def __repr__(self) -> str:
         return f"Job(assigned_to={self.assigned_to}, task={self.task})"
+
+
+class Queue:
+    """A named queue of jobs."""
+
+    def __init__(self, queue_id: str) -> None:
+        self.queue_id: str = queue_id
+        self.jobs: list[Job] = []
+
+    def to_json(self) -> dict[str, Any]:
+        """Convert the queue to a JSON object."""
+        return {'queue_id': self.queue_id, 'jobs': [job.to_json() for job in self.jobs]}
+
+    def __repr__(self) -> str:
+        return f"Queue(queue_id={self.queue_id}, jobs={self.jobs})"
 
 
 class Worker:
@@ -54,13 +69,14 @@ def send_json_response(self, status_code: int, content: dict[str, Any]) -> None:
 
 def handle_get_jobs(handler, worker_id: str) -> None:
     # get the query string
-    query = {}
+    query: dict[str, str] = {}
     if "?" in handler.path:
-        query_string = handler.path.split("?")[1]
-        # parse the query string
-        query = dict(qc.split("=") for qc in query_string.split("&"))
+        query_string: str | None = handler.path.split("?")[1]
+        # ternary operator to check if there is a query string
+        if query_string is not None:
+            query = dict(qc.split("=") for qc in query_string.split("&"))
     # get the assigned_to parameter
-    assigned_to = query.get("assigned_to", None)
+    assigned_to: str | None = query.get("assigned_to", None)
     # filter the job queue
     if assigned_to is not None:
         response = [job.to_json() for job in handler.job_queue if job.assigned_to == assigned_to]
@@ -96,7 +112,7 @@ def handle_add_worker(handler, worker_str: str) -> None:
         # remove the octave_query key
         body.pop("octave_query")
         # remove anything not in the Worker constructor
-        body = {key: value for key, value in body.items() if key in Worker.__init__.__code__.co_varnames}
+        body: dict[str, str] = {key: value for key, value in body.items() if key in Worker.__init__.__code__.co_varnames}
         worker = Worker(**body)
     else:  # otherwise, its a json string
         # convert the string to a Job object
@@ -109,14 +125,14 @@ def handle_add_worker(handler, worker_str: str) -> None:
 
 def handle_add_queue(handler, queue_str: str) -> None:
     """Create a new queue."""
-    
+
     # if its a query string, parse it
     if "octave_query=" in queue_str:
         body = dict(qc.split("=") for qc in queue_str.split("&"))
         # remove the octave_query key
         body.pop("octave_query")
         # remove anything not in the Worker constructor
-        body = {key: value for key, value in body.items() if key in Worker.__init__.__code__.co_varnames}
+        body: dict[str, str] = {key: value for key, value in body.items() if key in Worker.__init__.__code__.co_varnames}
         queue = Queue(**body)
     else:  # otherwise, its a json string
         # convert the string to a Job object
@@ -130,4 +146,7 @@ def handle_add_queue(handler, queue_str: str) -> None:
 def handle_get_queue(handler, queue_id: str) -> None:
     """Get a queue from the registry."""
 
-    
+    # get the queue
+    queue: Queue = handler.queue_registry[queue_id]
+    # return the queue
+    send_json_response(handler, 200, {"queue": queue.to_json()})

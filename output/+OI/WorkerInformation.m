@@ -7,7 +7,7 @@ properties
 end
 
 methods
-    function obj = WorkerInformation( ~ )
+    function obj = WorkerInformation( obj )
         % Get the worker ID from the environment
         obj = obj.get_worker_index();
         % Get the number of available cores
@@ -36,8 +36,9 @@ methods
         if isempty(nCpu)
             nCpu = '1';
         end
-        nCpi = str2double(nCpu);
+        nCpu = str2double(nCpu);
         obj.nCpus = nCpu;
+        maxNumCompThreads(nCpu);
     end
 
 end % methods
