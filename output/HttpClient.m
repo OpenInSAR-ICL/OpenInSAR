@@ -18,6 +18,8 @@ classdef HttpClient
         server_ip
         server_port
         server_url
+        server_host
+        my_hostname
         id
     end
     
@@ -58,6 +60,11 @@ classdef HttpClient
             % split port line
             port_line = strsplit(port_line, ': ');
             obj.server_port = port_line{2};
+            % split host line
+            host_line = strsplit(server_info{3}, ': ');
+            obj.server_host = host_line{2};
+            obj.server_ip = obj.server_host;
+            obj.my_hostname = getenv('HOSTNAME');
             
             % Create server URL
             obj.server_url = sprintf('http://%s:%s', obj.server_ip, obj.server_port);
@@ -84,12 +91,21 @@ classdef HttpClient
             % Set the json payload
             json_payload = struct('sender_id', obj.id, 'receiver_id', 'receiver1', 'message', 'data1');
 
-            % Send a POST request along with the JSON payload
-            try
-                response = webwrite(obj.server_url, json_payload, web_options)
-            catch
-                error('Could not connect to server at %s. Please make sure the server is running.', obj.server_url);
+
+            maxRetries = 10;
+            originalTimeout = web_options.Timeout;
+            for retries = 1:maxRetries
+                % set timeout
+                web_options.Timeout = 10;
+                % Send a POST request along with the JSON payload
+                try
+                    response = webwrite(obj.server_url, json_payload, web_options);
+                    break
+                catch
+                    error('Could not connect to server at %s. Please make sure the server is running.', obj.server_url);
+                end
             end
+            web_options.Timeout = originalTimeout;
 
             % Check if the response is correct
             if ~strcmp(response.message, 'Message received')
@@ -98,10 +114,11 @@ classdef HttpClient
 
             % Now send a GET request to the server to ensure it has logged our POST request
             try
-                response = webread(obj.server_url)
+                response = webread(obj.server_url);
             catch
                 error('Could not connect to server at %s. Please make sure the server is running.', obj.server_url);
             end
+            disp(response)
 
             % The response might be:
             %  - empty
@@ -109,23 +126,35 @@ classdef HttpClient
             %  - a cell array
 
             % If the response is empty, there are no messages
-            if numel(response) == 0
+            if numel(response) == 0 
                 warning('no messages');
-            elseif isstruct(response)
+            elseif iscell(response)
+                fprintf(1,'Msg is a cell array\n')
+                % pass
+            elseif isstruct(response) || (isarray(response) && isstruct(response(1)))
                 % If the response is a struct array, convert it to a cell array
+                fprintf(1,'Converting struct array to cell array\n')
                 response_as_struct = response;
+                response = cell(numel(response_as_struct), 1);
                 for ii = 1:numel(response)
+                    fprintf(1,'Converting struct %d to cell\n', ii)
                     response{ii} = response_as_struct(ii);
                 end
-            elseif iscell(response)
-                % pass
+            else
+                warning('Unknown response type.');
+                try
+                    disp(response{1})
+                catch
+                    fprintf(1,'Msg is not cell form\n')
+                    disp(response(1))
+                end
+                error('Unknown response type.');
             end
 
             % Print the messages
             for i = 1:numel(response)
                 fprintf(1, 'Message %d:\n', i);
-                response
-                response{i}
+                assert(iscell(response)&&isstruct(response{i}));
                 try
                     fprintf(1, 'Sender ID: %s\n', response{i}.sender_id);
                     fprintf(1, 'Receiver ID: %s\n', response{i}.receiver_id);

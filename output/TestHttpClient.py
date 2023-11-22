@@ -13,6 +13,9 @@ if __name__ == "__main__":
     with open(info_file_path, "r") as file:
         ip_address = file.readline().split(":")[1].strip()
         port = file.readline().split(":")[1].strip()
+        hostname = file.readline().split(":")[1].strip()
+
+    ip_address = hostname
 
     # Wait a min to ensure the server is running
     while True:

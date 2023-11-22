@@ -1,5 +1,9 @@
 #!/bin/bash
 help_message=$(cat <<EOH
+=====================
+LaunchMatlabWorker.sh
+=====================
+
 Launch a matlab process on the ICL HPC system.
 Usage:
     LaunchMatlabWorker.sh [options] <command>
@@ -100,7 +104,7 @@ check_command() {
 
 # Help message
 help() {
-	echo $help_message
+	echo -e "$help_message"
 	exit 0
 }
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 help_message=$(cat <<EOH
-=====================
+===================== 
 LaunchMatlabWorker.sh
 =====================
 
@@ -153,7 +153,7 @@ start_matlab() {
 
 # Help message
 help() {
-    echo "$help_message"
+    echo -e "$help_message"
     exit 0
 }
 

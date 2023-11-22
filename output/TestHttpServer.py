@@ -100,6 +100,9 @@ if __name__ == "__main__":
         ip_address = get_server_ip()
         file.write(f"Server IP: {ip_address}\n")
         file.write(f"Server Port: {available_port}\n")
+        # get HOSTNAME from environmental variable
+        hostname = os.environ['HOSTNAME']
+        file.write(f"Hostname: {hostname}\n")
 
     # Run HTTP server on the available port
     # thread = threading.Thread(target=run_http_server, args=(available_port,))
