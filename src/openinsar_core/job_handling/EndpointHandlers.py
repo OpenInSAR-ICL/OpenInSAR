@@ -131,7 +131,7 @@ def handle_login(handler: JobServerHandler, body: str) -> None:
                     handler.job_queues[username] = Queue(username)
                 if username not in handler.worker_pools:
                     handler.worker_pools[username] = []
-                    
+
                 send_json_response(handler, 200, {"success": True, "token": token})
                 return
 
@@ -267,6 +267,7 @@ def handle_add_worker(handler: JobServerHandler, worker_str: str) -> None:
         worker = Worker(**json.loads(worker_str))
 
     # add the worker to the registry
+    print(worker.to_json())
     handler.worker_pools[handler.current_user].append(worker)
     send_json_response(handler, 200, {"success": True})
 
@@ -276,12 +277,21 @@ def handle_get_workers(handler: JobServerHandler, worker_id: str) -> None:
     assert handler.current_user is not None, "User not logged in"
     # get the worker
     workers: list[Worker] = handler.worker_pools[handler.current_user]
-    worker: Worker | None = next((worker for worker in workers if worker.worker_id == worker_id), None)
-    if worker is None:
-        send_json_response(handler, 200, {"worker": None})
+    print(workers)
+    if len(worker_id) == 0:
+        # Convert the entire list to json
+        wlist_json = [worker.to_json() for worker in workers]
+        r = {"workers": wlist_json}
+        print(r)
+        send_json_response(handler, 200, r)
         return
-    # return the worker
-    send_json_response(handler, 200, {"worker": worker.to_json()})
+    else:
+        worker: Worker | None = next((worker for worker in workers if worker.worker_id == worker_id), None)
+        if worker is None:
+            send_json_response(handler, 200, {"worker": None})
+            return
+        # return the worker
+        send_json_response(handler, 200, {"worker": worker.to_json()})
 
 
 def handle_add_queue(handler: JobServerHandler, queue_str: str) -> None:

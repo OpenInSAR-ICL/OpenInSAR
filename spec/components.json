@@ -93,6 +93,82 @@
         "$ref": "#/schemas/Site"
       }
     },
+    "Worker": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the worker"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the worker"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of the worker"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the worker",
+          "enum": ["idle", "busy", "offline"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the worker was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the worker was last updated"
+        }
+      }
+    },
+    "WorkerList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/schemas/Worker"
+      }
+    },
+    "User": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user"
+        },
+        "username": {
+          "type": "string",
+          "description": "Username of the user"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email of the user"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the user was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the user was last updated"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user",
+          "enum": ["admin", "user"]
+        }
+      }
+    },
+    "UserList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/schemas/User"
+      }
+    },
     "NotFoundError": {
       "type": "object",
       "properties": {

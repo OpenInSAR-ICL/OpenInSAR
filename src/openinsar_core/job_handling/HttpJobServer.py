@@ -1,12 +1,13 @@
 import sys
 import json
 from ..server.ThreadedHttpServer import ThreadedHttpServer
+from ..server.SinglePageAppServer import SinglePageApplicationHandler
 from ..server.DeploymentConfig import DeploymentConfig, for_local as get_local_config, for_render as get_render_config
 from .EndpointHandlers import Job, Worker, BaseJobServerHandler
 from .Endpoints import endpoints
 
 
-class JobServerHandler(BaseJobServerHandler):
+class JobServerHandler(SinglePageApplicationHandler):
     """A handler for the JobServer. This is a subclass of SimpleHTTPRequestHandler that adds a job queue and a method for adding jobs to the queue."""
     job_queues: dict[str, list[Job]] = {}
     worker_pools: dict[str, list[Worker]] = {}
