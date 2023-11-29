@@ -88,6 +88,22 @@
             "apiKeyAuth": []
           }
         ]
+      },
+      "get": {
+        "description": "Retrieve all workers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response with a WorkerList object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "components.json#/schemas/WorkerList"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/sites": {

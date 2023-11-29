@@ -3,6 +3,7 @@ import Todo from './components/Todo.vue'
 import NotFound from './components/NotFound.vue'
 import Home from './components/HomePage.vue'
 import HtmlLoader from './components/HtmlLoader.vue'
+import WorkerListVue from './components/WorkerList.vue'
 
 // Define your routes
 const routes = [
@@ -10,6 +11,11 @@ const routes = [
     path: '/',
     name: 'Home1',
     component: Home
+  },
+  {
+    path: '/workers',
+    name: 'Workers',
+    component: WorkerListVue
   },
   // Add route for todo list
   {

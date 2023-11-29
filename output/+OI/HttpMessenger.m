@@ -68,6 +68,8 @@ methods
             options.RequestMethod = 'post';
         end
 
+        options.HeaderFields = {'Authorization', obj.token}
+
         if nargin>4 % contentType
             if ~ischar(contentType)
                 error('Protocol must be a string');
@@ -156,6 +158,8 @@ methods
             error('Invalid URI format');
         end
     end % format_uri
+
+
 
 end % methods
 

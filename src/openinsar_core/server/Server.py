@@ -2,7 +2,7 @@
 from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING
-from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler
 # from socketserver import _RequestType, BaseServer
 # from src.openinsar_core.job_handling import HttpJobServer
 # from src.openinsar_core.job_handling.Endpoints import Endpoints

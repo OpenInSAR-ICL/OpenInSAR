@@ -24,10 +24,10 @@ if __name__ == "__main__":
     # Start the server
     html_server.launch(directory=".")
     # Do something else, in this case wait for a KeyboardInterrupt
-    import time
+    from time import sleep
     while True:
         try:
-            time.sleep(1)
+            sleep(1)
         except KeyboardInterrupt:
             break
     # Stop the server

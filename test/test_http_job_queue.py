@@ -27,7 +27,7 @@ def server(lock_resource) -> Generator[HttpJobServer, None, None]:
     # Hash the password
     hashed_pass: str = bcrypt.hashpw(test_pass.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     os.environ['USERS'] = "test_user:" + str(hashed_pass)
-    server_process = HttpJobServer(port=BASE_PORT)
+    server_process = HttpJobServer(port=BASE_PORT, directory='./output')
     server_process.launch()
     yield server_process
     server_process.stop()
@@ -105,7 +105,7 @@ def test_job_server(server: HttpJobServer, headers: dict[str, str]) -> None:
     # Start with an empty job list
     response: requests.Response = requests.get(f'{BASE_URL}/api/jobs', headers=headers)
     assert response.status_code == 200, "Request failed"
-    assert len(response.content)> 0, "Response was empty"
+    assert len(response.content) > 0, "Response was empty"
     assert 'jobs' in response.json(), "Response did not contain jobs json"
 
     # Add a job
@@ -164,7 +164,7 @@ def test_deployment_via_main(lock_resource, headers: dict[str, str]):
 
 @pytest.mark.skipif(not found_octave(), reason="Octave not found on command line")
 @pytest.mark.parametrize("lock_resource", ["port" + str(BASE_PORT)], indirect=True, ids=["Use port " + str(BASE_PORT)])  # Mutex for the port
-def test_send_job_via_octave(lock_resource, headers: dict[str, str]):
+def test_connect_via_octave(lock_resource, headers: dict[str, str]):
     # Set environment variables
     os.environ['OI_USERNAME'] = 'test_user'
     os.environ['OI_PASSWORD'] = 'test_password'
@@ -172,12 +172,21 @@ def test_send_job_via_octave(lock_resource, headers: dict[str, str]):
     os.environ['OI_MESSENGER_TYPE'] = 'http'
     octave_path = 'octave-cli'
     command = """
+    adr = "http://localhost:8888/api";
     setenv("OI_USERNAME", "test_user");
     setenv("OI_PASSWORD", "test_password");
-    setenv("OI_SERVER", "http://localhost:8888/api");
+    setenv("OI_SERVER", adr);
     setenv("OI_MESSENGER", "http");
+
     cd ./output/;
-    w = WorkerClient()
+
+    % Create the Http interface and log in using the envvars above.
+    m = OI.HttpMessenger(adr).connect()
+    % Register the worker
+    startList = m.send_request('worker','','get')
+    postRespose = m.send_request('workers',{'octave_query=true&worker_id=Bilbo'},'post')
+    updatedList = m.send_request('worker','','get')
+    % Bilbo should now be in updatedList
     """
     # Remove newlines
     command: str = command.replace('\n', ' ')
@@ -186,5 +195,8 @@ def test_send_job_via_octave(lock_resource, headers: dict[str, str]):
     except subprocess.CalledProcessError as e:
         print(e.output)
         o = e.output.decode('utf-8')
+    from time import sleep
+    while True:
+        sleep(0.1)
     assert 'success' in o, "Octave did not successfully communicate with the server"
     assert 'token' in o, 'Octave did not log in'
