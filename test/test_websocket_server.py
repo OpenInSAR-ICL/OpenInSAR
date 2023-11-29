@@ -1,5 +1,5 @@
 import pytest
-from src.openinsar_core.ThreadedWebsocketServer import ThreadedWebsocketServer
+from src.openinsar_core.server.ThreadedWebsocketServer import ThreadedWebsocketServer, WebsocketMessageHandler
 from test.TestUtilities import lock_resource
 from websockets.sync.client import connect
 
@@ -75,8 +75,6 @@ def test_websocket_echo(lock_resource):
 
 @pytest.mark.parametrize("lock_resource", ["port8767"], indirect=True, ids=["Use port 8767"])  # Mutex for the port
 def test_message_handler_logs_received_messages(lock_resource):
-    from src.openinsar_core.ThreadedWebsocketServer import WebsocketMessageHandler
-
     handler = WebsocketMessageHandler(max_history_length=2)
     ws_server = ThreadedWebsocketServer(port=8767, handler=handler)
     ws_server.launch()

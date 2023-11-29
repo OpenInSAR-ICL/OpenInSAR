@@ -56,8 +56,8 @@ def test_webapp_build():
 @pytest.mark.parametrize("lock_resource", ["port8002"], indirect=True, ids=["Use port 8002"])  # Mutex for the port
 def test_single_page_application(lock_resource):
     """The web app should respond properly to HTTP requests."""
-    from src.openinsar_core.SinglePageAppServer import SinglePageApplicationHandler
-    from src.openinsar_core.ThreadedHttpServer import ThreadedHttpServer
+    from src.openinsar_core.server.SinglePageAppServer import SinglePageApplicationHandler
+    from src.openinsar_core.server.ThreadedHttpServer import ThreadedHttpServer
     import requests
 
     # Launch the server

@@ -14,10 +14,10 @@ methods
         try
             this = this.setup();
             % main loop, breaks out on either a config or stop event
-            while True 
+            while true
                 if strcmpi(this.role,'manager')
                     this = this.manager_main();
-                else 
+                else
                     this = this.main();
                 end
                 % Check the exit flag
@@ -39,22 +39,22 @@ methods
         this = this.set_role();
     end % function
 
-    function this = set_messenger(this, messengerType, messengerEndpoint)
+    function this = set_messenger(this, messengerType, serverAddress)
         % Set the messenger, according to environment variables
         if nargin < 2
             messengerType = getenv('OI_MESSENGER');
         end % if
         if nargin < 3
-            messengerEndpoint = getenv('OI_MESSENGER_ENDPOINT');
-            if isempty(messengerEndpoint)
-                messengerEndpoint = '$WORK/comms/';
+            serverAddress = getenv('OI_SERVER');
+            if isempty(serverAddress)
+                serverAddress = '$WORK/comms/';
             end % if
         end % if
 
         if strcmpi(messengerType, 'http')
-            this.messenger = OI.HttpMessenger(this.workerInfo, messengerEndpoint);
+            this.messenger = OI.HttpMessenger(serverAddress);
         else
-            this.messenger = OI.FileSystemMessenger(this.workerInfo, messengerEndpoint);
+            this.messenger = OI.FileSystemMessenger(this.workerInfo, serverAddress);
         end % if
     end % function
 
@@ -70,7 +70,7 @@ methods
         elseif strcmpi(role, 'relay')
             this.engine = OI.Engine();
             this.role = 'relay';
-        else 
+        else
             % if strcmpi(role, 'processor')
             this.engine = OI.Engine();
             this.role = 'processor';
@@ -218,7 +218,7 @@ methods
                 end % try
             end % while ~oi.engine.queue.is_empty()
 
-            % Check the plugin 
+            % Check the plugin
             if this.engine.plugin.isFinished
                 answer = '';
                 if dbSize < numel(oi.engine.database.data)
@@ -246,11 +246,11 @@ methods
 
     function this = manager_main(this)
         disp('Manager main routine')
-    
+
         % Connect to the server
         assert(~isempty(this.messenger), 'No messenger specified');
         this.messenger = this.messenger.connect();
-    
+
         % Register the manager
         this.messenger.send(OI.Message.register_manager(this.id));
 

@@ -1,5 +1,5 @@
 """OpenInSAR uses XML files for a variety of purposes. As such a bespoke XML interface is provided. This module tests the XML interface."""
-from src.openinsar_core.xml_utils import XmlObject
+from src.openinsar_core.utils.xml import XmlObject
 import pytest
 
 

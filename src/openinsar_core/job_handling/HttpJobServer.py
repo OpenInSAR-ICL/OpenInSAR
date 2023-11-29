@@ -1,18 +1,20 @@
+import sys
 import json
-from .ThreadedHttpServer import ThreadedHttpServer
-from .MessageHandling import Job, Worker, BaseJobServerHandler
-from .Messages import messages
-from typing import Any
+from ..server.ThreadedHttpServer import ThreadedHttpServer
+from ..server.DeploymentConfig import DeploymentConfig, for_local as get_local_config, for_render as get_render_config
+from .EndpointHandlers import Job, Worker, BaseJobServerHandler
+from .Endpoints import endpoints
 
 
 class JobServerHandler(BaseJobServerHandler):
     """A handler for the JobServer. This is a subclass of SimpleHTTPRequestHandler that adds a job queue and a method for adding jobs to the queue."""
+    job_queues: dict[str, list[Job]] = {}
+    worker_pools: dict[str, list[Worker]] = {}
+    user_sessions: dict[str, str] = {}
 
     def __init__(self, *args, job_queue: list[Job] = [], worker_registry: list[Worker] = [], **kwargs) -> None:
         """Initialise the handler with a job queue."""
-        self.job_queues: dict[Any, Any] = {}
-        self.worker_registry: list[Any] = worker_registry
-
+        self.current_user: str | None = None
         # Filter out any kwargs that are not accepted by the SimpleHTTPRequestHandler
         kwargs = {key: value for key, value in kwargs.items() if key in BaseJobServerHandler.__init__.__code__.co_varnames}
         super().__init__(*args, **kwargs)
@@ -38,6 +40,9 @@ class JobServerHandler(BaseJobServerHandler):
     def failure_response(self) -> None:
         self.send_response(500, "Not found")
 
+    def failure_unauthorized(self) -> None:
+        self.send_response(401, "Unauthorized")
+
     def success_response(self) -> None:
         self.send_response(200, "OK")
         self.send_header("Content-type", "application/json")
@@ -46,15 +51,29 @@ class JobServerHandler(BaseJobServerHandler):
 
     def handle_message(self, method) -> None:
         """Handle a message based on the path."""
-        path_no_query = self.path.split("?")[0]
-        if any([path_no_query is None, path_no_query == '', path_no_query == '/']):  # if the path is empty, return the index page
-            path_no_query = '/index.html'
+        print(self.path)
+        print(self.directory)
+        split_path: list[str] = self.path.split("?")
+        if len(split_path) > 1:
+            path_no_query: str = split_path[0]
+            self.query_string: str | None = split_path[1]
         else:
-            path_no_query = path_no_query[1:]  # remove the leading slash
+            path_no_query = split_path[0]
+            self.query_string = None
 
-        message = messages.get(path_no_query)
+        if path_no_query.startswith('/doc/'):
+            self.directory = self.directory.replace('/app/', '/doc/')
+            super().do_GET()
+        elif path_no_query.startswith('/api/'):
+            pass
+        elif path_no_query.startswith('/') or path_no_query == '':
+            self.directory = self.directory.replace('./output', './output/app')
+            super().do_GET()
+            return
 
-        if message is None:
+        endpoint = endpoints.get(path_no_query)
+
+        if endpoint is None:
             if method == 'GET':
                 # use the super do_get method
                 super().do_GET()
@@ -62,17 +81,40 @@ class JobServerHandler(BaseJobServerHandler):
                 self.failure_response()
             return
 
+        if 'auth_required' in endpoint[method].keys() and endpoint[method]['auth_required']:
+            # Get the token from the headers
+            self.current_token: str | None = self.headers.get("Authorization", None)
+            # ignore 'Bearer ' prefix
+            if self.current_token is not None and self.current_token.startswith('Bearer '):
+                self.current_token = self.current_token[7:]
+            # Get the user from the token
+            if self.current_token is not None:
+                user: str | None = self.user_sessions.get(self.current_token, None)
+                if user is not None:
+                    self.current_user = user
+
+            if self.current_user is None:
+                # redirect to login
+                try:
+                    self.send_response(302, "Redirect")
+                    self.send_header("Location", "/api/login")
+                    self.end_headers()
+                except ConnectionResetError:
+                    self.failure_unauthorized()
+                # self.failure_unauthorized()
+                return
+
         # Update default response callbacks
-        failure_response = message.get(
+        failure_response = endpoint[method].get(
             'failure_response',
             lambda self: self.failure_response())
         # decoder should return the content and the content length
-        decoder = message.get(
+        decoder = endpoint[method].get(
             'decoder',
             lambda x: (None, 0))
-        action = message.get(
+        action = endpoint[method].get(
             'action',
-            lambda x: None)
+            lambda x: (None, 0))
 
         try:
             # get the content
@@ -100,8 +142,6 @@ def main() -> HttpJobServer:
     - local: Run the server locally
         >  python -m src.openinsar_core.HttpJobServer local
     """
-    import sys
-    from . import DeploymentConfig
 
     # Get target platform from command line arguments
     if len(sys.argv) > 1:
@@ -110,10 +150,11 @@ def main() -> HttpJobServer:
         platform = "local"
 
     # Switch the config based on the platform
+    config: DeploymentConfig = DeploymentConfig()
     if platform == "render":
-        config = DeploymentConfig.for_render()
+        config = get_render_config()
     elif platform == "local":
-        config = DeploymentConfig.for_local()
+        config = get_local_config()
         config.use_threading = False
     else:
         raise ValueError(f"Unknown platform: {platform}")
@@ -137,6 +178,7 @@ def main() -> HttpJobServer:
 
     # Initialise the server
     html_server = HttpJobServer(config=config)
+    html_server.directory = './output'
     # Start the server
     html_server.launch()
 
@@ -144,4 +186,11 @@ def main() -> HttpJobServer:
 
 
 if __name__ == "__main__":
+    # Set environment variables for username and password
+    import os
+    import bcrypt
+    test_pass = 'test_password'
+    # Hash the password
+    hashed_pass: str = bcrypt.hashpw(test_pass.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    os.environ['USERS'] = "test_user:" + str(hashed_pass)
     main()

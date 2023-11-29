@@ -8,7 +8,7 @@ import pytest
 import subprocess
 import logging
 import requests
-from src.openinsar_core.HttpJobServer import HttpJobServer
+from src.openinsar_core.job_handling.HttpJobServer import HttpJobServer
 from typing import Generator, Any
 
 
@@ -32,7 +32,6 @@ FOUND_OCTAVE: bool = found_octave()
 @pytest.fixture(scope="module", autouse=True)
 def server() -> Generator[HttpJobServer, Any, None]:
     """Launch the server, return the server object"""
-    from src.openinsar_core.HttpJobServer import HttpJobServer
     server_process = HttpJobServer(port=JOB_SERVER_PORT)
     server_process.launch()
     yield server_process
@@ -85,7 +84,7 @@ def test_http_communication(server: HttpJobServer) -> None:
     worker_id = 'kevin'
     task = 'test_task'
 
-    response: requests.Response = requests.post(f'http://localhost:{JOB_SERVER_PORT}/add_job', json={'assigned_to': worker_id, 'task': task})
+    response: requests.Response = requests.post(f'http://localhost:{JOB_SERVER_PORT}/jobs/api', json={'assigned_to': worker_id, 'task': task})
     assert response.status_code == 200, "Request failed"
 
     # Get the path to the octave binary
@@ -113,7 +112,7 @@ def test_http_communication(server: HttpJobServer) -> None:
     assert task.lower() in o.lower(), "Task not found in output"
 
     # Get the job from the server
-    response = requests.get(f'http://localhost:{JOB_SERVER_PORT}/get_jobs', json={'assigned_to': worker_id})
+    response = requests.get(f'http://localhost:{JOB_SERVER_PORT}/api/jobs', json={'assigned_to': worker_id})
     assert response.status_code == 200, "Request failed"
 
     def match(j) -> bool:

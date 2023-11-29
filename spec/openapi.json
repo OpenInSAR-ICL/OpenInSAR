@@ -1,0 +1,239 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Distributed Computing API",
+    "description": "API for managing distributed computing tasks"
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization"
+      }
+    }
+  },
+  "paths": {
+    "/api/login": {
+      "post": {
+        "summary": "User authentication",
+        "description": "Authenticate user credentials",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful login"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/workers": {
+      "post": {
+        "summary": "Register a worker node",
+        "description": "Register a new worker node",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workerId": {
+                    "type": "string"
+                  },
+                  "capabilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "availability": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["workerId", "capabilities", "availability"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Worker registered successfully"
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/sites": {
+      "post": {
+        "summary": "Create a new site and associated job queue",
+        "description": "Create a new site and associated job queue",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "projectName": {
+                    "type": "string"
+                  }
+                },
+                "required": ["projectId", "projectName"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully"
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get all sites",
+        "description": "Retrieve all sites",
+        "responses": {
+          "200": {
+            "description": "Successful response with a SiteList object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "components.json#/schemas/SiteList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs": {
+      "parameters": [
+        {
+          "name": "projectId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "ID of the project"
+        }
+      ],
+      "get": {
+        "summary": "Get unassigned jobs for a specific project",
+        "description": "Retrieve unassigned jobs for a project",
+        "responses": {
+          "200": {
+            "description": "Successful response with a JobList object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "components.json#/schemas/JobList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create a job or assign a job to a worker",
+        "description": "Create a job without assigning a worker or assign a job to a worker for a specific project",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "description": "Create a job without assigning a worker",
+                    "type": "object",
+                    "properties": {
+                      "jobId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["jobId"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "description": "Assign a job to a worker",
+                    "type": "object",
+                    "properties": {
+                      "jobId": {
+                        "type": "string"
+                      },
+                      "workerId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["jobId", "workerId"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Job created or assigned successfully"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Project or worker not found"
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
+      }
+    }
+  }
+}
