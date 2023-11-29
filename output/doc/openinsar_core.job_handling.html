@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>openinsar_core.job_handling package &#8212; OpenInSAR 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4e01bb69" />
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/custom.js?v=46891756"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="openinsar-core-job-handling-package">
+<h1>openinsar_core.job_handling package<a class="headerlink" href="#openinsar-core-job-handling-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-openinsar_core.job_handling.EndpointHandlers">
+<span id="openinsar-core-job-handling-endpointhandlers-module"></span><h2>openinsar_core.job_handling.EndpointHandlers module<a class="headerlink" href="#module-openinsar_core.job_handling.EndpointHandlers" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.BaseJobServerHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">BaseJobServerHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.BaseJobServerHandler" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/http.server.html#http.server.SimpleHTTPRequestHandler" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleHTTPRequestHandler</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.Job">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">Job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">assigned_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.Job" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A job to be executed by the JobServer.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.Job.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.Job.to_json" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the job to a JSON object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.Queue">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">Queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queue_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.Queue" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A named queue of jobs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.Queue.append">
+<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.EndpointHandlers.Job" title="openinsar_core.job_handling.EndpointHandlers.Job"><span class="pre">Job</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.Queue.append" title="Link to this definition">¶</a></dt>
+<dd><p>Add a job to the queue.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.Queue.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.Queue.to_json" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the queue to a JSON object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.Worker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">Worker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worker_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.Worker" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A worker which can be assigned jobs</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.Worker.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.Worker.to_json" title="Link to this definition">¶</a></dt>
+<dd><p>Convert the worker to a JSON object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.get_content">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">get_content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.get_content" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_add_job">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_add_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_add_job" title="Link to this definition">¶</a></dt>
+<dd><p>Add a job to the queue.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_add_queue">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_add_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_add_queue" title="Link to this definition">¶</a></dt>
+<dd><p>Create a new queue.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_add_site">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_add_site</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_add_site" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_add_worker">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_add_worker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_add_worker" title="Link to this definition">¶</a></dt>
+<dd><p>Add a worker to the queue.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_get_jobs">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_get_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_get_jobs" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_get_login">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_get_login</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_get_login" title="Link to this definition">¶</a></dt>
+<dd><p>Create a basic form for submitting a login request.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_get_queue">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_get_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_get_queue" title="Link to this definition">¶</a></dt>
+<dd><p>Get a queue from the registry.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_get_register">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_get_register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_get_register" title="Link to this definition">¶</a></dt>
+<dd><p>Create a basic form for submitting a register request.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_get_sites">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_get_sites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_get_sites" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_get_workers">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_get_workers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_get_workers" title="Link to this definition">¶</a></dt>
+<dd><p>Get a worker from the registry.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_login">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_login</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_login" title="Link to this definition">¶</a></dt>
+<dd><p>Handle a login request.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.handle_register">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">handle_register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="openinsar_core.job_handling.HttpJobServer.JobServerHandler"><span class="pre">JobServerHandler</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.handle_register" title="Link to this definition">¶</a></dt>
+<dd><p>Handle a register request.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.EndpointHandlers.send_json_response">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.EndpointHandlers.</span></span><span class="sig-name descname"><span class="pre">send_json_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_code</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.EndpointHandlers.send_json_response" title="Link to this definition">¶</a></dt>
+<dd><p>Send a JSON response with the given status code.</p>
+</dd></dl>
+
+</section>
+<section id="module-openinsar_core.job_handling.Endpoints">
+<span id="openinsar-core-job-handling-endpoints-module"></span><h2>openinsar_core.job_handling.Endpoints module<a class="headerlink" href="#module-openinsar_core.job_handling.Endpoints" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-openinsar_core.job_handling.HttpJobServer">
+<span id="openinsar-core-job-handling-httpjobserver-module"></span><h2>openinsar_core.job_handling.HttpJobServer module<a class="headerlink" href="#module-openinsar_core.job_handling.HttpJobServer" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.HttpJobServer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.HttpJobServer.</span></span><span class="sig-name descname"><span class="pre">HttpJobServer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.HttpJobServer" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ThreadedHttpServer</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.HttpJobServer.</span></span><span class="sig-name descname"><span class="pre">JobServerHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_queue</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#openinsar_core.job_handling.EndpointHandlers.Job" title="openinsar_core.job_handling.EndpointHandlers.Job"><span class="pre">Job</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_registry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#openinsar_core.job_handling.EndpointHandlers.Worker" title="openinsar_core.job_handling.EndpointHandlers.Worker"><span class="pre">Worker</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#openinsar_core.job_handling.EndpointHandlers.BaseJobServerHandler" title="openinsar_core.job_handling.EndpointHandlers.BaseJobServerHandler"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseJobServerHandler</span></code></a></p>
+<p>A handler for the JobServer. This is a subclass of SimpleHTTPRequestHandler that adds a job queue and a method for adding jobs to the queue.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.do_GET">
+<span class="sig-name descname"><span class="pre">do_GET</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.do_GET" title="Link to this definition">¶</a></dt>
+<dd><p>This handles the GET request. This includes:
+- /jobs: Return the job queue</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.do_POST">
+<span class="sig-name descname"><span class="pre">do_POST</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.do_POST" title="Link to this definition">¶</a></dt>
+<dd><p>Handle post requests. This includes:
+- /add_job: Add a job to the queue</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.failure_response">
+<span class="sig-name descname"><span class="pre">failure_response</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.failure_response" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.failure_unauthorized">
+<span class="sig-name descname"><span class="pre">failure_unauthorized</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.failure_unauthorized" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.handle_message">
+<span class="sig-name descname"><span class="pre">handle_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.handle_message" title="Link to this definition">¶</a></dt>
+<dd><p>Handle a message based on the path.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.job_queues">
+<span class="sig-name descname"><span class="pre">job_queues</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#openinsar_core.job_handling.EndpointHandlers.Job" title="openinsar_core.job_handling.EndpointHandlers.Job"><span class="pre">Job</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.job_queues" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.log_request">
+<span class="sig-name descname"><span class="pre">log_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'-'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'-'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.log_request" title="Link to this definition">¶</a></dt>
+<dd><p>Override to prevent stderr logging.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.success_response">
+<span class="sig-name descname"><span class="pre">success_response</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.success_response" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.user_sessions">
+<span class="sig-name descname"><span class="pre">user_sessions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.user_sessions" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.JobServerHandler.worker_pools">
+<span class="sig-name descname"><span class="pre">worker_pools</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#openinsar_core.job_handling.EndpointHandlers.Worker" title="openinsar_core.job_handling.EndpointHandlers.Worker"><span class="pre">Worker</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.JobServerHandler.worker_pools" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openinsar_core.job_handling.HttpJobServer.main">
+<span class="sig-prename descclassname"><span class="pre">openinsar_core.job_handling.HttpJobServer.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#openinsar_core.job_handling.HttpJobServer.HttpJobServer" title="openinsar_core.job_handling.HttpJobServer.HttpJobServer"><span class="pre">HttpJobServer</span></a></span></span><a class="headerlink" href="#openinsar_core.job_handling.HttpJobServer.main" title="Link to this definition">¶</a></dt>
+<dd><p>Example usage. Runs the server on the specified platform:
+- render: Run the server on render.com</p>
+<blockquote>
+<div><p>&gt;  python -m src.openinsar_core.HttpJobServer render</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>local: Run the server locally</dt><dd><p>&gt;  python -m src.openinsar_core.HttpJobServer local</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd></dl>
+
+</section>
+<section id="module-openinsar_core.job_handling">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-openinsar_core.job_handling" title="Link to this heading">¶</a></h2>
+<p>Utilities and classes for handling and distributing OpenInSAR jobs.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/logo.png" alt="Logo"/>
+            </a></p>
+<h1 class="logo"><a href="index.html">OpenInSAR</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">OpenInSAR Modules</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Stewart Agar.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/openinsar_core.job_handling.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

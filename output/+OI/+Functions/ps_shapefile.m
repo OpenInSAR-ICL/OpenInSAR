@@ -12,9 +12,11 @@ end
 
 nP=numel(latArray);
 nT=size(dataArray,2);
-
-for jj=1:nT
-    datefieldNames{jj} = ['D' imageDates{jj}];
+if nP==0
+    % Write an empty file
+    fid = fopen(filename,'w');
+    fclose(fid);
+    return
 end
 
 for ii=nP:-1:1
@@ -31,9 +33,10 @@ for ii=nP:-1:1
 
     if ~isempty(dataArray)
         for jj=1:nT
-           DataStructure(ii).(datefieldNames{jj})=dataArray(ii,jj);
+           DataStructure(ii).(['D' imageDates{jj}])=dataArray(ii,jj);
         end
     end
 end
+
 
 OI.Functions.buffer_shpwrite(DataStructure,filename);

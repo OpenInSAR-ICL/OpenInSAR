@@ -156,6 +156,7 @@ methods
             blockData = blockData(Cv>.5,:);
             psPhaseObject = OI.Data.BlockResult( blockObj, 'InitialPsPhase' );
             
+
             fprintf(1,'Mean coherence after constant aps analysis: %.3f\n',mean_coherence(blockData))
             
             % % Lets improve the aps by spatial filtering
@@ -187,14 +188,18 @@ methods
             C = reshape(Cv,sz(1:2));
             v = reshape(v,sz(1:2));
             q = reshape(q,sz(1:2));
-            
             engine.save( coherenceObj, C );
             engine.save( velocityObject, v );
             engine.save( heightErrorObject, q );
-   
-            pscThreshold = 2;
-            candidateMask = amplitudeStability > pscThreshold;
-            
+
+            % coherence;
+            % scattererPhaseOffset;
+            % velocity;
+            % displacement;
+            % heightError;
+            % amplitudeStability;
+            % block;
+
             [meshRg,meshAz]=meshgrid(...
                 blockInfo.rgOutputStart:blockInfo.rgOutputEnd, ...
                 blockInfo.azOutputStart:blockInfo.azOutputEnd);
@@ -208,10 +213,10 @@ methods
                 'velocity', v, ...
                 'heightError', q, ...
                 'amplitudeStability', amplitudeStability, ...
-                'displacement',[],...
-                'candidateStabilityThreshold', pscThreshold, ...
+                'displacement', [], ...
+                'candidateStabilityThreshold', candidateThreshold, ...
                 'candidateStability', amplitudeStability(candidateMask), ...
-                'candidatePhase', blockData( candidateMask, :) ...
+                'candidatePhase', candidatePhase, ...
                 'candidateAz', candidateAz, ...
                 'candidateRg', candidateRg, ...
                 'candidateMask', candidateMask, ...
@@ -232,6 +237,13 @@ methods
         % Save a preview of the v, C and q
         mask0s = @(x) OI.Functions.mask0s(x);
         blockInfo = blockMap.stacks(this.STACK).blocks(this.BLOCK);
+        
+        previewShpCoherenceMask = (C>.5);
+        if sum(previewShpCoherenceMask)<=0
+            this.isFinished = true;
+            return
+        end
+        
 
         % Fix for legacy blockInfo which missed this field
         if ~isfield(blockInfo,'indexInStack')
@@ -243,12 +255,12 @@ methods
 
         if baselinesObject.azimuthVector(3) > 0 % ascending
             OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(C), 'Coherence');
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(v .* mask0s(C>.5)), 'Velocity');
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(q .* mask0s(C>.5)), 'HeightError');
+            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(v .* mask0s(previewShpCoherenceMask)), 'Velocity');
+            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(q .* mask0s(previewShpCoherenceMask)), 'HeightError');
         else % descending
             OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(C), 'Coherence');
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(v .* mask0s(C>.5)), 'Velocity');
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(q .* mask0s(C>.5)), 'HeightError');
+            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(v .* mask0s(previewShpCoherenceMask)), 'Velocity');
+            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(q .* mask0s(previewShpCoherenceMask)), 'HeightError');
         end
         
         % Get block lat/;pm
@@ -266,7 +278,7 @@ methods
         blockName = sprintf('Stack_%i_block_%i',this.STACK,this.BLOCK);
         blockFilePath = fullfile( projObj.WORK, 'shapefiles', this.id, blockName);
         
-        cohMask = C>.5;
+        cohMask = previewShpCoherenceMask;
         OI.Functions.ps_shapefile( ...
             blockFilePath, ...
             bg.lat(cohMask), ...
@@ -304,7 +316,7 @@ methods
                 resultObj = OI.Data.BlockResult(blockObj, 'InitialPsPhase').identify( engine );
 
                 % Create a shapefile of the block
-                blockName = sprintf('Stack_%i_block_%i',stackIndex,blockIndex);
+                blockName = sprintf('Stack_%i_block_%i.shp',stackIndex,blockIndex);
                 blockFilePath = fullfile( projObj.WORK, 'shapefiles', this.id, blockName);
 
                 % Check if the block is already done

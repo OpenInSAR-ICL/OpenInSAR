@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>src.openinsar_core package &#8212; OpenInSAR 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4e01bb69" />
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/custom.js?v=46891756"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="src-openinsar-core-package">
+<h1>src.openinsar_core package<a class="headerlink" href="#src-openinsar-core-package" title="Link to this heading">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="src.openinsar_core.job_handling.html">src.openinsar_core.job_handling package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.job_handling.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.job_handling.html#module-src.openinsar_core.job_handling.EndpointHandlers">src.openinsar_core.job_handling.EndpointHandlers module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.BaseJobServerHandler"><code class="docutils literal notranslate"><span class="pre">BaseJobServerHandler</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.Job"><code class="docutils literal notranslate"><span class="pre">Job</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.Job.to_json"><code class="docutils literal notranslate"><span class="pre">Job.to_json()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.Queue"><code class="docutils literal notranslate"><span class="pre">Queue</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.Queue.append"><code class="docutils literal notranslate"><span class="pre">Queue.append()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.Queue.to_json"><code class="docutils literal notranslate"><span class="pre">Queue.to_json()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.Worker"><code class="docutils literal notranslate"><span class="pre">Worker</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.Worker.to_json"><code class="docutils literal notranslate"><span class="pre">Worker.to_json()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.get_content"><code class="docutils literal notranslate"><span class="pre">get_content()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_add_job"><code class="docutils literal notranslate"><span class="pre">handle_add_job()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_add_queue"><code class="docutils literal notranslate"><span class="pre">handle_add_queue()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_add_site"><code class="docutils literal notranslate"><span class="pre">handle_add_site()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_add_worker"><code class="docutils literal notranslate"><span class="pre">handle_add_worker()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_get_jobs"><code class="docutils literal notranslate"><span class="pre">handle_get_jobs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_get_login"><code class="docutils literal notranslate"><span class="pre">handle_get_login()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_get_queue"><code class="docutils literal notranslate"><span class="pre">handle_get_queue()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_get_register"><code class="docutils literal notranslate"><span class="pre">handle_get_register()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_get_sites"><code class="docutils literal notranslate"><span class="pre">handle_get_sites()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_get_workers"><code class="docutils literal notranslate"><span class="pre">handle_get_workers()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_login"><code class="docutils literal notranslate"><span class="pre">handle_login()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.handle_register"><code class="docutils literal notranslate"><span class="pre">handle_register()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.EndpointHandlers.send_json_response"><code class="docutils literal notranslate"><span class="pre">send_json_response()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.job_handling.html#module-src.openinsar_core.job_handling.Endpoints">src.openinsar_core.job_handling.Endpoints module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.job_handling.html#module-src.openinsar_core.job_handling.HttpJobServer">src.openinsar_core.job_handling.HttpJobServer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.HttpJobServer"><code class="docutils literal notranslate"><span class="pre">HttpJobServer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler"><code class="docutils literal notranslate"><span class="pre">JobServerHandler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.do_GET"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.do_GET()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.do_POST"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.do_POST()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.failure_response"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.failure_response()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.failure_unauthorized"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.failure_unauthorized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.handle_message"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.handle_message()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.job_queues"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.job_queues</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.log_request"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.log_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.success_response"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.success_response()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.user_sessions"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.user_sessions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.JobServerHandler.worker_pools"><code class="docutils literal notranslate"><span class="pre">JobServerHandler.worker_pools</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.job_handling.html#src.openinsar_core.job_handling.HttpJobServer.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.job_handling.html#module-src.openinsar_core.job_handling">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src.openinsar_core.server.html">src.openinsar_core.server package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.server.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.server.html#module-src.openinsar_core.server.DeploymentConfig">src.openinsar_core.server.DeploymentConfig module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.DeploymentConfig.DeploymentConfig"><code class="docutils literal notranslate"><span class="pre">DeploymentConfig</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.DeploymentConfig.for_local"><code class="docutils literal notranslate"><span class="pre">for_local()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.DeploymentConfig.for_render"><code class="docutils literal notranslate"><span class="pre">for_render()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.server.html#module-src.openinsar_core.server.Server">src.openinsar_core.server.Server module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.Server.CustomHandler"><code class="docutils literal notranslate"><span class="pre">CustomHandler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.Server.CustomHandler.do_GET"><code class="docutils literal notranslate"><span class="pre">CustomHandler.do_GET()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.Server.CustomHandler.do_POST"><code class="docutils literal notranslate"><span class="pre">CustomHandler.do_POST()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.Server.CustomHandler.server"><code class="docutils literal notranslate"><span class="pre">CustomHandler.server</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.Server.OiServer"><code class="docutils literal notranslate"><span class="pre">OiServer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.Server.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.server.html#module-src.openinsar_core.server.SinglePageAppServer">src.openinsar_core.server.SinglePageAppServer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.SinglePageAppServer.SinglePageApplicationHandler"><code class="docutils literal notranslate"><span class="pre">SinglePageApplicationHandler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.SinglePageAppServer.SinglePageApplicationHandler.do_GET"><code class="docutils literal notranslate"><span class="pre">SinglePageApplicationHandler.do_GET()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.SinglePageAppServer.SinglePageApplicationHandler.spa_index"><code class="docutils literal notranslate"><span class="pre">SinglePageApplicationHandler.spa_index</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.server.html#module-src.openinsar_core.server.ThreadedHttpServer">src.openinsar_core.server.ThreadedHttpServer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedHttpServer.DefaultHandler"><code class="docutils literal notranslate"><span class="pre">DefaultHandler</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedHttpServer.ThreadedHttpServer"><code class="docutils literal notranslate"><span class="pre">ThreadedHttpServer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedHttpServer.ThreadedHttpServer.handle_from_directory"><code class="docutils literal notranslate"><span class="pre">ThreadedHttpServer.handle_from_directory()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedHttpServer.ThreadedHttpServer.launch"><code class="docutils literal notranslate"><span class="pre">ThreadedHttpServer.launch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedHttpServer.ThreadedHttpServer.setup_http"><code class="docutils literal notranslate"><span class="pre">ThreadedHttpServer.setup_http()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedHttpServer.ThreadedHttpServer.setup_https"><code class="docutils literal notranslate"><span class="pre">ThreadedHttpServer.setup_https()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedHttpServer.ThreadedHttpServer.stop"><code class="docutils literal notranslate"><span class="pre">ThreadedHttpServer.stop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.server.html#module-src.openinsar_core.server.ThreadedWebsocketServer">src.openinsar_core.server.ThreadedWebsocketServer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.EchoWebsocketHandler"><code class="docutils literal notranslate"><span class="pre">EchoWebsocketHandler</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.Message"><code class="docutils literal notranslate"><span class="pre">Message</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.ThreadedWebsocketServer"><code class="docutils literal notranslate"><span class="pre">ThreadedWebsocketServer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.ThreadedWebsocketServer.get_received_messages"><code class="docutils literal notranslate"><span class="pre">ThreadedWebsocketServer.get_received_messages()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.ThreadedWebsocketServer.get_sent_messages"><code class="docutils literal notranslate"><span class="pre">ThreadedWebsocketServer.get_sent_messages()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.ThreadedWebsocketServer.launch"><code class="docutils literal notranslate"><span class="pre">ThreadedWebsocketServer.launch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.ThreadedWebsocketServer.serve_forever"><code class="docutils literal notranslate"><span class="pre">ThreadedWebsocketServer.serve_forever()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.ThreadedWebsocketServer.stop"><code class="docutils literal notranslate"><span class="pre">ThreadedWebsocketServer.stop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.WebsocketMessageHandler"><code class="docutils literal notranslate"><span class="pre">WebsocketMessageHandler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.WebsocketMessageHandler.log_message_in"><code class="docutils literal notranslate"><span class="pre">WebsocketMessageHandler.log_message_in()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.openinsar_core.server.html#src.openinsar_core.server.ThreadedWebsocketServer.WebsocketMessageHandler.log_message_out"><code class="docutils literal notranslate"><span class="pre">WebsocketMessageHandler.log_message_out()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="src.openinsar_core.server.html#module-src.openinsar_core.server">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-src.openinsar_core.main">
+<span id="src-openinsar-core-main-module"></span><h2>src.openinsar_core.main module<a class="headerlink" href="#module-src.openinsar_core.main" title="Link to this heading">¶</a></h2>
+<p>main.py</p>
+</section>
+<section id="module-src.openinsar_core">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-src.openinsar_core" title="Link to this heading">¶</a></h2>
+<p>Module-level docstring for openinsar_core module.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/logo.png" alt="Logo"/>
+            </a></p>
+<h1 class="logo"><a href="index.html">OpenInSAR</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">OpenInSAR Modules</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Stewart Agar.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/src.openinsar_core.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

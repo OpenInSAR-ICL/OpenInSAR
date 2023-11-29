@@ -1,5 +1,5 @@
 import requests
-from src.openinsar_core.ThreadedHttpServer import ThreadedHttpServer
+from src.openinsar_core.server.ThreadedHttpServer import ThreadedHttpServer
 from .TestUtilities import lock_resource
 import os
 import pytest

@@ -2,7 +2,7 @@ import http.server
 import threading
 import ssl
 from pathlib import Path
-from src.openinsar_core.DeploymentConfig import DeploymentConfig
+from .DeploymentConfig import DeploymentConfig
 
 
 class DefaultHandler(http.server.SimpleHTTPRequestHandler):

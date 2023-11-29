@@ -151,7 +151,9 @@ methods
                 engine.ui.log('error', '%s will be deleted\n', strrep(this.outputs{1}.filepath, '\', '\\'));
                 % I will try deleting the existing file...
                 delete(this.outputs{1}.zippath);
-                rmdir(this.outputs{1}.filepath,'s'); % s flag for non-empty dir
+                try
+                    rmdir(this.outputs{1}.filepath,'s'); % s flag for non-empty dir
+                end
             end
             this.isFinished = false;
             return;

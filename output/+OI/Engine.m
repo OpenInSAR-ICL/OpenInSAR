@@ -51,19 +51,22 @@ methods
         this.queue.clear();
     end
 
-    function run_next_job( this )
+    function run_next_job( this, messenger )
+        if nargin < 2
+            messenger = ''; % default to no messenger
+        end
         this.throw_error_if_no_project_loaded();
         nextJob = this.queue.next_job();
         if ~isempty(nextJob)
             this.ui.log('debug', 'Running job %s\n', nextJob.to_string());
             this.currentJob = nextJob.to_string();
-            this.run_job(nextJob);
+            this.run_job(nextJob, messenger);
         else
             this.ui.log('info', 'No jobs in queue\n');
         end
     end
 
-    function run_job( this, job )
+    function run_job( this, job, messenger )
         this.throw_error_if_no_project_loaded();
         % if its a string, convert to a job object
         if ischar(job)
@@ -89,7 +92,30 @@ methods
         end
 
         this.plugin = this.plugin.validate( this );
-
+        
+        argInd = 0;
+        for argCell = job.arguments
+            argInd=argInd+1;
+            isString = OI.Compatibility.is_string(argCell{1});
+            isForce = strcmpi(argCell,'force');
+            if ~isString || isForce
+                continue
+            end
+            
+            % check if another arg is given
+            if numel(job.arguments)<argInd+1
+                arg = numel(job.arguments)<argInd+1;
+                isStringAndTrue = (OI.Compatibility.is_string(arg) && any(strcmpi(arg,{'true','yes','y','1'})));
+                isNumberAndTrue = isnumeric(arg) && arg ~= 0;
+                isLogicalAndTrue = islogical(arg) && arg;
+                this.plugin.isFinished = ~(isStringAndTrue || isNumberAndTrue || isLogicalAndTrue);
+                this.plugin.isReady = true;
+            else
+                this.plugin.isFinished = false;
+                this.plugin.isReady = true;
+            end
+        end
+        
         if this.plugin.isFinished
             this.ui.log('info', 'Plugin %s already finished\n', this.plugin.id);
             this.queue.remove_job(job);
@@ -101,7 +127,7 @@ methods
             % time the plugin run
             ticPlugin = tic;
             % actually run the plugin!
-            this.run_plugin( job );
+            this.run_plugin( job, messenger );
             % log the time
             tocPlugin = toc(ticPlugin);
             this.finish_job(job, tocPlugin)

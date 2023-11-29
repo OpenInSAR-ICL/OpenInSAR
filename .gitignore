@@ -19,8 +19,15 @@ doc/build/
 src/openinsar_webapp/node_modules/
 src/openinsar_webapp/package-lock.json
 
+# OpenInSAR working files
+CurrentProject.xml
+
 # temp files
 scratch/
 src/openinsar_webapp/public/dev*
 output/app/dev*
 output/dev*
+
+# PBS stderr and stdout
+OpenInSAR*.e*
+OpenInSAR*.o*

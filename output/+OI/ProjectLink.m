@@ -3,7 +3,6 @@ classdef ProjectLink
 properties
     projectPath = ''
     projectLink = 'CurrentProject.xml'
-    xmlStruct = struct()
 end
 
 properties ( GetAccess = private, SetAccess = private )
@@ -11,7 +10,8 @@ properties ( GetAccess = private, SetAccess = private )
     repoDirectory = OI.Functions.abspath( fileparts( mfilename('fullpath') ) )
     unix_path = ''
     windows_path = ''
-    
+    xmlStruct = struct()
+    user = '';
 end
 
 methods
@@ -33,6 +33,7 @@ methods
         else
             this = this.parse_link_file();
         end
+
         this.check_project_file_exists();
     end % ProjectLink
 
@@ -62,14 +63,14 @@ methods ( Access = private )
         % Example usage
         if OI.OperatingSystem.isWindows
             OS = 'windows';
-            user = getenv('USERNAME');
+            this.user = getenv('USERNAME');
         elseif OI.OperatingSystem.isUnix
             OS = 'unix';
-            user = getenv('USER');
+            this.user = getenv('USER');
         end
 
         % Construct the key based on the user and OS
-        key = [user, '_', OS];
+        key = [this.user, '_', OS];
 
         % check if the key exists in the map
         if isKey(userPaths, key)
@@ -95,9 +96,9 @@ methods ( Access = private )
             this.projectPath = this.xmlStruct.relative_path;
             this = resolve_relative_path(this);
         else
-            if OI.OperatingSystem.isWindows()
+            if OI.compatability.isWindows()
                 this = resolve_windows_path(this);
-            elseif OI.OperatingSystem.isUnix()
+            elseif OI.compatability.isUnix()
                 this = resolve_unix_path(this);
             else
                 warning('Only Windows and Unix have been tested for this package.')
@@ -111,6 +112,9 @@ methods ( Access = private )
     end % get_project_path
 
     function this = resolve_relative_path(this)
+        
+        % replace the username
+        this.projectPath = strrep(this.projectPath, '$USERNAME', this.user);
         % resolve any relative paths
         this.projectPath = OI.Functions.abspath( this.projectPath );
     end
@@ -145,11 +149,11 @@ methods ( Access = private )
 
     function this = resolve_windows_path(this)
         try
-            this.projectPath = this.xmlStruct.windows_path;
+            this.projectPath = curProjStruct.windows_path;
         catch ERR
             disp(ERR)
             error('No element tagged as ''windows_path'' found.\n%s\n',...
-                this.get_help_text());
+                linkHelpText);
         end
         this = resolve_relative_path(this);
     end % resolve_windows_path

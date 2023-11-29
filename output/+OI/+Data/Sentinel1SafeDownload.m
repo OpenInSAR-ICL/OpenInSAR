@@ -53,7 +53,7 @@ methods
 
             if ~isempty(tracksToDl)
                 % sort the tracks to download
-                oldList = dlLines;
+                oldList = dlLines(:);
                 newList = {};
                 ron = zeros(numel(oldList),1);
                 for i = 1:numel(oldList)

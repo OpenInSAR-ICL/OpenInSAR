@@ -1,0 +1,106 @@
+{
+  "schemas": {
+    "Job": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the job"
+        },
+        "worker": {
+          "type": "string",
+          "description": "Identifier of the worker assigned to the job (optional)"
+        },
+        "raisedBy": {
+          "type": "string",
+          "description": "Identifier of the user who raised the job (optional)"
+        },
+        "username": {
+          "type": "string",
+          "description": "Username associated with the job (optional)"
+        },
+        "operation": {
+          "type": "string",
+          "description": "Description of the operation the job entails",
+          "required": true
+        },
+        "submittedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the job was submitted"
+        },
+        "assignedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the job was assigned (optional)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the job",
+          "enum": ["queued", "assigned", "completed", "failed"],
+          "required": true
+        }
+      }
+    },
+    "JobList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/schemas/Job"
+      }
+    },
+    "Site": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the site"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the site"
+        },
+        "areaOfInterest": {
+          "type": "string",
+          "description": "Location of the site"
+        },
+        "periodOfInterest": {
+          "type": "string",
+          "description": "Period of interest for the site"
+        },
+        "owner": {
+          "type": "string",
+          "description": "Identifier of the user who owns the site"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the site was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the site was last updated"
+        },
+        "siteType": {
+          "type": "string",
+          "description": "Type of the site"
+        }
+      }
+    },
+    "SiteList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/schemas/Site"
+      }
+    },
+    "NotFoundError": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Error message for resource not found"
+        }
+      }
+    }
+  }
+}

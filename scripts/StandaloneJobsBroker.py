@@ -1,4 +1,16 @@
+"""
+Virtual environments and packages can be a bit awkward on HPC. 
+This script offers a message broker for jobs without requiring external packages.
+This is useful for development and getting things running.
+"""
+
+import os
+import sys
+import time
 import json
+import uuid
+import http.server
+import threading
 from typing import Any
 from http.server import SimpleHTTPRequestHandler
 
@@ -13,9 +25,6 @@ class Job:
     def to_json(self) -> dict[str, str]:
         """Convert the job to a JSON object."""
         return {'assigned_to': self.assigned_to, 'task': self.task}
-    
-    def __repr__(self) -> str:
-        return f"Job(assigned_to={self.assigned_to}, task={self.task})"
 
 
 class Worker:
@@ -105,3 +114,28 @@ def handle_add_worker(handler, worker_str: str) -> None:
     # add the worker to the registry
     handler.worker_registry.append(worker)
     send_json_response(handler, 200, {"success": True})
+
+
+messages = {
+    'get_jobs': {
+        'method': 'GET',
+        'decoder': get_content,
+        'action': handle_get_jobs,
+        'content_type': 'application/json',
+        'optional_parameters': ['worker_id']
+    },
+    'add_job': {
+        'method': 'POST',
+        'decoder': get_content,
+        'action': handle_add_job,
+        'content_type': 'application/json',
+    },
+    'add_worker': {
+        'method': 'POST',
+        'decoder': get_content,
+        'action': handle_add_worker,
+        'content_type': 'application/json',
+        'required_parameters': ['worker_id']
+    }
+    # ... (other routes)
+}

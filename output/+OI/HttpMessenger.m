@@ -7,6 +7,7 @@ classdef HttpMessenger < OI.MessengerBase
 
 properties
   serverAddress = ''
+  token = ''
 end % properties
 
 methods
@@ -119,7 +120,19 @@ methods
     end % receive
 
     function obj = connect(obj)
-        % Not needed for HTTP
+        % Login
+        username = getenv('OI_USERNAME');
+        password = getenv('OI_PASSWORD');
+        content = ['username=' username '&password=' password];
+        options = weboptions();
+        options.RequestMethod = 'post';
+        login_path = 'login';
+        uri = obj.format_uri(login_path);
+        response = webwrite(uri, content, options);
+        % conver json to struct
+        response = jsondecode(response)
+        obj.token = response.token;
+
     end % connect
 
     function obj = disconnect(obj)

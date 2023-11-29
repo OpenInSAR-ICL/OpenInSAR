@@ -177,7 +177,7 @@ methods
         % end
     end
 
-    function overview(this)
+    function queueSummaryString = overview(this)
         names = struct();
         for ii=1:this.length()
             job = this.jobArray{ii};
@@ -188,12 +188,22 @@ methods
                 names.(jn) = 1;
             end
         end
-        
+        queueSummaryString = ''
+        doPrint = nargout == 0;
         if this.length() == 0
-            fprintf(1,'Queue is currently empty.\n');
+            doPrint && fprintf(1,'Queue is currently empty.\n');
+            queueSummaryString = 'Queue is currently empty.\n';
         else
-            fprintf(1,'Queue overview as of %s:\n',datestr(now())); %#ok<TNOW1,DATST>
-            disp(names)
+            if doPrint
+                fprintf(1,'Queue overview as of %s:\n',datestr(now())); %#ok<TNOW1,DATST>
+                disp(names)
+            else
+                queueSummaryCell = cell(1,length(names));
+                for ii=1:length(names)
+                    queueSummaryCell{ii} = sprintf('%ii: %s', ii, this.jobArray{ii}.to_string())
+                end
+                queueSummaryString = strjoin(queueSummaryCell,'\n');
+            end
         end
 
     end

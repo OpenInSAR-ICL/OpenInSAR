@@ -224,9 +224,19 @@ classdef Geocoding < OI.Plugins.PluginBase
                 % update lat/lon
                 lat = lat + errorToLat(azError, rgError);
                 lon = lon + errorToLon(azError, rgError);
+                
+                % TODO Go back and update DEM if it's not big enough
+                % Limit to DEM extent for now
+                lon = min(lon,max(dem.extent.lon(:)));
+                lon = max(lon,min(dem.extent.lon(:)));
+                lat = min(lat,max(dem.extent.lat(:)));
+                lat = min(lat,max(dem.extent.lat(:)));
 
                 [dem, elevation] = eleUpd( lat, lon );
                 xyz = xyzUpd( lat, lon, elevation );
+                
+                % Errors here if outside dem extent!
+                assert( sum(isnan(elevation)) == 0 ) 
             end % doppler loop
             engine.ui.log('info','Doppler loop took %f seconds\n',toc(dopStartTime));
 
@@ -330,8 +340,10 @@ classdef Geocoding < OI.Plugins.PluginBase
             adjustment = 0.*indexWindow(:,1);
             badInds = find( (~isPositiveError & (bound==1)) ...
                 | (~isNegativeError & (bound==2)));
+            
+            sensibleIterLimit = 100;
             while ~isempty(badInds)
-                tic
+                
                 const0 = zeros(size(badInds));
                 badlat = lastLat(badInds) + errorToLat(const0, ...
                     testIndex(badInds) + ...
@@ -364,8 +376,12 @@ classdef Geocoding < OI.Plugins.PluginBase
                 %     tolerance*10 ...
                 %     + badrangeError * 10;
                 % 
-                fprintf(1,'%d ',numel(badInds))
-                toc
+                fprintf(1,'%d pixels with ambiguous bounds.\n',numel(badInds))
+                
+                sensibleIterLimit = sensibleIterLimit - 1;
+                if sensibleIterLimit < 1
+                    break
+                end
             end
             % update the bound
             indexWindow(:,bound) = indexWindow(:,bound) + adjustment;
@@ -496,6 +512,8 @@ classdef Geocoding < OI.Plugins.PluginBase
             previewImageArea.save_kml_with_image( ...
                 previewKmlPath, ...
                 flipud(eleImage) ); 
+            
+            this.isFinished=true;
         end
 
     end
