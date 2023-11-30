@@ -15,7 +15,7 @@ methods
 end
 
 methods (Access = protected)
-    function run_plugin( this, job )
+    function run_plugin( this, job, ~)
         % run the plugin
         % fprintf(1, 'Running plugin is array: %d\n', this.plugin.isArray);
         % check if its a job?
