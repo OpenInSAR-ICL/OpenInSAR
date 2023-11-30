@@ -216,8 +216,8 @@ for thingToDo = thingToDoList
                 oi.engine.ui.log('info',...
                     ['No more jobs for leader at this step,'... 
                     'running distributed jobs']);
-                break
             end
+            break;
         end
         if isempty(nextJob)
             continue

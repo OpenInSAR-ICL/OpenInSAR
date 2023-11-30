@@ -33,3 +33,4 @@ OpenInSAR*.e*
 OpenInSAR*.o*
 .asv
 *.asv
+*.sh.*

@@ -336,6 +336,7 @@ methods
 
         if allDone
             engine.save( this.outputs{1} )
+            this.isFinished = true;
         end
         
     end % queue_jobs
