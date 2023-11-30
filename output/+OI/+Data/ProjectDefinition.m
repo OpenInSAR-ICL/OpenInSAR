@@ -170,16 +170,50 @@ methods (Static)
 
         % now switch based on file being XML or old format
         if OI.Compatibility.contains(filename,'.xml') || ~isempty( regexp( fileContent, '<\?xml', 'once' ) )
-            this = this.load_from_xml( fileContent );
+            optionsFromFile = this.load_from_xml( fileContent );
+        elseif OI.Compatibility.contains(filename,'.xml')
+            optionsFromFile = this.load_from_legacy_file( fileContent );
         else
-            this = this.load_from_legacy_file( fileContent );
+            warning('Could not determine file type of %s', filename);
+            try
+                optionsFromFile = this.load_from_xml( fileContent );
+            catch
+                try
+                    optionsFromFile = this.load_from_legacy_file( fileContent );
+                catch   
+                    error('Could not parse file %s', filename);
+                end
+            end
         end
+        
+        this = this.format_properties(optionsFromFile);
+
+%         % Copy over all the properties
+%         optionKeysIn = fieldnames(optionsFromFile);
+        propertyKeys = properties( this );
+% 
+%         % Warn if any unknown properties in file
+%         for i = 1:length(optionKeysIn)
+%             if ~any( strcmp( optionKeysIn{i}, propertyKeys ) )
+%                 warning('Unknown property %s in project file', optionKeysIn{i});
+%             end
+%         end
+% 
+%         % copy over the properties
+%         for i = 1:length(propertyKeys)
+%             if any( strcmp( propertyKeys{i}, optionKeysIn ) )
+%                 try 
+%                     this.(propertyKeys{i}) = optionsFromFile.(propertyKeys{i});
+%                 catch
+%                     warning('Could not set property %s', propertyKeys{i});
+%                 end
+%             end
+%         end
 
         % string interpolation of the properties
-        props = properties( this );
-        for i = 1:length(props)
-            if OI.Compatibility.is_string( this.(props{i}) )
-                this.(props{i}) = this.string_interpolation( this.(props{i}) );
+        for i = 1:length(propertyKeys)
+            if OI.Compatibility.is_string( this.(propertyKeys{i}) )
+                this.(propertyKeys{i}) = this.string_interpolation( this.(propertyKeys{i}) );
             end
         end
     end%load constructor

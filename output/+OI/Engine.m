@@ -28,12 +28,10 @@ methods
         this.setup();
     end
 
-    function setup(this)
-
+    function setup(~)
        if OI.Compatibility.isOctave
            pkg load image;
        end
-
     end
 
     function throw_error_if_no_project_loaded(this)
@@ -464,7 +462,7 @@ end
 
 methods (Access = protected)
 
-    function run_plugin(this, job)
+    function run_plugin(this, job, ~)
         this.throw_error_if_no_project_loaded();
         if isa(job,'OI.Job')
             % run the plugin

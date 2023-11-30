@@ -24,7 +24,6 @@
 
     oi.engine.postings.report_ready(0);
     nextWorker = 0;
-    assignment = {};
 
     thingToDoList = { OI.Data.PsiSummary() }; %1
     % thingToDoList = { OI.Data.BlockingSummary };
@@ -32,7 +31,8 @@
     % Flag to help refreshing worker status
     %   True - wait if no workers available
     %   False - try rehashing Matlab file cache before waiting
-    doImmediateWaitForWorkers = false;
+doImmediateWaitForWorkers = false;
+assignment = cell(1, 100);
 
 
 for thingToDo = thingToDoList
@@ -40,7 +40,6 @@ for thingToDo = thingToDoList
     % oi.engine.load( thingToDo{1} )
     matcher = @(posting, x) numel(posting) >= numel(x) && any(strfind(posting(1:numel(x)), x));
 
-    assignment = cell(1, 100);
 
     while true
 
