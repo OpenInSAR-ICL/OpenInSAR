@@ -171,7 +171,7 @@ methods (Static)
         % now switch based on file being XML or old format
         if OI.Compatibility.contains(filename,'.xml') || ~isempty( regexp( fileContent, '<\?xml', 'once' ) )
             optionsFromFile = this.load_from_xml( fileContent );
-        elseif OI.Compatibility.contains(filename,'.xml')
+        elseif OI.Compatibility.contains(filename,'.oi')
             optionsFromFile = this.load_from_legacy_file( fileContent );
         else
             warning('Could not determine file type of %s', filename);

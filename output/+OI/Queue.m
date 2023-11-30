@@ -188,19 +188,19 @@ methods
                 names.(jn) = 1;
             end
         end
-        queueSummaryString = ''
+        queueSummaryString = '';
         doPrint = nargout == 0;
         if this.length() == 0
-            doPrint && fprintf(1,'Queue is currently empty.\n');
+            doPrint && fprintf(1,'Queue is currently empty.\n'); %#ok<VUNUS>
             queueSummaryString = 'Queue is currently empty.\n';
         else
             if doPrint
-                fprintf(1,'Queue overview as of %s:\n',datestr(now())); %#ok<TNOW1,DATST>
+                fprintf(1,'Queue overview as of %s:\n',datestr(now()));
                 disp(names)
             else
                 queueSummaryCell = cell(1,length(names));
                 for ii=1:length(names)
-                    queueSummaryCell{ii} = sprintf('%ii: %s', ii, this.jobArray{ii}.to_string())
+                    queueSummaryCell{ii} = sprintf('%ii: %s', ii, this.jobArray{ii}.to_string());
                 end
                 queueSummaryString = strjoin(queueSummaryCell,'\n');
             end

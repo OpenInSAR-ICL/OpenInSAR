@@ -11,12 +11,19 @@ end % properties
 
 methods
     function this = GetOrbits(varargin)
-	this.isArray=true;
+        this.isArray=false;
     end
 
     function this = run(this, engine, varargin)
         varargin = varargin{1};
-
+        
+        % The Copernicus API has been suddenly removed... let's try a
+        % different way
+        orbitIndex = engine.load( OI.Data.OrbitFileIndex() );
+        if isempty(orbitIndex)
+            return
+        end
+        
         % find the varagin key value pairs
         for i = 1:2:length(varargin)-1
             switch varargin{i}
