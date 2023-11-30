@@ -14,6 +14,10 @@ methods
     end
     
     function this = run(this, engine, varargin)
+        cat = engine.load(OI.Data.Catalogue() );
+        if isempty(cat)
+            return
+        end
         SITE = 'http://step.esa.int/auxdata/orbits/Sentinel-1/POEORB/';
         
         count = 0;
@@ -56,6 +60,8 @@ methods
         
         this.outputs{1}.links=h;
         this.outputs{1}.filenames=n;
+        
+        this.outputs{1}.download_from_catalogue(engine, cat);
         engine.save( this.outputs{1} )
     end % run(
 
