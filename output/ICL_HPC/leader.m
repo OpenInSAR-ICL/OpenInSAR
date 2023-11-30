@@ -267,6 +267,10 @@ for thingToDo = thingToDoList
         end
         
         if ~tfClash
+            nextJob = oi.engine.queue.next_job();
+            if isempty(nextJob) || isempty(nextJob.target)
+                continue
+            end
             oi.engine.run_next_job()
             if oi.engine.lastPostee
                 assignment{ oi.engine.lastPostee } = OI.Job( oi.engine.currentJob );

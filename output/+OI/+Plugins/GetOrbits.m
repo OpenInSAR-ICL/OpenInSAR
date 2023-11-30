@@ -11,7 +11,7 @@ end % properties
 
 methods
     function this = GetOrbits(varargin)
-	this.isArray=true;
+        this.isArray=false;
     end
 
     function this = run(this, engine, varargin)
