@@ -1,7 +1,5 @@
 classdef Geocoding < OI.Plugins.PluginBase
-     %#ok<*NASGU>
-      %#ok<*ASGLU>
- %#ok<*NOPRT>
+
     properties
         inputs = {OI.Data.Stacks(), OI.Data.PreprocessedFiles(), OI.Data.DEM()}
         outputs = {OI.Data.GeocodingSummary()}
@@ -38,29 +36,25 @@ classdef Geocoding < OI.Plugins.PluginBase
                     if isempty( stacks.stack( trackInd ).reference )
                         continue;
                     end
-                for segmentInd = stacks.stack( trackInd ).reference.segments.index
+                    for segmentInd = stacks.stack( trackInd ).reference.segments.index
 
-                    result = OI.Data.LatLonEleForImage();
-                    result.STACK = num2str(trackInd);
-                    result.SEGMENT_INDEX = num2str(segmentInd);
-                    result = result.identify( engine );
-                    resultInDatabase = engine.database.find( result );
+                        result = OI.Data.LatLonEleForImage();
+                        result.STACK = num2str(trackInd);
+                        result.SEGMENT_INDEX = num2str(segmentInd);
+                        result = result.identify( engine );
+                        resultInDatabase = engine.database.find( result );
 
-                    allDone = allDone && ~isempty( resultInDatabase );
-                    if allDone % add to output
-                        % if isempty( this.outputs{1}.value )
-                        %     this.outputs{1}.value = [trackInd, segmentInd];
-                        % else
-                        this.outputs{1}.value(end+1,:) = [trackInd, segmentInd];
-                        % end
-                    else
-                        jobCount = jobCount + 1;
-                        engine.requeue_job_at_index( ...
-                            jobCount, ...
-                            'trackIndex',trackInd, ...
-                            'segmentIndex', segmentInd);
-                    end
-                end %
+                        allDone = allDone && ~isempty( resultInDatabase );
+                        if allDone % add to output
+                            this.outputs{1}.value(end+1,:) = [trackInd, segmentInd];
+                        else
+                            jobCount = jobCount + 1;
+                            engine.requeue_job_at_index( ...
+                                jobCount, ...
+                                'trackIndex',trackInd, ...
+                                'segmentIndex', segmentInd);
+                        end
+                    end %
                 end %
                 if allDone % we have done all the tracks and segments
                     engine.save( this.outputs{1} );
@@ -71,12 +65,10 @@ classdef Geocoding < OI.Plugins.PluginBase
 
             % do some magic
             segInd = this.segmentIndex;
-            thisRef = stacks.stack(this.trackIndex).reference;
-
             result = OI.Data.LatLonEleForImage();
             result.STACK = num2str(this.trackIndex);
             result.SEGMENT_INDEX = num2str(this.segmentIndex);
-            result = result.identify( engine )
+            result = result.identify( engine );
 
             if ~this.isOverwriting && ...
                     exist([result.filepath '.' result.fileextension],'file')
@@ -95,8 +87,8 @@ classdef Geocoding < OI.Plugins.PluginBase
                 preprocessingInfo.metadata( safeIndex ).swath( swathIndex );
             
             % get parameters from metadata
-            [lpb,spb,nearRange,rangeSampleDistance] = ...
-                OI.Plugins.Geocoding.get_parameters( swathInfo );
+            [lpb,spb,~,~] = ...
+                OI.Plugins.Geocoding.get_parameters( swathInfo ); %#ok<ASGLU>
 
             % get the orbit
             engine.ui.log('info','Interpolating orbits\n');
@@ -121,25 +113,20 @@ classdef Geocoding < OI.Plugins.PluginBase
                     ];
 
             % define this variable because matlab pollutes the namespace
-            elevation = 'a variable not a function';
+            elevation = 'a variable not a function'; %#ok<NASGU>
             toleranceProgression = 10.^(0:-1:-1);
             
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   GEOCODING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % Map az,rg to lat,lon,height
-            [~, ~, burstCorners, ~,~ ] = ...
-            OI.Plugins.Geocoding.get_geometry(lpb,spb);
-            inds = (burstCorners(:,1)-1)*spb+burstCorners(:,2);
 
             % ALIASES TO UPDATE XYZ COORDINATES AND ELEVATION
             xyzUpd = @OI.Functions.lla2xyz;
-            eleUpd = @dem.interpolate;
 
             % INITIAL ESTIMATES OF LAT LON ELE
             [lat, lon] = OI.Plugins.Geocoding.get_initial_geocoding( ...
-            swathInfo, burstIndex);
-            [dem, elevation] = eleUpd( lat, lon );
+                swathInfo, burstIndex);
+            [dem, elevation] = dem.interpolate( lat, lon );
             xyz = xyzUpd( lat, lon, elevation );
 
             % RANGE DOPPLER ERROR ESTIMATES IN TERMS OF AZ/RG INDEX OFFSET
@@ -151,51 +138,49 @@ classdef Geocoding < OI.Plugins.PluginBase
                 satXYZ, ...
                 satV, ...
                 xyz ) ...
-            ./ dopplerPerAzLine;
+                ./ dopplerPerAzLine;
             % RG ERROR
             [lpb,spb,nearRange,rangeSampleDistance] = ...
-            OI.Plugins.Geocoding.get_parameters(swathInfo);
-            sz=[lpb,spb];
+                OI.Plugins.Geocoding.get_parameters(swathInfo);
+                sz=[lpb,spb];
             [rangeSample, azLine] = ...
-            OI.Plugins.Geocoding.get_geometry(lpb,spb);
+                OI.Plugins.Geocoding.get_geometry(lpb,spb);
             rgUpd = @(xyz) rangeSample(:) - ...
-            (OI.Functions.range_eq( satXYZ, xyz ) ...
-            - nearRange ) ...
-            ./ rangeSampleDistance;
+                (OI.Functions.range_eq( satXYZ, xyz ) ...
+                - nearRange ) ...
+                ./ rangeSampleDistance;
             rgUpdSubset = @(xyz,subset) rangeSample(subset) - ...
-            (OI.Functions.range_eq( satXYZ(subset,:), xyz ) ...
-            - nearRange ) ...
-            ./ rangeSampleDistance;
+                (OI.Functions.range_eq( satXYZ(subset,:), xyz ) ...
+                - nearRange ) ...
+                ./ rangeSampleDistance;
 
             % polynomials for lat/lon
-            rgPolyFun = @(r) [r.^3 r.^2 r ones(size(r,1),1)];
             rgCentreScale = @(idx) (idx)/spb - .5;
             azCentreScale = @(idx) (idx)/lpb - .5;
-            ind2coeff = @(idx) rgPolyFun( rgCentreScale( idx ) );
-            rgCoefficients = ind2coeff( [1:spb]' ); %#ok<NBRAK1>
 
             latByAzRg = [azCentreScale(azLine(:)) rgCentreScale(rangeSample(:)) ...
-            ones(numel(azLine),1) ] \ ...
-            lat(:);
+                ones(numel(azLine),1) ] \ ...
+                lat(:);
             lonByAzRg = [azCentreScale(azLine(:)) rgCentreScale(rangeSample(:)) ...
-            ones(numel(azLine),1) ] \ ...
-            lon(:);
+                ones(numel(azLine),1) ] \ ...
+                lon(:);
 
             errorToLat = @(azErr,rgErr) ...
-            [azCentreScale(azErr)+.5, rgCentreScale(rgErr)+.5 0.*rgErr] * latByAzRg;
+                [azCentreScale(azErr)+.5, rgCentreScale(rgErr)+.5 0.*rgErr] * latByAzRg;
             errorToLon = @(azErr,rgErr) ...
-            [azCentreScale(azErr)+.5, rgCentreScale(rgErr)+.5 0.*rgErr] * lonByAzRg;
+                [azCentreScale(azErr)+.5, rgCentreScale(rgErr)+.5 0.*rgErr] * lonByAzRg;
 
             % Progressively narrow the tolerance for error:
             if ~exist('toleranceProgression','var')
-            toleranceProgression = 10.^(0:-1:-3);
+                toleranceProgression = 10.^(0:-1:-3);
             end
+            
             for tolerance = toleranceProgression
             engine.ui.log('info','Geocoding to a tolerance of %f pixels\n',tolerance);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   LINES OF ZERO DOPPLER
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % fix the lat lon until there is zero doppler error
 
             doppIter = 0;
@@ -206,10 +191,6 @@ classdef Geocoding < OI.Plugins.PluginBase
             while doppIter < 10
                 doppIter = doppIter + 1;
                 azError = azUpd( xyz ) .* dampingCurve(doppIter);
-                % if doppIter>1
-                %     improvement = azError./lastAzError;
-                % end
-                lastAzError = azError;
                 rgError = rgUpd( xyz );
 
                 engine.ui.log('info','Max doppler error is now: %f\n',max(abs(azError)));
@@ -232,7 +213,7 @@ classdef Geocoding < OI.Plugins.PluginBase
                 lat = min(lat,max(dem.extent.lat(:)));
                 lat = min(lat,max(dem.extent.lat(:)));
 
-                [dem, elevation] = eleUpd( lat, lon );
+                [dem, elevation] = dem.interpolate( lat, lon );
                 xyz = xyzUpd( lat, lon, elevation );
                 
                 % Errors here if outside dem extent!
@@ -241,28 +222,12 @@ classdef Geocoding < OI.Plugins.PluginBase
             engine.ui.log('info','Doppler loop took %f seconds\n',toc(dopStartTime));
 
 
-            % once we have accurate lat/lon coords for zero doppler, fit a
-            % polynomial to each az line which describes how lat/lon vary with
-            % respect to range.
-            % rext = [0:spb-1]'./spb;
-            % midRange = mean(rext);
-            % rext = rext - midRange;
-            % RMAT = [rext.^3, rext.^2 rext ones(spb,1)];
-            % latRangePolyByLine = RMAT \ reshape(lat,lpb,spb)';
-            % lonRangePolyByLine = RMAT \ reshape(lon,lpb,spb)';
-            % latRangePolyByLine = RMAT \ reshape(lat,lpb,spb)';
-            % lonRangePolyByLine = RMAT \ reshape(lon,lpb,spb)';
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   RANGE ZERO CROSSINGS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % find the zero range error by triangulating the zero-crossing
-                
-            rzcStartTime = tic;
             % update lat lon to their best life
             %             maybe update the error to lat lon ones too
-
             lastLat = lat;
             lastLon = lon;
             lastRgError = rgError;
@@ -278,27 +243,7 @@ classdef Geocoding < OI.Plugins.PluginBase
                 [azCentreScale(azErr)+.5, rgCentreScale(rgErr)+.5 0.*rgErr] * latByAzRg;
             errorToLon = @(azErr,rgErr) ...
                 [azCentreScale(azErr)+.5, rgCentreScale(rgErr)+.5 0.*rgErr] * lonByAzRg;
-            % 
-            %     %
-            % % get the range error for the test index
-            % testIndex = lastRgError(:);
-            % lat = lastLat + errorToLat(zeros(spb*lpb,1), testIndex);
-            % lon = lastLon + errorToLon(zeros(spb*lpb,1), testIndex);
-            % [dem, elevation] = eleUpd( lat, lon );
-            % xyz = xyzUpd( lat, lon, elevation );
-            % rgError = rgUpd( xyz );
-            % imagesc(reshape(rgError,sz));colorbar
-
-            % % this should equal zero:
-            % % get the range error for the test index
-            % testIndex = zeros(spb*lpb,1);
-            % lat = lastLat + errorToLat(zeros(spb*lpb,1), testIndex);
-            % lon = lastLon + errorToLon(zeros(spb*lpb,1), testIndex);
-            % [dem, elevation] = eleUpd( lat, lon );
-            % xyz = xyzUpd( lat, lon, elevation );
-            % rgError = rgUpd( xyz );
-            % imagesc(reshape(rgError-lastRgError,sz));colorbar
-
+           
             initBoundsTime = tic;
             [indexWindow, errorWindow, hitCount] = deal(zeros(lpb*spb,2));
             %% NOW WE NEED TO FIND UPPER AND LOWER BOUNDS OF THE ZERO CROSSInG bEFORE BISECTING %%
@@ -306,109 +251,114 @@ classdef Geocoding < OI.Plugins.PluginBase
                 % Rmax = max(rgError) + tolerance * 10;
                 % Rmin = min(rgError) - tolerance * 10;
                 % indexWindow = [Rmin Rmax] .* ones(spb*lpb,1);
+            % TODO There is a very weird error with dem interpolation not
+            % returning consistent values.
+            validZeroCrossings = false;
+            while ~validZeroCrossings
+                isPositiveError = lastRgError > 0;
+                isNegativeError = lastRgError < 0;
+                % So 0 will be one of our bounds, it remains to find the other one...
+                indexWindow(~isPositiveError,1) = lastRgError(~isPositiveError);
+                indexWindow(~isNegativeError,2) = lastRgError(~isNegativeError);
 
-            % F(testIndex=0) = lastRgError; 
-            isPositiveError = lastRgError > 0;
-            isNegativeError = lastRgError < 0;
-            % So 0 will be one of our bounds, it remains to find the other one...
-            indexWindow(~isPositiveError,1) = lastRgError(~isPositiveError);
-            indexWindow(~isNegativeError,2) = lastRgError(~isNegativeError);
+                % update the error window, depending on the sign of the error
+                errorWindow(isPositiveError,1) = rgError(isPositiveError);
+                errorWindow(isNegativeError,2) = rgError(isNegativeError);
 
-            % update the error window, depending on the sign of the error
-            errorWindow(isPositiveError,1) = rgError(isPositiveError);
-            errorWindow(isNegativeError,2) = rgError(isNegativeError);
+                % update the hit count
+                hitCount(isPositiveError,1) = hitCount(isPositiveError,1) + 1;
+                hitCount(isNegativeError,2) = hitCount(isNegativeError,2) + 1;
 
-            % update the hit count
-            hitCount(isPositiveError,1) = hitCount(isPositiveError,1) + 1;
-            hitCount(isNegativeError,2) = hitCount(isNegativeError,2) + 1;
+                % Adjust bounds until we get what we want
+                for bound = 1:2
+                desiredErrorSign = sign(1.5-bound);
+                rangeSearchDirection = -desiredErrorSign;
+                testIndex = indexWindow(:,bound);
+                adjustment = 0.*indexWindow(:,1);
+                badInds = find( (~isPositiveError & (bound==1)) ...
+                    | (~isNegativeError & (bound==2)));
 
-            % % These errors should all be positive, but won't be:
-            % testIndex = lastRgError(:);
-            % lat = lastLat + errorToLat(zeros(spb*lpb,1), testIndex);
-            % lon = lastLon + errorToLon(zeros(spb*lpb,1), testIndex);
-            % [dem, elevation] = eleUpd( lat, lon );
-            % xyz = xyzUpd( lat, lon, elevation );
-            % rgError = rgUpd( xyz );
-            % imagesc(reshape(rgError,sz));colorbar
-                
+                sensibleIterLimit = 100;
+                while ~isempty(badInds)
 
-            % Adjust bounds until we get what we want
-            for bound = 1:2
-            desiredErrorSign = sign(1.5-bound);
-            rangeSearchDirection = -desiredErrorSign;
-            testIndex = indexWindow(:,bound);
-            adjustment = 0.*indexWindow(:,1);
-            badInds = find( (~isPositiveError & (bound==1)) ...
-                | (~isNegativeError & (bound==2)));
-            
-            sensibleIterLimit = 100;
-            while ~isempty(badInds)
-                
-                const0 = zeros(size(badInds));
-                badlat = lastLat(badInds) + errorToLat(const0, ...
-                    testIndex(badInds) + ...
-                    adjustment(badInds));
-                badlon = lastLon(badInds) + errorToLon(const0, ...
-                    testIndex(badInds) + ...
-                    adjustment(badInds)); 
-                % some discrepancy occurs if the dem extent changes,
-                % maintain same extent
-                [dem, badelevation] = eleUpd( ...
-                    [min(lat); badlat; max(lat)], ...
-                    [min(lon); badlon; max(lon)]  );
-                badxyz = xyzUpd( badlat, badlon, badelevation(2:end-1) );
-                badrangeError = rgUpdSubset( badxyz, badInds );
-                % if the prior adjustment worked, we don't need to update it;
-                
-                nowOkay = sign(badrangeError) == desiredErrorSign;
-                % save any results that are OKAY
-                errorWindow(badInds(nowOkay), bound) = badrangeError(nowOkay);
-                hitCount(badInds(nowOkay), bound) = ...
-                    hitCount(badInds(nowOkay),bound) + 1;
+                    const0 = zeros(size(badInds));
+                    badlat = lastLat(badInds) + errorToLat(const0, ...
+                        testIndex(badInds) + ...
+                        adjustment(badInds));
+                    badlon = lastLon(badInds) + errorToLon(const0, ...
+                        testIndex(badInds) + ...
+                        adjustment(badInds)); 
 
-                % adjust any that are not
-                adjustment(badInds(~nowOkay)) = adjustment(badInds(~nowOkay)) ...
-                    + badrangeError(~nowOkay) * 2 + ...
-                    rangeSearchDirection * tolerance * 10;
-                badInds = badInds(~nowOkay);
-                % 
-                % adjustment(badInds) = adjustment(badInds) - ...
-                %     tolerance*10 ...
-                %     + badrangeError * 10;
-                % 
-                fprintf(1,'%d pixels with ambiguous bounds.\n',numel(badInds))
-                
-                sensibleIterLimit = sensibleIterLimit - 1;
-                if sensibleIterLimit < 1
-                    break
+                    [dem, badelevation] = dem.interpolate(badlat, badlon);
+                    badxyz = xyzUpd( badlat, badlon, badelevation );
+                    badrangeError = rgUpdSubset( badxyz, badInds );
+
+                    nowOkay = sign(badrangeError) == desiredErrorSign;
+                    % save any results that are OKAY
+                    errorWindow(badInds(nowOkay), bound) = badrangeError(nowOkay);
+                    hitCount(badInds(nowOkay), bound) = ...
+                        hitCount(badInds(nowOkay),bound) + 1;
+
+                    % adjust any result indices that are not okay
+                    badInds = badInds(~nowOkay);
+                    % if the prior adjustment worked, we don't need to update it;
+                    adjustment(badInds) = adjustment(badInds) ...
+                        + badrangeError(~nowOkay) * 2 + ...
+                        rangeSearchDirection * tolerance * 10;
+
+                    fprintf(1,'%d pixels with ambiguous bounds.\n',numel(badInds))
+
+                    sensibleIterLimit = sensibleIterLimit - 1;
+                    if sensibleIterLimit < 1
+                        break
+                    end
                 end
-            end
-            % update the bound
-            indexWindow(:,bound) = indexWindow(:,bound) + adjustment;
-            fprintf(1,'\n');
-            end
+                % update the bound
+                indexWindow(:,bound) = indexWindow(:,bound) + adjustment;
+                fprintf(1,'\n');
+                end
 
-            % figure(1)
-            testIndex = indexWindow(:,1);
-            lat = lastLat + errorToLat(zeros(spb*lpb,1), testIndex);
-            lon = lastLon + errorToLon(zeros(spb*lpb,1), testIndex);
-            [dem, elevation] = eleUpd( lat, lon );
-            xyz = xyzUpd( lat, lon, elevation );
-            rgError = rgUpd( xyz );
-            % imagesc(reshape(rgError,sz));colorbar
-            % title(sprintf('Lower bound: %d below 0',sum(rgError<0)))
-            assert(~sum(rgError<0))
+                % figure(1)
+                testIndex = indexWindow(:,1);
+                lat = lastLat + errorToLat(zeros(spb*lpb,1), testIndex);
+                lon = lastLon + errorToLon(zeros(spb*lpb,1), testIndex);
+                [dem, elevation] = dem.interpolate( lat, lon );
+                xyz = xyzUpd( lat, lon, elevation );
+                rgError = rgUpd( xyz );
+                % imagesc(reshape(rgError,sz));colorbar
+                % title(sprintf('Lower bound: %d below 0',sum(rgError<0)))
+                
+                % Due to some weird bug with DEM interpolation we should
+                % retry until we can consistently get good zero xing windows.
+                if sum(rgError<0)
+                    warning('Failed to find a lower bound for range')
+                    lastLat = lat;
+                    lastLon = lon;
+                    lastRgError = rgError;
+                    continue;
+                end
 
-            % figure(2)
-            testIndex = indexWindow(:,2);
-            lat = lastLat + errorToLat(zeros(spb*lpb,1), testIndex);
-            lon = lastLon + errorToLon(zeros(spb*lpb,1), testIndex);
-            [dem, elevation] = eleUpd( lat, lon );
-            xyz = xyzUpd( lat, lon, elevation );
-            rgError = rgUpd( xyz );
-            % imagesc(reshape(rgError,sz));colorbar
-            % title(sprintf('Upper bound: %d above 0',sum(rgError>0)))
-            assert(~sum(rgError>0))
+                % figure(2)
+                testIndex = indexWindow(:,2);
+                lat = lastLat + errorToLat(zeros(spb*lpb,1), testIndex);
+                lon = lastLon + errorToLon(zeros(spb*lpb,1), testIndex);
+                [dem, elevation] = dem.interpolate( lat, lon );
+                xyz = xyzUpd( lat, lon, elevation );
+                rgError = rgUpd( xyz );
+                % imagesc(reshape(rgError,sz));colorbar
+                % title(sprintf('Upper bound: %d above 0',sum(rgError>0)))
+                
+                % Due to some weird bug with DEM interpolation we should
+                % retry until we can consistently get good zero xing windows.
+                if sum(rgError>0)
+                    warning('Failed to find an upper bound for range')
+                    lastLat = lat;
+                    lastLon = lon;
+                    lastRgError = rgError;
+                    continue;
+                end
+                break;
+            end
 
             engine.ui.log('info','Initialising bounds took %f seconds\n',toc(initBoundsTime));
             %% Now we bisect to find the zero cross to a given tolerance
@@ -436,7 +386,7 @@ classdef Geocoding < OI.Plugins.PluginBase
                 lat = lastLat + errorToLat(zeros(spb*lpb,1), testIndex);
                 lon = lastLon + errorToLon(zeros(spb*lpb,1), testIndex);
                 % update xyz and elevation
-                [dem, elevation] = eleUpd( lat, lon );
+                [dem, elevation] = dem.interpolate( lat, lon );
                 xyz = xyzUpd( lat, lon, elevation );
                 % get the range error
                 rgError = rgUpd( xyz );
@@ -471,20 +421,17 @@ classdef Geocoding < OI.Plugins.PluginBase
                         indexWindow(lowerBoundIsLowerError,1);
                     lat = lastLat + errorToLat(zeros(spb*lpb,1), testIndex);
                     lon = lastLon + errorToLon(zeros(spb*lpb,1), testIndex);
-                    [dem, elevation] = eleUpd( lat, lon );
+                    [dem, elevation] = dem.interpolate( lat, lon );
                     xyz = xyzUpd( lat, lon, elevation );
                     break % the while loop
                 end % check for converge
             end % while
-            zcLat = lat;
-            zcLon = lon;
+
             engine.ui.log('info','Triangulating zero crossing took %f seconds\n', ...
                 toc(bisectZeroCrossingTime));
 
             end % tolerance loop
 
-            azError = azUpd( xyz );
-            rgError = rgUpd( xyz );
             % save the result
             engine.save(result, [lat(:) lon(:) elevation(:)]);
 
@@ -521,15 +468,13 @@ classdef Geocoding < OI.Plugins.PluginBase
     methods (Static = true)
         function [lpb,spb,nearRange,rangeSampleDistance] = ...
                 get_parameters(swathInfo)
-            % parameters
+
             c = 299792458;
             nearRange = swathInfo.slantRangeTime * c / 2;
 
             % get image dimensions
             lpb = swathInfo.linesPerBurst;
             spb = swathInfo.samplesPerBurst;
-            %
-            fastTime = swathInfo.slantRangeTime;
             rangeSampleTime = 1/swathInfo.rangeSamplingRate;
             rangeSampleDistance = c*rangeSampleTime/2;
         end
