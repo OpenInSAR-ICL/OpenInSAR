@@ -136,7 +136,7 @@ function tilepaths = get_srtm_tiles(minLat, maxLat, minLon, maxLon, directory, u
                 oneInAMillion = num2str(floor(mod(now(),1)*1000000));
                 movefile([tilepaths{n}, '.zip'], ...
                     [tilepaths{n}, '.zip.failed', oneInAMillion]);
-                error('TODO: Handle this by recursion somehow.')
+                error('SRTM tile could not be downloaded. Maybe in sea? - %s', tilepaths{n})
             else
                 % delete the zip
                 delete([tilepaths{n}, '.zip']);

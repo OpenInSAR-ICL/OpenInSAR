@@ -119,7 +119,7 @@ classdef DEM < OI.Data.DataObj
 
                 % add the tile to the mosaic
                 % FNDSB: logical array wouldnt work as its 2d...
-                mosaic( latInds, lonInds ) = flipud(tileData.');%#ok<FNDSB>
+                mosaic( latInds, lonInds ) = tileData;%#ok<FNDSB>
                 % imagesc(mosaicLon,mosaicLat,mosaic); set(gca,'YDir','normal')
                 % pause(1)
             end
@@ -161,6 +161,7 @@ classdef DEM < OI.Data.DataObj
                 % return;
             else
                 tileData = fread(fid, [3601,3601], 'int16=>int16');
+                tileData = flipud(tileData.');
                 fclose(fid);
             end
             
@@ -195,9 +196,15 @@ classdef DEM < OI.Data.DataObj
             lon = linspace(-2,362,1457);
                 
             assert( all(queryLat(:)>-90) && all(queryLat(:)<90) && all(queryLon(:)>-180) && all(queryLon(:)<180) );
+            queryLon(queryLon<0) = 360 + queryLon(queryLon<0);
             % Perform 2D cubic interpolation
             interpHeight = interp2(lon, lat, geoidHeight, queryLon, queryLat, 'cubic');
-        end
+        end 
+        % eGm96 https://geographiclib.sourceforge.io/cgi-bin/GeoidEval
+        % 54, -3 : 52.61
+        % 51, 0 : 45.2995
+        % 55.1 0.5 : 46.07
+        
         
         function data = get_geoid()
             persistent geoidGrid

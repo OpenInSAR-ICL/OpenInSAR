@@ -34,7 +34,21 @@ methods
             this = this.parse_link_file();
         end
 
-        this.check_project_file_exists();
+        tfProjectFileExists = this.check_project_file_exists();
+        if tfProjectFileExists
+            % Make a backup in home directory
+            homeDir = OI.OperatingSystem.get_usr_dir();
+            [~, projectName] = fileparts(this.projectPath);
+            backupDir = fullfile(homeDir, 'OpenInSAR_projects');
+            uniqueDate = datestr(now,'yyyy-mm-dd');
+            backupFilepath = fullfile(backupDir, [projectName '_' uniqueDate '.oi']);
+            if ~exist(backupFilepath,'file')
+                if ~exist(backupDir,'dir')
+                    mkdir(backupDir);
+                end
+                copyfile(this.projectPath, backupFilepath);
+            end
+        end 
     end % ProjectLink
 
     function this = set_new_project(this, ~)
@@ -119,9 +133,11 @@ methods ( Access = private )
         this.projectPath = OI.Functions.abspath( this.projectPath );
     end
 
-    function this = check_project_file_exists(this)
+    function tf = check_project_file_exists(this)
         isProjectFileAvailable = exist(this.projectPath,'file');
         assert( isProjectFileAvailable~=0, sprintf('Project file not found: %s', this.projectPath))
+        tf = true;
+        return
     end % check_project_file_exists
 
     function this = resolve_os_specific_path( this )

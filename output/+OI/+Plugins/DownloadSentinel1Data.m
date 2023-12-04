@@ -86,19 +86,39 @@ methods
         safePath = this.outputs{1}.filepath;
         thisSafeExists = exist(safePath, 'file');
         % easy_debug
-        if thisSafeExists
+        if thisSafeExists && OI.Data.Sentinel1Safe.check_valid(safePath)
             engine.ui.log('info', 'SAFE Folder %s already exists, skipping download\n', strrep(this.outputs{1}.filepath, '\', '\\'));
         else
             % Create a wget command to download the file
             % continue if the file already exists using -c
             % don't check the certificate
             zipPath = this.outputs{1}.zippath;
-            sysCall = ...
-                sprintf(...
-                "wget -c -q -O %s --user=%s --password=%s %s --no-check-certificate", ...
-                zipPath, username, password, this.URL);
-            engine.ui.log('debug','Sys call: %si\n', strrep(sysCall,'\','\\'));
-            system(sysCall)
+            if OI.OperatingSystem.isUnix
+                if exist(zipPath,'file')
+                    doDelete = sprintf(' rm %s &&',zipPath);
+                else
+                    doDelete = '';
+                end
+                sysCall = ...
+                    sprintf(...
+                    'cd %s &&%s wget -q -L --user=%s --password=%s %s --no-check-certificate', ...
+                    fileparts(zipPath), doDelete, username, password, this.URL);
+                
+                engine.ui.log('debug','Sys call: %si\n', strrep(sysCall,'\','\\'));
+                system(sysCall)
+            else
+%                 curlCommand = sprintf('curl -L -u %s:%s -o %s %s', ...
+%                     username, password, zipPath, this.URL);
+%                 [status, ~] = system(curlCommand);
+                if OI.Compatibility.isOctave
+                    warning('NOT TESTED ON OCTAVE')
+                end
+                opt = weboptions;
+                opt.Username = username;
+                opt.Password = password;
+                websave(zipPath, this.URL, opt);
+            end
+
         end% if
 
         fStruct = dir(safePath);
@@ -109,7 +129,7 @@ methods
         
         % Check if files are unzipped
         validSafe = ...
-            OI.Plugins.DownloadSentinel1Data.check_safe_valid(safePath);
+            OI.Data.Sentinel1Safe.check_valid(safePath);
 
         if validSafe
             engine.ui.log('info', 'File %s already exists, skipping unzip\n', strrep(this.outputs{1}.filepath, '\', '\\'))
@@ -121,7 +141,15 @@ methods
             if OI.OperatingSystem.isUnix
                 sysCall = sprintf("unzip -DD -o %s -d %s", this.outputs{1}.zippath, outputDirectory);
                 engine.ui.log('debug','Sys call: %si\n', strrep(sysCall,'\','\\'));
+
                 status = system(sysCall);
+                % sometimes the unzip doesn't work due to weird ASF format
+                % We could just use matlab unzip but this doesn't do
+                % -DD ... which means the weird HPC rule will delete
+                % the data tomorrow-ish.
+                if status
+                    unzip(this.outputs{1}.zippath, outputDirectory);
+                end
             else
                 sysCall = sprintf('powershell -command "Expand-Archive -Force -Path ''%s'' -DestinationPath ''%s''"',this.outputs{1}.zippath, outputDirectory);
                 engine.ui.log('debug','Sys call: %si\n', strrep(sysCall,'\','\\'));
@@ -133,7 +161,7 @@ methods
 
         % Check if files are unzipped correctly
         validSafe = ...
-            OI.Plugins.DownloadSentinel1Data.check_safe_valid(safePath);
+            OI.Data.Sentinel1Safe.check_valid(safePath);
 
         if ~validSafe
             engine.ui.log('error', 'Error unzipping file %s\n', strrep(this.outputs{1}.filepath, '\', '\\'));
@@ -151,7 +179,7 @@ methods
                 engine.ui.log('error', '%s will be deleted\n', strrep(this.outputs{1}.filepath, '\', '\\'));
                 % I will try deleting the existing file...
                 delete(this.outputs{1}.zippath);
-                try
+                try %#ok<TRYNC>
                     rmdir(this.outputs{1}.filepath,'s'); % s flag for non-empty dir
                 end
             end
@@ -185,32 +213,6 @@ methods (Static = true)
         idFromUrl = strjoin(split,'_');
     end
 
-
-    function isValid = check_safe_valid( safePath )
-        isValid = false;
-        manifest = fullfile(safePath,'manifest.safe');
-        measurement = fullfile(safePath,'measurement');
-
-        if exist(safePath,'dir') && exist(manifest,'file')
-            measureDir = dir(measurement);
-            % check that there are files in the measurement directory
-            if numel(measureDir) > 4
-                allBig = true;
-                total = 0;
-                for ii = 3:numel(measureDir)
-                    total = total + measureDir(ii).bytes;
-                    if measureDir(ii).bytes < 500e6 % one burst ish?
-                        allBig = false;
-                    end
-                end
-                if allBig || (total > 3e9)
-                    % All swaths okay
-                    isValid = true;
-                end
-            end
-        end
-    end
-
-end
+end % methods (Static)
 
 end % classdef

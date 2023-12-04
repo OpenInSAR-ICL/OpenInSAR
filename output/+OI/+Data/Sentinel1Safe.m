@@ -228,7 +228,50 @@ methods (Static)
                 error('Unknown platform')
         end% switch
     end% decode_relative_orbit
+    
+    function safeIsValid = check_valid(safePath)
+        manifest = fullfile(safePath,'manifest.safe');
+        measurement = fullfile(safePath,'measurement');
 
+        safeIsValid = exist(safePath,'dir') && exist(manifest,'file') && ...
+            exist(measurement,'dir');
+        if safeIsValid
+            measureDir = dir(measurement);
+            measureDir(1:2) = [];
+            % check that there are files in the measurement directory
+            nTiffs = numel(measureDir);
+            safeIsValid = (nTiffs == 3 || nTiffs == 6);
+        end
+        if safeIsValid
+            tiffSizes = arrayfun(@(x) x.bytes, measureDir);
+            % check all tiffs have enough data
+            safeIsValid = all(tiffSizes(3:end)> 600e6); % two bursts?
+        end
+        if safeIsValid && nTiffs == 6 
+            % if dual pol, check VV size same as VH size
+            % first 15 chars are e.g. 's1a-iw1-slc-vh-'
+            matchFunc = @(x, y) ...
+                numel(x.name) > 15 && ...
+                strcmpi(strrep(x.name(1:15),'-vv-','-vh-'), y.name(1:15)) && ...
+                x.bytes == y.bytes;
+
+
+            for ii=1:nTiffs
+                thisFile = measureDir(ii);
+                if OI.Compatibility.contains(thisFile.name,'-vv-')
+                    continue
+                end
+                notThisTiffIndex = [1:ii-1 ii+1:nTiffs];
+                otherFiles = measureDir(notThisTiffIndex);
+                otherFilesMatch = arrayfun(@(x) ...
+                    matchFunc(x,thisFile), otherFiles);
+                if ~any(otherFilesMatch)
+                    safeIsValid = false;
+                    break
+                end
+            end
+        end
+    end
 
 
 end% methods (Static)

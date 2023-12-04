@@ -62,7 +62,7 @@ for thingToDo = thingToDoList
 
             % clean up old jobs and add the results to database
             for ii = 1:length(oi.engine.postings.workers)
-  
+                [nextWorker, nextWorkerWaiting] = oi.engine.postings.get_next_worker();
                 % get the filepath
                 JJ = oi.engine.postings.workers(ii);
                 if JJ==0
@@ -160,7 +160,6 @@ for thingToDo = thingToDoList
                         if ~isempty(dirPostings)    
                             oi.ui.log('info','%s - %s',dirPostings(end).name,datestr(dirPostings(end).datenum))
                         end
-                        fp
                         fid = fopen(fp)
                         frewind(fid)
                         posting = fread(fid,inf,'*char')'
@@ -216,8 +215,8 @@ for thingToDo = thingToDoList
                 oi.engine.ui.log('info',...
                     ['No more jobs for leader at this step,'... 
                     'running distributed jobs']);
-                break
             end
+            break;
         end
         if isempty(nextJob)
             continue
@@ -269,6 +268,7 @@ for thingToDo = thingToDoList
         if ~tfClash
             nextJob = oi.engine.queue.next_job();
             if isempty(nextJob) || isempty(nextJob.target)
+                nextWorker = 0;
                 continue
             end
             oi.engine.run_next_job()

@@ -19,9 +19,9 @@ methods
         end
 
         if nargin == 1
-            if ischar(varargin{1})
+            if ischar(varargin{1}) || OI.Compatibility.is_stringy(varargin{1})
                 arg = varargin{1};
-                if numel(arg)<3 || ~strcmp(arg(1:3),'Job')
+                if ischar(varargin{1}) && (numel(arg)<3 || ~strcmp(arg(1:3),'Job'))
                     obj.name = arg;
                 else
                     obj = parse_from_string(obj,varargin{1});

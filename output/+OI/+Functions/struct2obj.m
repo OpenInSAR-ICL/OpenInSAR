@@ -44,7 +44,11 @@ function obj = struct2obj(s)
         elseif isstruct(s.(fieldNames{i}))
             % s.(fieldNames{i}).class_.value_
             % if it is a struct, call this function recursively
-            obj.(fieldNames{i}) = OI.Functions.struct2obj(s.(fieldNames{i}));
+            if ~isempty(s.(fieldNames{i})) || isfield(s.(fieldNames{i}),'class_')
+                obj.(fieldNames{i}) = OI.Functions.struct2obj(s.(fieldNames{i}));
+            else
+                obj.(fieldNames{i}) = s.(fieldNames{i});
+            end
         elseif iscell( s.(fieldNames{i}) ) % it might be an object array
             % (cell array of structs for octave)
             % loop through and convert each element if it is a struct
