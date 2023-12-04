@@ -242,9 +242,7 @@ methods
             end
                 
         end
-        
-        haveFoundOffsets = false;
-                
+                        
         if ~haveFoundOffsets % if we already have offsets we can skip this
             % we need one more input...
             geocodingData = OI.Data.LatLonEleForImage().configure( ...
@@ -294,6 +292,8 @@ methods
             % Estimate the doppler rate
             refGroundXYZ = OI.Functions.lla2xyz( lle );
             midDem = OI.Functions.lla2xyz(mean(lle)); % mean xyz would be ...
+            lle = [];
+            
             % below the surface of the earth, as compared to mean lle.
             linesPerDoppler =  lpbRef./ ...
                 ( OI.Functions.doppler_eq(satXYZ(1,:), satV(1,:), midDem) - ...
@@ -320,7 +320,7 @@ methods
                 isConverged = mean(abs(dopplerErr(:))) ./ lastErr > 0.99;
                 lastErr = mean(abs(dopplerErr(:)));
             end
-    
+           
             % calc azimuth azimuth shift
             a = (reshape(satT,refSz)-lineTimes)*86400./ati;
     
@@ -331,11 +331,17 @@ methods
                     tOrbit.y(:), ...
                     tOrbit.z(:) ...
                 ];
-    
+            
             % calculate the range offsets
             r = (OI.Functions.range_eq(satXYZ, refGroundXYZ) - nearRange) ./ ...
                 swathInfo.rgSpacing - refMeshRange(:);
             r = reshape(r,refSz);
+           
+            % We can now clear the ground coordinates as we're just
+            % resampling now.
+            refGroundXYZ = [];
+            dopplerErr = [];
+            tOrbit = [];
             
             % save the results
             engine.save(result, [a(:) r(:)]);
@@ -385,10 +391,10 @@ methods
                 segPath, 1, [1 lpb]+(burstIndex-1)*lpb, []);
             
             % get ramp
-            [derampPhase, demodulatePhase, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
+            [derampPhase, ~, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
                 swathInfo, burstIndex, orbit, safe, a); %#ok<ASGLU>
-            % [refDerampPhase, refDemodulatePhase,] = OI.Functions.deramp_demod_sentinel1(...
-            %     refSwathInfo, refBurstIndex, refOrbit, refSafe);
+%             [derampPhase, demodulatePhase, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
+%                 swathInfo, burstIndex, orbit, safe, a); %#ok<ASGLU>
 
             % resample
             coregData=interp2(meshAz', ...
