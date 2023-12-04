@@ -19,7 +19,11 @@ end
 methods (Static =  true)
     function [data, header] = read( filepath )
         fId = fopen( filepath , 'r' );
-        header = OI.Data.TiffHeader.from_stream( fId );
+        try
+            header = OI.Data.TiffHeader.from_stream( fId );
+        catch ERR
+            error('Error opening Tiff file %s', filepath);
+        end
         if header.ifdCount > 0
             data = OI.Data.Tiff.read_image_data_from_stream(fId, header);
         end
@@ -29,7 +33,11 @@ methods (Static =  true)
     function [data, header] = read_cropped( filepath, bands, rows, columns)
         fId = fopen( filepath , 'r' );
         limits = struct('bands',bands,'rows',rows,'columns',columns);
-        header = OI.Data.TiffHeader.from_stream( fId );
+        try
+            header = OI.Data.TiffHeader.from_stream( fId );
+        catch ERR
+            error('Error opening Tiff file %s', filepath);
+        end
         if header.ifdCount > 0
             data = OI.Data.Tiff.read_image_data_from_stream(...
                 fId, header, limits);

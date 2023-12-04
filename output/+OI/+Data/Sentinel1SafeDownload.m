@@ -78,31 +78,17 @@ methods
                 inputDataPath = projObj.INPUT_DATA_DIR;
                 ffp = fullfile(inputDataPath,job.arguments{4});
                 safePath = strrep(ffp,'.zip','.SAFE');
-                manifest = fullfile(safePath,'manifest.safe');
-                measurement = fullfile(safePath,'measurement');
-
-                if exist(ffp,'file') && exist(safePath,'dir') && exist(manifest,'file')
-                    measureDir = dir(measurement);
-                    % check that there are files in the measurement directory
-                    if numel(measureDir) > 4
-                        allBig = true;
-                        total = 0;
-                        for ii = 3:numel(measureDir)
-                            total = total + measureDir(ii).bytes;
-                            if measureDir(ii).bytes < 600e6 % two bursts?
-                                allBig = false;
-                            end
-                        end
-                        if allBig || (total > 3e9)
-                            engine.ui.log('debug',...
-                                ['File already exists.,' ...
-                                ' Skipping download of %s \n'],...
-                                strrep(ffp,'\','\\'));
-                            continue
-                        end
-                    end
+                safeIsValid = OI.Data.Sentinel1Safe.check_valid( safePath );
+                
+                if safeIsValid
+                    engine.ui.log('debug',...
+                        ['File already exists.,' ...
+                        ' Skipping download of %s \n'],...
+                        strrep(ffp,'\','\\'));     
+                    continue
+                else % file is still downloading, or corrupt?
+                    jobs{end+1} = job;
                 end
-                jobs{end+1} = job;
             end%for
         end%if
     end%array_jobs
@@ -125,5 +111,6 @@ methods
     end
 
 end%methods
+
 
 end%classdef
