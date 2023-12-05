@@ -1,11 +1,11 @@
 classdef ApsKriging < OI.Plugins.PluginBase
-    
+    %#ok<*NASGU>
+    %#ok<*AGROW>
 properties
     inputs = {OI.Data.BlockPsiSummary()}
-    outputs = {OI.Data.ApsModel()}
-    id = 'BlockPsiAnalysis'
+    outputs = {OI.Data.ApsModelSummary()}
+    id = 'ApsKriging'
     STACK = []
-    BLOCK = []
 end
 
 methods
@@ -20,7 +20,8 @@ function this = run(this, engine, varargin)
 
 
 %% SETTINGS       
-DO_NPSD = true;
+DO_NPSD = false;
+normz = @(x) OI.Functions.normalise(x);
 
 %% LOAD INPUTS
 blockMap = engine.load( OI.Data.BlockMap() );
@@ -31,40 +32,43 @@ if isempty(projObj) || isempty(blockMap)
     return
 end
 
-this.STACK = 2
-this.BLOCK = 55
+% Queue up all stacks jobs if we've not been told what to do
 if isempty(this.STACK)
-   1;
    this = this.queue_jobs(engine, blockMap);
    return
 end
 
+apsModelTemplate = OI.Data.ApsModel().configure('STACK', this.STACK);
+
+
 %% SET UP STACK DATA STRUCTS
 stackBlocks = blockMap.stacks( this.STACK );
-blockCount = 1;
 blocksToDo = stackBlocks.usefulBlockIndices(:)';
 pscAz = [];
 pscRg = [];
+pscLat = [];
+pscLon = [];
 pscPhi = [];
 pscAS = [];
-pscBlock = [];
+pscCoh = [];
 missingData =[];
 blockInds = [];
     
 for blockCount = 1:numel(blocksToDo)
     
-    this.BLOCK = blocksToDo(blockCount);
-    
+    currentBlock = blocksToDo(blockCount);
+    blockInfo = stackBlocks.blocks( currentBlock );
+
 %% LOAD BLOCK INPUTS
 baselinesObjectTemplate = OI.Data.BlockBaseline().configure( ...
     'STACK', num2str(this.STACK), ...
-    'BLOCK', num2str(this.BLOCK) ...
+    'BLOCK', num2str(currentBlock) ...
 ).identify( engine );
 baselinesObject = engine.load( baselinesObjectTemplate );
 blockObj = OI.Data.Block().configure( ...
     'POLARISATION', 'VV', ...
     'STACK',num2str( this.STACK ), ...
-    'BLOCK', num2str( this.BLOCK ) ...
+    'BLOCK', num2str( currentBlock ) ...
 ).identify( engine );
 blockData=engine.load( blockObj);
 
@@ -91,7 +95,7 @@ end
 
 blockGeocode = OI.Data.BlockGeocodedCoordinates().configure( ...
     'STACK', num2str(this.STACK), ...
-    'BLOCK', num2str(blockMap.stacks(this.STACK).blocks(this.BLOCK).index) ...
+    'BLOCK', num2str(blockMap.stacks(this.STACK).blocks(currentBlock).index) ...
     );
 bg = engine.load(blockGeocode);
 if isempty(bg)
@@ -99,8 +103,8 @@ if isempty(bg)
 end
 
 
-pAzAxis = 1:sz(1);
-pRgAxis = 1:sz(2);
+pAzAxis = blockInfo.azOutputStart:blockInfo.azOutputEnd;
+pRgAxis = blockInfo.rgOutputStart:blockInfo.rgOutputEnd;
 [pRgGrid, pAzGrid] = meshgrid(pRgAxis,pAzAxis);
 
 MASK = cohMask(:);
@@ -117,60 +121,74 @@ timeSeries(blockCount,:) = baselinesObject.timeSeries(:)';
 
 % normalise the phase
 normz = @(x) OI.Functions.normalise(x);
-pscPhi = pscPhi(:,missingData(blockCount,:)==0);
-pscPhi = normz(pscPhi);
-pscPhi(isnan(pscPhi))=0;
+% pscPhi = pscPhi(:,missingData(blockCount,:)==0);
+% pscPhi = normz(pscPhi);
+% pscPhi(isnan(pscPhi))=0;
 
 % DATA GOES HERE
-pscAz = [pscAz; pAzGrid(MASK)];
-pscRg = [pscRg; pRgGrid(MASK)];
+pscAz = [pscAz; pAzGrid(MASK)]; 
+pscRg = [pscRg; pRgGrid(MASK)]; 
+pscLat = [pscLat; bg.lat(MASK)];
+pscLon = [pscLon; bg.lon(MASK)];
 pscPhi = [pscPhi; blockData(MASK,:)];
+pscCoh = [pscCoh; C0(MASK)];
 pscAS = [pscAS; amplitudeStability(MASK)];
-blockInds = [blockInds; ones(numel(pscAz),1) * this.BLOCK ];
-
-
+blockInds = [blockInds; ones(numel(pscAz),1) * currentBlock ];
+end
+validVisits = sum(missingData)==0;
 
 % Get a first estimate of the APS from the most stable PSC
-[~, maxASInd] = max(pscAS);
+[maxAS, maxASInd] = max(pscAS);
 aps0 = pscPhi(maxASInd,:);
+refAddress = struct();
+refAddress.AS = maxAS;
+refAddress.block = blockInds(maxASInd);
+refAddress.az = pscAz(maxASInd);
+refAddress.rg = pscRg(maxASInd);
+refAddress.lat = pscLat(maxASInd);
+refAddress.lon = pscLon(maxASInd);
 
 % Remove initial aps estimate from reference
 pscPhi = pscPhi .* conj(aps0);
 
 % Split the stack into a lower resolution grid
-maxRg = max(pRgAxis);
-maxAz = max(pAzAxis);
-minRg = min(pRgAxis);
-minAz = min(pAzAxis);
+maxRg = max(pscRg);
+maxAz = max(pscAz);
+minRg = min(pscRg);
+minAz = min(pscAz);
 
 % Determine the number of pixels in the grid
-memoryLimit = 1e8;
+memoryLimit = 1e7;
 bytesPerComplexDouble = 16;
 % grid point resolution in metres
-gridRes = 300;
-azSpacing = 12;
-rgSpacing = 3;
+modelInfo.gridRes = 300;
+modelInfo.azSpacing = 12;
+modelInfo.rgSpacing = 3;
 
 % Determine the stride required to acheieve the desired grid resolution
-rgStride = floor(gridRes/rgSpacing);
-azStride = floor(gridRes/azSpacing);
+rgStride = floor(modelInfo.gridRes/modelInfo.rgSpacing);
+azStride = floor(modelInfo.gridRes/modelInfo.azSpacing);
 
 % The grid should encompass all PSCs and be a multiple of the stride
-maxGridRg = ceil(maxRg/rgStride)*rgStride;
-maxGridAz = ceil(maxAz/azStride)*azStride;
-minGridRg = floor(minRg/rgStride)*rgStride;
-minGridAz = floor(minAz/azStride)*azStride;
+modelInfo.maxGridRg = ceil(maxRg / rgStride) * rgStride;
+modelInfo.maxGridAz = ceil(maxAz / azStride) * azStride;
+modelInfo.minGridRg = floor(minRg / rgStride) * rgStride;
+modelInfo.minGridAz = floor(minAz / azStride) * azStride;
 
 % Define the grid
-rgGridAxis = minGridRg:rgStride:maxGridRg;
-azGridAxis = minGridAz:azStride:maxGridAz;
-[rgGrid,azGrid]=meshgrid(rgGridAxis,azGridAxis);
+rgGridAxis = modelInfo.minGridRg : rgStride : modelInfo.maxGridRg;
+azGridAxis = modelInfo.minGridAz : azStride : modelInfo.maxGridAz;
+[rgGrid, azGrid] = meshgrid(rgGridAxis, azGridAxis);
 
 % Determine the number of grid points
 nRgGrid = numel(rgGridAxis);
 nAzGrid = numel(azGridAxis);
 nGrid = nRgGrid * nAzGrid;
 
+
+apsEstObj = engine.load( apsModelTemplate );
+if isempty(apsEstObj) % Generate if not found
+    
 % Determine the number of bytes required for a correlation matrix
 % for each grid point
 % matsize = npoints^2 * bytesPerComplexDouble
@@ -179,17 +197,17 @@ nTraining = floor(sqrt(memoryLimit/bytesPerComplexDouble));
 % Hence determine N
 nTraining = min(nTraining,numel(pscRg));
 
-
-
 d2C = @(d) exp(-d./300);
-apsEst = zeros(nGrid,size(pscPhi,2));
+apsEst = zeros(nGrid, size(pscPhi,2));
+
+modelInfo.nTraining = nTraining;
+modelInfo.nGrid = nGrid;
 
 gridTic = tic;
 lowPass = normz(conj(movmean(pscPhi,11,2)));
 CC = abs(mean(lowPass,2));
 phiNoD = pscPhi.*lowPass;
 
-end
 
 for gridInd = numel(rgGrid):-1:1
     if mod(gridInd,round(numel(rgGrid)./2))==0 || gridInd == 1
@@ -217,7 +235,7 @@ for gridInd = numel(rgGrid):-1:1
     CI = CC(inds);
     C = d2C(distMat).*sqrt(CI.*CI');
     if DO_NPSD
-        C = npsd(C);
+        C = OI.Functions.nearest_positive_definite(C); %#ok<UNRCH>
     end
 
     % Calculate the weights
@@ -235,29 +253,59 @@ for gridInd = numel(rgGrid):-1:1
     apsEst(gridInd,:) = w' * iVals;
 end
 
-engine.save( this.outputs{1} )
+apsModelTemplate.phase = apsEst;
+apsModelTemplate.rgGrid = rgGrid;
+apsModelTemplate.azGrid = azGrid;
+apsModelTemplate.timeSeries = timeSeries(1,:);
+apsModelTemplate.referencePhase = aps0;
+apsModelTemplate.referenceAddress = refAddress;
+apsModelTemplate.info = modelInfo;
+
+engine.save( apsModelTemplate.identify(engine) );
+
+else
+    apsEstObj = engine.load( apsModelTemplate );
+    apsEst = apsEstObj.phase;
+end
+
+lowPass = [];
+phiNoD = [];
+blockData = [];
+blockInds = [];
+bg = [];
+CC = [];
+dist = [];
+pscAS = [];
+pscCoh = [];
+sortedDist = [];
+sortedInd = [];
+
+this.inversion(projObj, pscPhi(:,validVisits), apsEst(:,validVisits), rgGrid, azGrid, pscRg, pscAz, timeSeries, kFactors, pscLat, pscLon);
+
+this.isFinished = true;
+
 end % run
 
-function [this, v] = inversion(this, pscPhi, apsEst, rgGrid, azGrid, pscRg,pscAz, cohMask, timeSeries, kFactors)
-    O = nan(sz(1),sz(2));
+function [this, v] = inversion(this, projObj, pscPhi, apsEst, rgGrid, azGrid, pscRg,pscAz, timeSeries, kFactors, pscLat, pscLon)
+    shpName = OI.Functions.generate_shapefile_name(this, projObj);
+    
     pscNoAps = pscPhi;
     blahs = pscNoAps;
+    normz = @(x) OI.Functions.normalise(x);
     for ii=1:size(pscPhi,2)
         blah = interp2(rgGrid,azGrid,reshape(apsEst(:,ii),size(rgGrid,1),size(rgGrid,2),[]),pscRg,pscAz);
         blahs(:,ii) = normz(blah);
         pscNoAps(:,ii) = pscPhi(:,ii).*conj(blahs(:,ii));
-        O(cohMask) = angle(pscNoAps(:,ii) .* conj(pscNoAps(:,max(1,ii-1))));
-        imagesc(O)
     end
 
     pscNoAps = normz(pscNoAps);
     displacement = movmean(pscNoAps,11,2);
     displacement = normz(displacement);
     pscNoApsNoDisp = pscNoAps .* conj(displacement);
-    [Cq,q]=OI.Functions.invert_height(pscNoApsNoDisp, kFactors(1,:));
+    [~, q]=OI.Functions.invert_height(pscNoApsNoDisp, kFactors(1,:));
     pscNoApsNoQ = displacement.*pscNoApsNoDisp.*exp(1i.*q.*kFactors(1,:));
     pscNoApsNoQ = normz(pscNoApsNoQ);
-    [Cv,v]=OI.Functions.invert_velocity(pscNoApsNoQ, timeSeries(1,:));
+    [Cv, v]=OI.Functions.invert_velocity(pscNoApsNoQ, timeSeries(1,:).*(4*pi/(365.25.*0.055)));
     
     % NoANoQ was used for v
     % So disp - exp(1i v) is the residual
@@ -265,88 +313,67 @@ function [this, v] = inversion(this, pscPhi, apsEst, rgGrid, azGrid, pscRg,pscAz
     res = res.*conj(normz(mean(res)));
 
     % Remove v and unwrap
-    res = res.*exp(-1i.*timeSeries.*(4*pi/(365.25.*0.055)).*v);
+    res = res.*exp(-1i.*timeSeries(1,:).*(4*pi/(365.25.*0.055)).*v);
     res = res .* conj(normz(mean(res,2)));
     res = res.*conj(normz(mean(res)));
     uwres = unwrap(angle(res)')';
     uwres = uwres-uwres(:,1);
     uwres = uwres .* (0.055 ./ (4*pi) );
 
-    [Cv4,v4]=OI.Functions.invert_velocity(res,timeSeries,0.01,51);
- 
     datestrCells = cell(length(timeSeries),1);
     for ii = 1:length(timeSeries)
-        datestrCells{ii} = datestr(timeSeries(ii),'YYYYmmDD');
+        datestrCells{ii} = datestr(timeSeries(1,ii),'YYYYmmDD');
     end
 
 
     % // free some mem
-    blockData = [];
+    blockData = []; 
     blahs = [];
     displacement = [];
-    lowPass = [];
-    phiNoD = [];
+
     pscNoAps = [];
     pscNoApsNoQ = [];
     pscNoApsNoDisp = [];
+    pscPhi = [];
+    res = [];
     
-    fnout = [projObj.WORK '/' projObj.PROJECT_NAME '_krigged_' num2str(this.STACK) '_' num2str(this.BLOCK) '.shp'];
+    
     OI.Functions.ps_shapefile( ...
-        fnout, ...
-        bg.lat(cohMask), ...
-        bg.lon(cohMask), ...
+        shpName, ...
+        pscLat, ...
+        pscLon, ...
         uwres, ... % displacements 2d Array
         datestrCells, ... % datestr(timeSeries(1),'YYYYMMDD')
         q, ...
-        v4, ...
-        Cv4);
-    O(cohMask)=v;
+        v, ...
+        Cv);
+
 end
 
 function this = queue_jobs(this, engine, blockMap)
     allDone = true;
     jobCount = 0;
-    projObj = engine.load( OI.Data.ProjectDefinition() );
+
     % Queue up all blocks
     for stackIndex = 1:numel(blockMap.stacks)
-        stackBlocks = blockMap.stacks( stackIndex );
-        for blockIndex = stackBlocks.usefulBlockIndices(:)'
-            blockInfo = stackBlocks.blocks( blockIndex );
-            if ~isfield(blockInfo,'indexInStack')
-                overallIndex = blockInfo.index;
-                blockInfo.indexInStack = ...
-                    find(arrayfun(@(x) x.index == overallIndex, ...
-                        blockMap.stacks( stackIndex ).blocks));
-            end
-
-            % Create the block object template
-            blockObj = OI.Data.Block().configure( ...
-                'STACK',num2str( stackIndex ), ...
-                'BLOCK', num2str( blockInfo.indexInStack ) ...
-                );
-            resultObj = OI.Data.BlockResult(blockObj, 'InitialPsPhase').identify( engine );
-
-            % Create a shapefile of the block
-            blockName = sprintf('Stack_%i_block_%i.shp',stackIndex,blockIndex);
-            blockFilePath = fullfile( projObj.WORK, 'shapefiles', this.id, blockName);
-
-            % Check if the block is already done
-            priorObj = engine.database.find( resultObj );
-            if ~isempty(priorObj) && exist(blockFilePath,'file')
-                % Already done
-                continue
-            end
+        if isempty(blockMap.stacks(stackIndex).usefulBlocks)
+            continue
+        end
+        priorModelTemplate = OI.Data.ApsModel();
+        priorModelTemplate.STACK = num2str(stackIndex);
+        priorModel = engine.load( priorModelTemplate );
+        if isempty( priorModel )
             jobCount = jobCount+1;
-            allDone = false;
             engine.requeue_job_at_index( ...
                 jobCount, ...
-                'BLOCK', blockIndex, ...
                 'STACK', stackIndex);
+            allDone = false;
         end
     end
-
+    
     if allDone
         engine.save( this.outputs{1} )
+        this.isFinished = true;
     end
 
 end % queue_jobs

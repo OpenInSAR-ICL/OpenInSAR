@@ -88,11 +88,6 @@ methods
             return;
         end
 
-        % Check we haven't done this already
-        refSegInd = this.referenceSegmentIndex;
-        stackInd = this.trackIndex;
-        segInd = stacks.stack(stackInd).correspondence(refSegInd, this.visitIndex);
-
         % Get the expected results:
         result = OI.Data.CoregOffsets().configure( ...
             'STACK', num2str(this.trackIndex), ...
