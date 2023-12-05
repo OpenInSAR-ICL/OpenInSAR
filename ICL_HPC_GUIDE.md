@@ -4,11 +4,16 @@ This is a guide for using the 'old style' Matlab scripts on Imperial HPC
 
 ---
 #### 1. Clone the repository
+
+  The latest patches will generally be on the 'dev' branch.
+
   > mkdir WHATEVER_YOU_WANT_TO_CALL_THE_CODE_REPOSITORY
   > 
   > cd WHATEVER_YOU_WANT_TO_CALL_THE_CODE_REPOSITORY
   > 
   > git clone https://github.com/OpenInSAR-ICL/OpenInSAR.git .
+  >
+  > git pull origin dev
   
   Note the . at the end. You can leave off the '.', and then it will clone to a directory called OpenInSAR.
   
