@@ -248,6 +248,7 @@ methods
             shpDir = fileparts(blockFilePath);
             fid = fopen(blockFilePath,'w');
             fclose(fid);
+            engine.save( this.outputs{1} )
             this.isFinished = true;
             return
         end
