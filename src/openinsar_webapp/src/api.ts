@@ -1,6 +1,6 @@
 export const getAuthToken = async (username: string, password: string) => {
-    let token = localStorage.getItem('authToken')
-
+    // let token = localStorage.getItem('authToken')
+    let token = null
 
     if (!token) {
         // const username = window.prompt('Enter your username')
@@ -31,6 +31,7 @@ export const getAuthToken = async (username: string, password: string) => {
             }
             // Store the token in localStorage
             localStorage.setItem('authToken', token)
+            console.log(token)
         }
     }
 

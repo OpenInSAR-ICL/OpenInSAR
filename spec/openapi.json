@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "version": "1.0.0",
-    "title": "Distributed Computing API",
-    "description": "API for managing distributed computing tasks"
+    "title": "OpenInSAR Distributed Data and Computing API",
+    "description": "The OpenInSAR API provides a central interface for requesting, generating, and delivering remote sensing data to and from the user. The API specification focuses on endpoints which help orchestrate the distributed computing tasks required to achieve this functionality. The API allows for registering and controlling 'worker' nodes from remote devices, and efficient assignment of work in a distributed computing environment. It allows for job creation, status monitoring, and result retrieval."
   },
   "components": {
     "securitySchemes": {

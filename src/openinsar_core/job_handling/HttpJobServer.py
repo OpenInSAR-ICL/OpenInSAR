@@ -1,13 +1,17 @@
 import sys
 import json
+from http.server import SimpleHTTPRequestHandler, BaseHTTPRequestHandler
+
 from ..server.ThreadedHttpServer import ThreadedHttpServer
 from ..server.SinglePageAppServer import SinglePageApplicationHandler
 from ..server.DeploymentConfig import DeploymentConfig, for_local as get_local_config, for_render as get_render_config
 from .EndpointHandlers import Job, Worker, BaseJobServerHandler
 from .Endpoints import endpoints
+import os
+import bcrypt
 
 
-class JobServerHandler(SinglePageApplicationHandler):
+class JobServerHandler(SimpleHTTPRequestHandler):
     """A handler for the JobServer. This is a subclass of SimpleHTTPRequestHandler that adds a job queue and a method for adding jobs to the queue."""
     job_queues: dict[str, list[Job]] = {}
     worker_pools: dict[str, list[Worker]] = {}
@@ -16,6 +20,13 @@ class JobServerHandler(SinglePageApplicationHandler):
     def __init__(self, *args, job_queue: list[Job] = [], worker_registry: list[Worker] = [], **kwargs) -> None:
         """Initialise the handler with a job queue."""
         self.current_user: str | None = None
+
+        # Add a user to the user sessions
+        test_pass = 'test_password'
+        hashed_pass: str = bcrypt.hashpw(test_pass.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        os.environ['USERS'] = "test_user:" + str(hashed_pass)
+        self.user_sessions[hashed_pass] = 'test_user'
+
         # Filter out any kwargs that are not accepted by the SimpleHTTPRequestHandler
         kwargs = {key: value for key, value in kwargs.items() if key in BaseJobServerHandler.__init__.__code__.co_varnames}
         super().__init__(*args, **kwargs)
@@ -85,6 +96,7 @@ class JobServerHandler(SinglePageApplicationHandler):
         if 'auth_required' in endpoint[method].keys() and endpoint[method]['auth_required']:
             # Get the token from the headers
             self.current_token: str | None = self.headers.get("Authorization", None)
+            print(self.current_token)
             # ignore 'Bearer ' prefix
             if self.current_token is not None and self.current_token.startswith('Bearer '):
                 self.current_token = self.current_token[7:]
@@ -93,6 +105,9 @@ class JobServerHandler(SinglePageApplicationHandler):
                 user: str | None = self.user_sessions.get(self.current_token, None)
                 if user is not None:
                     self.current_user = user
+                else:
+                    print("Invalid token")
+                    print(self.user_sessions)
 
             if self.current_user is None:
                 # redirect to login
@@ -102,7 +117,6 @@ class JobServerHandler(SinglePageApplicationHandler):
                     self.end_headers()
                 except ConnectionResetError:
                     self.failure_unauthorized()
-                # self.failure_unauthorized()
                 return
 
         # Update default response callbacks
@@ -179,7 +193,7 @@ def main() -> HttpJobServer:
 
     # Initialise the server
     html_server = HttpJobServer(config=config)
-    html_server.directory = './output'
+    html_server.directory = './output/app'
     # Start the server
     html_server.launch()
 
