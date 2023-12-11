@@ -120,6 +120,9 @@ classdef Database < handle
             entry = [];
             % Check the database
             if isfield(this.entryMap, dataObj.id)
+                if OI.Compatibility.contains(dataObj.id,'$')
+                    error('Unresolved placeholders in requested data object')
+                end
                 entry = this.data{this.entryMap.(dataObj.id)};
                 return;
             end
