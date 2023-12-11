@@ -68,7 +68,8 @@ methods
 
             % get all the useful data segments/bursts in this reference.
             segCount = 0;
-            segments = struct('index',[],'safe',[],'swath',[],'burst',[]);
+            segments = struct( 'index', [],'safe', [],'swath', [], ...
+                'burst', [], 'visit', [],'date', []);
             % loop through safes, swaths, bursts in this visit.
             % Starting from: earliest safe, closest swath, earliest burst
             for safeInd = reference.safeInds(:)'
@@ -91,6 +92,10 @@ methods
                     segments.safe(index) = safeInd;
                     segments.swath(index) = swathInd;
                     segments.burst(index) = burstInds;
+                    for ii = 1:numel(burstInds)
+                        segments.date(index(ii)) = ...
+                            safeMeta.swath( swathInd ).burst( burstInds(ii) ).startTime;
+                    end
                 end
             end
             segments.lat = zeros(segCount,4);
@@ -120,7 +125,7 @@ methods
             theseVisits = visitsForEachTrack{referenceTrackInd};
             % match any bursts/segments which have near identical lat/lon
             stack.correspondence = zeros(segCount, numel(theseVisits));
-            stack.correspondence(:,bestVisit) = segments.index;
+            stack.correspondence(:, bestVisit) = segments.index;
 
             refLat = reference.segments.lat(:,1);
             refLon = reference.segments.lon(:,1);
@@ -171,6 +176,9 @@ methods
                             stack.segments.burst(segCount) = burstInd;
                             stack.segments.lat(segCount,:) = burstLat;
                             stack.segments.lon(segCount,:) = burstLon;
+                            stack.segments.date(segCount) = ...
+                                safeMeta.swath( swathInd ).burst( burstInd ).startTime;
+                                
 
                             % And record the geographical correspondence
                             stack.correspondence(refSegInd,visitInd) = ...
