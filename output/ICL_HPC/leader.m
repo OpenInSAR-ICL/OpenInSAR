@@ -25,8 +25,14 @@
     oi.engine.postings.report_ready(0);
     nextWorker = 0;
 
-    thingToDoList = { OI.Data.PsiSummary() }; %1
-    % thingToDoList = { OI.Data.BlockingSummary };
+    if strcmpi(projObj.PROCESSING_SCHEME,'PSI')
+        thingToDoList = { OI.Data.PsiSummary() };
+    elseif strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFFS')
+        thingToDoList = { OI.Data.GeotiffSummary() };
+    else
+        warning('Unknown processing scheme')
+        thingToDoList = { OI.Data.CoregistrationSummary() };
+    end
 
     % Flag to help refreshing worker status
     %   True - wait if no workers available

@@ -30,12 +30,6 @@ methods
             return
         end
         
-%         this.STACK = 1;
-%         this.SEGMENT = 2;
-%         this.VISIT = 1;
-%         this.MAPPING_AVAILABLE = false;
-%         this.isOverwriting = true;
-        
         % If array job parameters are not set, generate and paramaterise new jobs
         if isempty(this.STACK)
             this = this.queue_jobs(engine, stacks);
@@ -62,13 +56,210 @@ methods
 
         % If the mapping has not been calculated, calculate it and then generate new jobs
         if isempty(this.MAPPING_AVAILABLE) || ~this.MAPPING_AVAILABLE
-            % Generate the mapping
-            % Load the geocoding coordinates
-            lle = engine.load( OI.Data.LatLonEleForImage().configure( ...
-                'STACK', num2str(this.STACK), ...
-                'SEGMENT_INDEX', num2str(this.SEGMENT) ) ...
-            );
+            if isempty(this.SEGMENT)
+                error('Calling this job with a stack but no Segment. idk what to do')
+            end
+            this = this.generate_mapping(engine, stacks);
+            return;
+        end
+
+        % TODO this info should now be in STACKS object
+        cat = engine.load(OI.Data.Catalogue() );
+        thisStack = stacks.stack(this.STACK);
+        firstSeg = find(thisStack.correspondence(:,this.VISIT),1);
+        if isempty(firstSeg)
+            warning('No valid data for this date, in this stack and segment');
+            return
+        end
         
+        segmentInd = thisStack.correspondence(firstSeg,this.VISIT);
+
+        safeInd = thisStack.segments.safe(segmentInd);
+        visitDatestr = cat.safes{safeInd}.date.datestr;
+        
+        geoTiffObj = OI.Data.GeoTiff().configure( ...
+            'STACK', this.STACK, ...
+            'VISIT', this.VISIT, ...
+            'DATE', visitDatestr);
+
+        % Allocate the output raster
+        output = zeros(this.SIZE);
+        
+        % define the output grid
+        oGrid = this.generate_grid(this.AOI, this.SIZE);
+        tiffMeta = this.get_geotiff_metadata( oGrid.latGrid, oGrid.lonGrid, this.SIZE);
+
+        % load the mapping data
+        segments = thisStack.reference.segments.index;
+        for segInd = numel(segments):-1:1
+            segIndInStack = thisStack.reference.segments.index(segInd);
+            % Load the mapping
+            mapping = engine.load(OI.Data.GeoTiffMapping().configure( ...
+                'STACK', this.STACK, ...
+                'SEGMENT', segIndInStack ...
+            ));
+            mappingCells{segInd} = mapping;
+        end
+        
+        % loop through different products
+        for typeCell = this.TYPE
+            % Overwrite data if the current segment has closer data.
+            betterSamples = false(this.SIZE);
+            currentDistance = inf.*ones(this.SIZE);
+            
+            for segInd = 1:numel(segments)
+                this.SEGMENT = segments(segInd);
+                mapping = mappingCells{segInd};
+                
+                productType = typeCell{1};
+                if strcmpi(productType, 'VV') || strcmpi(productType, 'VH') || strcmpi(productType, 'HV') || strcmpi(productType, 'HH')
+                    geoTiffObj.TYPE = productType;
+                    % Load the raw data
+                    data = engine.load( OI.Data.CoregisteredSegment().configure( ...
+                        'STACK', num2str(this.STACK), ...
+                        'VISIT_INDEX', num2str(this.VISIT), ...
+                        'POLARIZATION', productType, ...
+                        'REFERENCE_SEGMENT_INDEX', num2str(this.SEGMENT) ) ...
+                    );
+                    if isempty(data)
+                        return
+                    end
+                    data = log(abs(data))';
+                elseif strcmpi(productType, 'VV_COHERENCE') || strcmpi(productType, 'VH_COHERENCE')
+                    geoTiffObj.TYPE = productType;
+                    % Load the raw data
+                    data1 = engine.load( OI.Data.CoregisteredSegment().configure( ...
+                        'STACK', num2str(this.STACK), ...
+                        'VISIT_INDEX', num2str(this.VISIT), ...
+                        'POLARIZATION', productType(1:2), ...
+                        'REFERENCE_SEGMENT_INDEX', num2str(this.SEGMENT) ) ...
+                    )';
+                    delta = 1;
+                    if numel(thisStack.visits) == this.VISIT
+                        delta = -1;
+                    end
+                    data2 = engine.load( OI.Data.CoregisteredSegment().configure( ...
+                        'STACK', num2str(this.STACK), ...
+                        'VISIT_INDEX', num2str(this.VISIT + delta), ...
+                        'POLARIZATION', productType(1:2), ...
+                        'REFERENCE_SEGMENT_INDEX', num2str(this.SEGMENT) ) ...
+                    )';
+                    if isempty(data1) || isempty(data2)
+                        return
+                    end
+                    avfilt = @(x) imfilter(x, fspecial('average', [4, 20]));
+                    data = abs(avfilt(data1.*conj(data2))./avfilt(sqrt(abs(data1).^2.*abs(data2).^2)));
+                end
+
+                betterSamples(:) = mapping.distance(:) < currentDistance(:);
+                currentDistance(betterSamples) = mapping.distance(betterSamples);
+                % interpolate the data
+                output(betterSamples) = ...
+                    sum(data(mapping.closestIndices(betterSamples,:)) ...
+                    .* mapping.weights(betterSamples,:), 2);
+                
+
+                % Get the segment addresses and corresponding safes
+
+
+            end
+            % mask any baddies, here anything more than 15 meters from data
+            output(currentDistance> 15 ) = nan;
+            % save the output
+            engine.save(geoTiffObj, output);
+
+            filename = geoTiffObj.identify(engine).filepath;
+            % save the GeoTiff
+            geotiffwrite(filename, output, tiffMeta);
+        end
+
+        % mark this job as finished
+        this.isFinished = true;
+        
+    end % run
+    
+    function this = queue_jobs(this, engine, stacks)
+        
+        
+        % TODO this info should now be in STACKS object
+        cat = engine.load(OI.Data.Catalogue() );
+
+        jobCount = 0;
+        mapAvailable = true( numel(stacks.stack), 1 );
+        for stackIndex = 1:numel(stacks.stack)
+            thisStack = stacks.stack(stackIndex);
+            for refSegInd = thisStack.reference.segments.index
+                % Check if mapping is available,
+                mappingObj = OI.Data.GeoTiffMapping().configure( ...
+                    'STACK', num2str(stackIndex), ...
+                    'SEGMENT', num2str(refSegInd)).identify(engine);
+                mapResult = engine.database.find(mappingObj);
+                if isempty( mapResult )
+                    mapAvailable(stackIndex) = false;
+                    jobCount = jobCount + 1;
+                    engine.requeue_job_at_index( ...
+                        jobCount, ...
+                        'SEGMENT', refSegInd, ...
+                        'STACK', stackIndex); 
+                end
+            end
+        end
+
+        for stackIndex = 1:numel(stacks.stack)
+            if ~mapAvailable(stackIndex)
+                continue
+            end
+            for visitIndex = 1:numel(thisStack.visits)
+                segmentInd = thisStack.correspondence(refSegInd,visitIndex);
+                % if no corresponding segment at this date, goto next
+                if isempty(segmentInd) || segmentInd <= 0 
+                    continue
+                end
+                safeInd = thisStack.segments.safe(segmentInd);
+                visitDatestr = cat.safes{safeInd}.date.datestr;
+
+                resultObj = OI.Data.GeoTiff().configure( ...
+                    'STACK', num2str(stackIndex), ...
+                    'VISIT', num2str(visitIndex), ...
+                    'TYPE', this.TYPE{1}, ...
+                    'DATE', visitDatestr).identify(engine);
+
+                if resultObj.exists
+                    continue
+                end
+
+                jobCount = jobCount+1;
+                engine.requeue_job_at_index( ...
+                    jobCount, ...
+                    'SEGMENT', refSegInd, ...
+                    'VISIT', visitIndex, ...
+                    'STACK', stackIndex, ...
+                    'MAPPING_AVAILABLE', true);
+            end
+        end
+        
+        if jobCount == 0
+            this.isFinished = true;
+            engine.save( this.outputs{1} )
+        end
+    end
+    
+    function this = generate_mapping(this, engine, stacks)
+        % Generate the mapping
+            % Load the geocoding coordinates
+            geocodingObj = OI.Data.LatLonEleForImage().configure( ...
+                'STACK', num2str(this.STACK), ...
+                'SEGMENT_INDEX', num2str(this.SEGMENT) ).identify(engine);
+            lle = engine.load(geocodingObj);
+            if isempty(lle)
+                return
+            end
+        
+            % load stitching info to mark no-data
+            stitch = engine.load ( OI.Data.StitchingInformation());
+            thisStitch = stitch.stack(this.STACK).segments(this.SEGMENT);
+            validStitch = thisStitch.validSamples;
+            
             % TODO we really need a better way of getting input size...
             % Get metadata for reference
             preprocessingInfo = engine.load( OI.Data.PreprocessedFiles() );
@@ -125,9 +316,9 @@ methods
             outputLon = oGrid.lonGrid;
             % Calculate the average shift in latitude and longitude for each pixel shift
             avgLatPerShiftRight = mean(diff(inputLat(1, :)));
-            avgLonPerShiftRight = mean(diff(inputLon(:, 1)));
+            avgLonPerShiftRight = mean(diff(inputLon(1, :)));
             avgLatPerShiftUp = mean(diff(inputLat(:, 1)));
-            avgLonPerShiftUp = mean(diff(inputLon(1, :)));
+            avgLonPerShiftUp = mean(diff(inputLon(:, 1)));
 
             % Initialize solution subscripts
             [solutionX, solutionY] = deal(ones(size(outputLat)));
@@ -160,6 +351,12 @@ methods
                     solutionX = limitX(solutionX);
                     solutionY = limitY(solutionY);
                 end
+                
+                
+                % Recalculate indices and error
+                solutionIndices = easy_sub2ind(size(inputLat), solutionY, solutionX);
+                latError = outputLat - inputLat(solutionIndices);
+                lonError = outputLon - inputLon(solutionIndices);
 
                 % Check if the solution has converged
                 % Shift one pixel in each direction, U D L R
@@ -184,6 +381,7 @@ methods
 
                 % get masks for each direction in terms of if the error decreases
                 err = latError.^2 + lonError.^2;
+                disp(sum(err(:)))
                 uErr = upErrorLat.^2 + upErrorLon.^2;
                 dErr = downErrorLat.^2 + downErrorLon.^2;
                 lErr = leftErrorLat.^2 + leftErrorLon.^2;
@@ -205,7 +403,7 @@ methods
                     break
                 end
                 
-                engine.ui.log('debug','%i pix remaining\n', sum(anyBetter(:)))
+                engine.ui.log('info','%i pix remaining\n', sum(anyBetter(:)))
 
                 udb = upBetter | downBetter;
                 lrb = leftBetter | rightBetter;
@@ -221,6 +419,7 @@ methods
             end
 
             % Get the indices of the 4 points in the closest square
+            solutionIndices = easy_sub2ind(size(inputLat), solutionY, solutionX);
             closestIndices = squareIndices(solutionIndices(:),:);
         
             % Calculate the weights for the 4 nearest points
@@ -244,179 +443,23 @@ methods
             );
             mappingObj.weights= weights;
             mappingObj.closestIndices = closestIndices;
-            mappingObj.nWidth = size(2);
-            mappingObj.nHeight = size(1);
-            mappingObj.distance=sqrt(mean(d2,2));
-
+            mappingObj.inputSize = inputSize;
+            mappingObj.outputSize = this.SIZE;
+            mappingObj.inputFile = geocodingObj.filepath;
+            mappingObj.distance = sqrt(mean(d2,2));
+            
+            % Mark any invalid tiles as a very high distance to indicate
+            % oor
+            azTooLow = solutionY < validStitch.firstAzimuthLine;
+            azTooHigh = solutionY > validStitch.lastAzimuthLine;
+            rgTooLow = solutionX < validStitch.firstRangeSample;
+            rgTooHigh = solutionX > validStitch.lastRangeSample;
+            baddies = azTooLow | azTooHigh | rgTooLow | rgTooHigh;
+            mappingObj.distance(baddies) = 9e9;
+            
             % save the mapping
             engine.save( mappingObj );
-
-            % Let the queue methods do jobs.
-            % % requeue the jobs now we've generated the mapping
-            % this.MAPPPING_AVAILABLE = true;
-            % this.queue_jobs(engine, stacks)
-            return
-        else 
-            % Load the mapping
-            mapping = engine.load( OI.Data.GeoTiffMapping().configure( ...
-                'STACK', this.STACK, ...
-                'SEGMENT', this.SEGMENT) ...
-            );
-        end
-
-        % TODO this info should now be in STACKS object
-        cat = engine.load(OI.Data.Catalogue() );
-        segmentInd = stacks.stack(this.STACK).correspondence(this.SEGMENT,this.VISIT);
-        safeInd = stacks.stack(this.STACK).segments.safe(segmentInd);
-        visitDatestr = cat.safes{safeInd}.date.datestr;
-        
-        geoTiffObj = OI.Data.GeoTiff().configure( ...
-            'STACK', this.STACK, ...
-            'VISIT', this.VISIT, ...
-            'SEGMENT', this.SEGMENT, ...
-            'AOI', this.AOI, ...
-            'SIZE', this.SIZE, ...
-            'DATE', visitDatestr);
-
-        % Allocate the output raster
-        output = zeros(this.SIZE);
-
-        
-        % define the output grid
-        oGrid = this.generate_grid(this.AOI, this.SIZE);
-        tiffMeta = this.get_geotiff_metadata( oGrid.latGrid, oGrid.lonGrid, this.SIZE);
-
-
-        for typeCell = this.TYPE
-            productType = typeCell{1};
-            if strcmpi(productType, 'VV') || strcmpi(productType, 'VH') || strcmpi(productType, 'HV') || strcmpi(productType, 'HH')
-                geoTiffObj.TYPE = productType;
-                % Load the raw data
-                data = engine.load( OI.Data.CoregisteredSegment().configure( ...
-                    'STACK', num2str(this.STACK), ...
-                    'VISIT_INDEX', num2str(this.VISIT), ...
-                    'POLARIZATION', productType, ...
-                    'REFERENCE_SEGMENT_INDEX', num2str(this.SEGMENT) ) ...
-                );
-                if isempty(data)
-                    return
-                end
-                data = log(abs(data))';
-            elseif strcmpi(productType, 'VV_COHERENCE') || strcmpi(productType, 'VH_COHERENCE')
-                geoTiffObj.TYPE = productType;
-                % Load the raw data
-                data1 = engine.load( OI.Data.CoregisteredSegment().configure( ...
-                    'STACK', num2str(this.STACK), ...
-                    'VISIT_INDEX', num2str(this.VISIT), ...
-                    'POLARIZATION', productType(1:2), ...
-                    'REFERENCE_SEGMENT_INDEX', num2str(this.SEGMENT) ) ...
-                )';
-                delta = 1;
-                if numel(stacks.stack(this.STACK).visits) == this.VISIT
-                    delta = -1;
-                end
-                data2 = engine.load( OI.Data.CoregisteredSegment().configure( ...
-                    'STACK', num2str(this.STACK), ...
-                    'VISIT_INDEX', num2str(this.VISIT + delta), ...
-                    'POLARIZATION', productType, ...
-                    'REFERENCE_SEGMENT_INDEX', num2str(this.SEGMENT) ) ...
-                )';
-                if isempty(data1) || isempty(data2)
-                    return
-                end
-                avfilt = @(x) imfilter(x, fspecial('average', [4, 20]));
-                data = abs(avfilt(data1.*conj(data2))./avfilt(sqrt(abs(data1).^2.*abs(data2).^2)));
-            end
-
-            % interpolate the data
-            output(:) = sum(data(mapping.closestIndices) .* mapping.weights, 2);
-        
-            % save the output
-            engine.save(geoTiffObj, output);
-
-
-            % Get the segment addresses and corresponding safes
-
-            filename = geoTiffObj.identify(engine).filepath;
-            % save the GeoTiff
-            geotiffwrite(filename, output.*reshape(mapping.distance<15,size(output)), tiffMeta);
-        end
-
-        % mark this job as finished
-        this.isFinished = true;
-        
-    end % run
-    
-    function this = queue_jobs(this, engine, stacks)
-        
-        
-        % TODO this info should now be in STACKS object
-        cat = engine.load(OI.Data.Catalogue() );
-
-        jobCount = 0;
-        for stackIndex = 1:numel(stacks.stack)
-            thisStack = stacks.stack(stackIndex);
-            for refSegInd = thisStack.reference.segments.index
-                % Check if mapping is available,
-                mapResult = engine.database.find(OI.Data.GeoTiffMapping().configure( ...
-                'STACK', num2str(stackIndex), ...
-                'SEGMENT', num2str(refSegInd)).identify(engine) );
-                mapAvailable = ~isempty( mapResult );
-                if ~mapAvailable
-                    jobCount = jobCount + 1;
-                    engine.requeue_job_at_index( ...
-                        jobCount, ...
-                        'SEGMENT', refSegInd, ...
-                        'STACK', stackIndex); 
-                    continue % dont run jobs by visit until mapping is ready
-                end
-                
-                % Check the segment actually contains some data...
-                mapping = engine.load( mapResult );
-                hasData = any(mapping.distance < 50);
-                
-                if ~hasData
-                    continue
-                end
-                
-                
-                
-                for visitIndex = 1:numel(thisStack.visits)
-                    segmentInd = thisStack.correspondence(refSegInd,visitIndex);
-                    % if no corresponding segment at this date, goto next
-                    if isempty(segmentInd) || segmentInd <= 0 
-                        continue
-                    end
-                    safeInd = thisStack.segments.safe(segmentInd);
-                    visitDatestr = cat.safes{safeInd}.date.datestr;
-        
-                    resultObj = OI.Data.GeoTiff().configure( ...
-                        'STACK', num2str(stackIndex), ...
-                        'VISIT', num2str(visitIndex), ...
-                        'SEGMENT', num2str(refSegInd), ...
-                        'TYPE', this.TYPE{1}, ...
-                        'DATE', visitDatestr).identify(engine);
-%                         'AOI', this.AOI, ...
-%                         'SIZE', this.SIZE, ...
-
-                    if resultObj.exists
-                        continue
-                    end
-                    
-                    jobCount = jobCount+1;
-                    engine.requeue_job_at_index( ...
-                        jobCount, ...
-                        'SEGMENT', refSegInd, ...
-                        'VISIT', visitIndex, ...
-                        'STACK', stackIndex, ...
-                        'MAPPING_AVAILABLE', true);
-                end
-            end
-        end
-        if jobCount == 0
             this.isFinished = true;
-            engine.save( this.outputs{1} )
-        end
     end
 end % methods
 
