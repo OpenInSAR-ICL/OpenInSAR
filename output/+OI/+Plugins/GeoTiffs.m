@@ -71,9 +71,7 @@ methods
             warning('No valid data for this date, in this stack and segment');
             return
         end
-        
         segmentInd = thisStack.correspondence(firstSeg,this.VISIT);
-
         safeInd = thisStack.segments.safe(segmentInd);
         visitDatestr = cat.safes{safeInd}.date.datestr;
         
@@ -101,17 +99,78 @@ methods
             mappingCells{segInd} = mapping;
         end
         
+        preprocessingInfo = engine.load( OI.Data.PreprocessedFiles() );
+        avfilt = @(x) imfilter(x, fspecial('average', [4, 20]));
+        
         % loop through different products
         for typeCell = this.TYPE
             % Overwrite data if the current segment has closer data.
             betterSamples = false(this.SIZE);
             currentDistance = inf.*ones(this.SIZE);
             
-            for segInd = 1:numel(segments)
-                this.SEGMENT = segments(segInd);
-                mapping = mappingCells{segInd};
+            for segInStack = 1:numel(segments)
+                this.SEGMENT = segments(segInStack);
+                mapping = mappingCells{segInStack};
                 
+                %% We need to deramp the data as we're resampling it.
+                
+                % get general info and metadata
+                % address of the data in the catalogue and metadata
+                segInCatalogue = stacks.stack(this.STACK).correspondence(this.SEGMENT, this.VISIT);
+                safeIndex = stacks.stack(this.STACK).segments.safe( segInCatalogue );
+                safe = cat.safes{safeIndex};
+                swathIndex = stacks.stack(this.STACK).segments.swath( segInCatalogue );
+                burstIndex = stacks.stack(this.STACK).segments.burst( segInCatalogue );
+                swathInfo = ...
+                    preprocessingInfo.metadata( safeIndex ).swath( swathIndex );
+                
+                % Get reference geometry and metadata
+                refSafeIndex = stacks.stack(this.STACK).segments.safe( this.SEGMENT );
+                refSwathIndex = stacks.stack(this.STACK).segments.swath( this.SEGMENT );
+                refBurstIndex = stacks.stack(this.STACK).segments.burst( this.SEGMENT );
+                refSwathInfo = ...
+                    preprocessingInfo.metadata(refSafeIndex).swath(refSwathIndex);
+                % Size of reference data array
+                [lpbRef,spbRef,~,~] = ...
+                    OI.Plugins.Geocoding.get_parameters( refSwathInfo );
+                [refMeshRange, refMeshAz] = ...
+                    OI.Plugins.Geocoding.get_geometry(lpbRef,spbRef);
+                refSz = [lpbRef, spbRef];
+                % Size of this data
+                [lpb,spb,nearRange,rangeSampleDistance] = ...
+                    OI.Plugins.Geocoding.get_parameters( swathInfo );
+                [meshRange, meshAz] = ...
+                    OI.Plugins.Geocoding.get_geometry(lpb,spb);
+        
+                % get coreg offsets
+                result = OI.Data.CoregOffsets().configure( ...
+                    'STACK', num2str(this.STACK), ...
+                    'REFERENCE_SEGMENT_INDEX', num2str(this.SEGMENT), ...
+                    'VISIT_INDEX', num2str(this.VISIT)).identify( engine );
+                azRgOffsets = engine.load( result );
+                if isempty(azRgOffsets)
+                    return % no input coreg data
+                end
+                a = reshape(azRgOffsets(:,1),refSz);
+                r = reshape(azRgOffsets(:,2),refSz);
+                clearvars azRgOffsets
+                
+                % get orbit
+                [orbit, lineTimes] = ...
+                    OI.Plugins.Geocoding.get_poe_and_timings( ...
+                        cat, safeIndex, swathInfo, burstIndex );
+                    
+
+
+                [derampPhase, ~, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
+                    swathInfo, burstIndex, orbit, safe, a); %#ok<ASGLU>
+                % We need to coregister the ramp again...
+                resampledRamp = interp2(meshAz', meshRange', derampPhase',...
+                        refMeshAz'+a',refMeshRange'+r','cubic',nan);
+                    
+                    
                 productType = typeCell{1};
+                
                 if strcmpi(productType, 'VV') || strcmpi(productType, 'VH') || strcmpi(productType, 'HV') || strcmpi(productType, 'HH')
                     geoTiffObj.TYPE = productType;
                     % Load the raw data
@@ -124,7 +183,8 @@ methods
                     if isempty(data)
                         return
                     end
-                    data = log(abs(data))';
+                    data = data.*exp(1i.*resampledRamp);
+                    data = avfilt(log(abs(data))');
                 elseif strcmpi(productType, 'VV_COHERENCE') || strcmpi(productType, 'VH_COHERENCE')
                     geoTiffObj.TYPE = productType;
                     % Load the raw data
@@ -147,7 +207,7 @@ methods
                     if isempty(data1) || isempty(data2)
                         return
                     end
-                    avfilt = @(x) imfilter(x, fspecial('average', [4, 20]));
+                    
                     data = abs(avfilt(data1.*conj(data2))./avfilt(sqrt(abs(data1).^2.*abs(data2).^2)));
                 end
 
@@ -186,6 +246,7 @@ methods
 
         jobCount = 0;
         mapAvailable = true( numel(stacks.stack), 1 );
+        uselessStack = mapAvailable;
         for stackIndex = 1:numel(stacks.stack)
             thisStack = stacks.stack(stackIndex);
             for refSegInd = thisStack.reference.segments.index
@@ -193,28 +254,41 @@ methods
                 mappingObj = OI.Data.GeoTiffMapping().configure( ...
                     'STACK', num2str(stackIndex), ...
                     'SEGMENT', num2str(refSegInd)).identify(engine);
-                mapResult = engine.database.find(mappingObj);
+                if uselessStack(stackIndex)
+                    mapResult = engine.load(mappingObj);
+                else
+                    mapResult = engine.database.find(mappingObj);
+                end
+                
                 if isempty( mapResult )
                     mapAvailable(stackIndex) = false;
                     jobCount = jobCount + 1;
                     engine.requeue_job_at_index( ...
                         jobCount, ...
                         'SEGMENT', refSegInd, ...
-                        'STACK', stackIndex); 
+                        'STACK', stackIndex);
+                else % If we have mappings, check they cover the AOI
+                    if uselessStack(stackIndex) && any(mapResult.distance < 50)
+                       uselessStack(stackIndex) = false;
+                    end
                 end
             end
         end
 
         for stackIndex = 1:numel(stacks.stack)
-            if ~mapAvailable(stackIndex)
+            thisStack = stacks.stack(stackIndex);
+            if ~mapAvailable(stackIndex) || uselessStack(stackIndex)
                 continue
             end
+
+
             for visitIndex = 1:numel(thisStack.visits)
-                segmentInd = thisStack.correspondence(refSegInd,visitIndex);
-                % if no corresponding segment at this date, goto next
-                if isempty(segmentInd) || segmentInd <= 0 
+                firstSeg = find(thisStack.correspondence(:,visitIndex),1);
+                if isempty(firstSeg)
+                    engine.ui.log('debug','No valid data for this date, in this stack and segment\n');
                     continue
                 end
+                segmentInd = thisStack.correspondence(firstSeg,visitIndex);
                 safeInd = thisStack.segments.safe(segmentInd);
                 visitDatestr = cat.safes{safeInd}.date.datestr;
 
@@ -257,6 +331,10 @@ methods
         
             % load stitching info to mark no-data
             stitch = engine.load ( OI.Data.StitchingInformation());
+            if isempty(stitch)
+                return
+            end
+            
             thisStitch = stitch.stack(this.STACK).segments(this.SEGMENT);
             validStitch = thisStitch.validSamples;
             

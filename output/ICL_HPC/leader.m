@@ -53,7 +53,10 @@ for thingToDo = thingToDoList
             
             try
                 leaderPosting = oi.engine.postings.get_posting_contents(0);
-                if matcher(leaderPosting,'STOP')
+                if matcher(leaderPosting,'STOP') || matcher('stop')
+                    fp = oi.engine.postings.get_posting_filepath(0);
+                    fopen(fp,'w');
+                    fclose(fp);
                     return
                 end
             catch
