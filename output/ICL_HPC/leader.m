@@ -25,8 +25,14 @@
     oi.engine.postings.report_ready(0);
     nextWorker = 0;
 
-    thingToDoList = { OI.Data.PsiSummary() }; %1
-    % thingToDoList = { OI.Data.BlockingSummary };
+    if strcmpi(projObj.PROCESSING_SCHEME,'PSI')
+        thingToDoList = { OI.Data.PsiSummary() };
+    elseif strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFFS')
+        thingToDoList = { OI.Data.GeotiffSummary() };
+    else
+        warning('Unknown processing scheme')
+        thingToDoList = { OI.Data.CoregistrationSummary() };
+    end
 
     % Flag to help refreshing worker status
     %   True - wait if no workers available
@@ -160,22 +166,10 @@ for thingToDo = thingToDoList
                         if ~isempty(dirPostings)    
                             oi.ui.log('info','%s - %s',dirPostings(end).name,datestr(dirPostings(end).datenum))
                         end
-                        fid = fopen(fp)
-                        frewind(fid)
-                        posting = fread(fid,inf,'*char')'
-                        fclose(fid)
-                        posting
-                        fp
                         doImmediateWaitForWorkers = true;
                         continue
                     else
                         oi.ui.log('info','All workers busy or none running. Waiting.\n');
-                        fid = fopen(fp)
-                        frewind(fid)
-                        posting = fread(fid,inf,'*char')'
-                        fclose(fid)
-                        posting
-                        fp
                         pause(5)
                         doImmediateWaitForWorkers = false;
                         continue
@@ -257,8 +251,12 @@ for thingToDo = thingToDoList
             for jj=1:numel(assignment)
                 x=assignment{jj};
                 if isempty(x);continue; end
-                wId = oi.engine.postings.workers(jj);
-                oi.ui.log('info','Worker %i - %s\n',wId,assignment{jj}.to_string());
+                oi.ui.log('info','Worker %i - %s\n',jj,assignment{jj}.to_string());
+%                 if jj>numel(oi.engine.postings.workers)
+%                     break
+%                 end
+%                 wId = oi.engine.postings.workers(jj);
+%                 oi.ui.log('info','Worker %i - %s\n',wId,assignment{jj}.to_string());
             end
             pause(5)
         else

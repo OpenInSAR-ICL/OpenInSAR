@@ -88,12 +88,11 @@ methods
             return;
         end
 
-        % Check we haven't done this already
+        % Get the expected results:
         refSegInd = this.referenceSegmentIndex;
         stackInd = this.trackIndex;
         segInd = stacks.stack(stackInd).correspondence(refSegInd, this.visitIndex);
-
-        % Get the expected results:
+        
         result = OI.Data.CoregOffsets().configure( ...
             'STACK', num2str(this.trackIndex), ...
             'REFERENCE_SEGMENT_INDEX', num2str(this.referenceSegmentIndex), ...
@@ -193,11 +192,10 @@ methods
         safeIndex = stacks.stack(stackInd).segments.safe( segInd );
         swathIndex = stacks.stack(stackInd).segments.swath( segInd );
         burstIndex = stacks.stack(stackInd).segments.burst( segInd );
-        % get metadata
         swathInfo = ...
             preprocessingInfo.metadata( safeIndex ).swath( swathIndex );
     
-        % Get metadat for reference
+        % Get metadata for reference
         refSafeIndex = stacks.stack(stackInd).segments.safe( refSegInd );
         refSwathIndex = stacks.stack(stackInd).segments.swath( refSegInd );
         refBurstIndex = stacks.stack(stackInd).segments.burst( refSegInd );
@@ -233,7 +231,9 @@ methods
 
         % ensure 'virtual' timings for secondary match the size of reference timings
         if (lpbRef ~= lpb)
-            engine.ui.log('warning','Lines per burst mismatch between reference and secondary during coregistration of visit %i segment %i\n',...
+            engine.ui.log('warning',...
+                ['Lines per burst mismatch between reference and secondary' ...
+                'during coregistration of visit %i segment %i\n'], ...
                 this.visitIndex, this.referenceSegmentIndex)
             isLongOnFirstDim = size(lineTimes,1) > size(lineTimes,2);
             lineTimes=lineTimes(1):ati/86400:(lineTimes(1)+(lpbRef-1)*ati/86400);

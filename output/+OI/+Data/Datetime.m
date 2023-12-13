@@ -1,6 +1,7 @@
 classdef Datetime < OI.Data.DataObj
 properties
     daysSinceZero = now(); 
+    SECONDS_PER_DAY = 86400;
 end
 %#ok<*DATNM> - Octave compatibility
 %#ok<*TNOW1> - Octave compatibility
@@ -78,7 +79,27 @@ methods
     function dn = datenum( this )
         dn = this.daysSinceZero;
     end
-end
+
+    function this = plus( this, other )
+        if isa(other,'OI.Data.Datetime')
+            this.daysSinceZero = this.daysSinceZero + other.daysSinceZero;
+        elseif isnumeric(other)
+            this.daysSinceZero = this.daysSinceZero + other;
+        else
+            error('Datetime:invalidInput', 'Datetime can only be added to another Datetime or a number')
+        end
+    end
+
+    function this = minus( this, other )
+        if isa(other,'OI.Data.Datetime')
+            this.daysSinceZero = this.daysSinceZero - other.daysSinceZero;
+        elseif isnumeric(other)
+            this.daysSinceZero = this.daysSinceZero - other;
+        else
+            error('Datetime:invalidInput', 'Datetime can only be subtracted from another Datetime or a number')
+        end
+    end
 
 end
 
+end

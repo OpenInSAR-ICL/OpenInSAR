@@ -94,7 +94,7 @@ classdef DEM < OI.Data.DataObj
             % find the tiles that contains the point
             tileInds = find(tileIsIn);
             if isempty(tileInds)
-                error('Points are not within the DEM extent');
+                warning('Points are not within the DEM extent');
             end
 
             % create a grid to hold all the tiles, we will then 

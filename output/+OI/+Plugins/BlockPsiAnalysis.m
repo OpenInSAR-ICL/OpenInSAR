@@ -238,8 +238,17 @@ methods
         mask0s = @(x) OI.Functions.mask0s(x);
         blockInfo = blockMap.stacks(this.STACK).blocks(this.BLOCK);
         
+        % Create a shapefile of the block
+        blockName = sprintf('Stack_%i_block_%i',this.STACK,this.BLOCK);
+        blockFilePath = fullfile( projObj.WORK, 'shapefiles', this.id, blockName);
+        
+        
         previewShpCoherenceMask = (C>.5);
         if sum(previewShpCoherenceMask)<=0
+            shpDir = fileparts(blockFilePath);
+            fid = fopen(blockFilePath,'w');
+            fclose(fid);
+            engine.save( this.outputs{1} )
             this.isFinished = true;
             return
         end
@@ -274,10 +283,7 @@ methods
             return
         end
 
-        % Create a shapefile of the block
-        blockName = sprintf('Stack_%i_block_%i',this.STACK,this.BLOCK);
-        blockFilePath = fullfile( projObj.WORK, 'shapefiles', this.id, blockName);
-        
+
         cohMask = previewShpCoherenceMask;
         OI.Functions.ps_shapefile( ...
             blockFilePath, ...
@@ -353,21 +359,18 @@ end % methods
 
 
 methods (Static = true)
-    function previewKmlPath = preview_block(projObj, blockInfo, dataToPreview, dataCategory)
+    function previewKmlPath = preview_block(projObj, blockInfo, dataToPreview, dataCategory, idQualifier)
         % get the block extent
         sz = blockInfo.size;
         dataToPreview = reshape(dataToPreview, sz(1), sz(2), []);
         
-        if nargin < 5
-            cLims = [0 1];
-        end
-
         imageColormap = jet(256);
         imageColormap(1,:) = [0 0 0];
 
         switch dataCategory
             case 'Coherence'
                 imageColormap = gray(256);
+                clims = [0 1];
             case 'Velocity'
                 clims = [-1 1] * 0.01; % typical vals
             %     jet = imageColormap;
@@ -375,7 +378,7 @@ methods (Static = true)
                 clims = [-1 1] * 80; % typical vals
             %     jet = imageColormap;
             otherwise
-
+                clims = [0 1];
         end
         dataToPreview = OI.Functions.grayscale_to_rgb(dataToPreview, imageColormap);
       
@@ -384,6 +387,10 @@ methods (Static = true)
             'lon', blockInfo.lonCorners );
         blockExtent = blockExtent.make_counter_clockwise();
 
+        if nargin >= 5
+            dataCategory = [dataCategory '_' idQualifier];
+        end
+        
         % preview directory
         previewDir = fullfile(projObj.WORK,'preview','block', dataCategory);
         blockName = sprintf('%s_stack_%i_block_%i',dataCategory, blockInfo.stackIndex, blockInfo.indexInStack);
@@ -394,7 +401,7 @@ methods (Static = true)
 
         % save the preview kml
         blockExtent.save_kml_with_image( ...
-            previewKmlPath, dataToPreview, cLims);
+            previewKmlPath, dataToPreview, clims);
     end
 
     function I = grayscale_to_rgb( grayImage, cmap )
