@@ -1,11 +1,12 @@
-from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
-from socketserver import ThreadingMixIn
-from src.openinsar_core.job_handling.HttpJobServer import JobServerHandler, Job, Worker, HttpJobServer
-from src.openinsar_core.server.DeploymentConfig import DeploymentConfig, for_render as get_render_config, for_local as get_local_config
-import threading
+from http.server import SimpleHTTPRequestHandler
+from src.openinsar_core.job_handling.HttpJobServer import JobServerHandler, HttpJobServer
+from src.openinsar_core.server.DeploymentConfig import for_local as get_local_config
+# from src.openinsar_core.server.DeploymentConfig import DeploymentConfig
+# from src.openinsar_core.server.DeploymentConfig import for_render as get_render_config
 from time import sleep
 import os
 import sys
+
 
 class MainHandler(JobServerHandler):
     def __init__(self, *args, **kwargs):
@@ -15,7 +16,22 @@ class MainHandler(JobServerHandler):
         print(self.path)
         if self.path.startswith('/api/'):
             super().do_GET()
+        elif self.path.startswith('/doc/'):
+            # The docs are in a different directory
+            print(self.directory)
+            self.directory = './output/doc'
+            # remove the '/doc' from the path
+            self.path = self.path[4:]
+            # index is the default page
+            if self.path == '/':
+                self.path = '/index.html'
+            print(self.path)
+            SimpleHTTPRequestHandler.do_GET(self)
         else:
+            # check if there is a file extension
+            if '.' not in self.path:
+                # Send to index.html
+                self.path = '/index.html'
             SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
@@ -29,8 +45,8 @@ class MainHandler(JobServerHandler):
             self.end_headers()
             self.wfile.write(b"Page not found")
 
-# Create a threaded HTTP server
 
+# Create a threaded HTTP server
 def main() -> HttpJobServer:
     """
     Example usage. Runs the server on the specified platform:
@@ -39,7 +55,6 @@ def main() -> HttpJobServer:
     - local: Run the server locally
         >  python -m src.openinsar_core.HttpJobServer local
     """
-
 
     config = get_local_config()
     # Initialise the server
@@ -58,7 +73,6 @@ def main() -> HttpJobServer:
 
 if __name__ == "__main__":
     # Set environment variables for username and password
-    import os
     import bcrypt
     test_pass = 'test_password'
     # Hash the password
