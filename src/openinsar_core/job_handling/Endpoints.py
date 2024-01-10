@@ -21,13 +21,15 @@ endpoints: dict[str, dict[str, Any]] = {
             'decoder': get_content,
             'action': handle_get_login,
             'content_type': 'application/json',
-            'required_parameters': ['username', 'password']
+            'required_parameters': ['username', 'password'],
+            'auth_required': False
         },
         'POST': {
             'decoder': get_content,
             'action': handle_login,
             'content_type': 'application/json',
-            'required_parameters': ['username', 'password']
+            'required_parameters': ['username', 'password'],
+            'auth_required': False
         }
     },
     '/api/register': {
