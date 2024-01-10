@@ -1,24 +1,21 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
-import NavBar from './components/NavBar.vue'
-import ToDoListVue from './components/ToDoList.vue';
+import { RouterLink, RouterView } from "vue-router";
+import TopBanner from './components/NavBar.vue'
 </script>
 
 <template>
   <div id="app">
     <header class="banner">
-      <nav-bar />
+      <TopBanner />
+      
     </header>
+    
     <main class="content">
       <router-view />
     </main>
-    <!-- Add a todo list component here -->
-    <ToDoListVue />
-
-    <RouterLink to="/about">About</RouterLink>
-    <RouterLink to="/todo">Todo</RouterLink>
-    <RouterLink to="/todo/user1">Todo User 1</RouterLink>
+   
   </div>
+  
 </template>
 
 <style>
