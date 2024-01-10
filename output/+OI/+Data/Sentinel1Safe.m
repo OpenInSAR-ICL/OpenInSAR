@@ -235,6 +235,8 @@ methods (Static)
 
         safeIsValid = exist(safePath,'dir') && exist(manifest,'file') && ...
             exist(measurement,'dir');
+        
+        % count the tiffs
         if safeIsValid
             measureDir = dir(measurement);
             measureDir(1:2) = [];
@@ -242,10 +244,16 @@ methods (Static)
             nTiffs = numel(measureDir);
             safeIsValid = (nTiffs == 3 || nTiffs == 6);
         end
+        
+        % check correct N for polarization
+        if safeIsValid && OI.Compatibility.contains(safePath, {'_1SDV_','_1SDH_'})
+            safeIsValid = nTiffs >= 6;
+        end
+        
+        % check all tiffs have enough data
         if safeIsValid
             tiffSizes = arrayfun(@(x) x.bytes, measureDir);
-            % check all tiffs have enough data
-            safeIsValid = all(tiffSizes(3:end)> 600e6); % two bursts?
+            safeIsValid = all(tiffSizes(3:end)> 450e6); % two bursts?
         end
         if safeIsValid && nTiffs == 6 
             % if dual pol, check VV size same as VH size

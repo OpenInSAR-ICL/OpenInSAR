@@ -274,7 +274,7 @@ methods
  
                 status = 'saved';
             case {'tif','tiff'}
-                imwrite(data_, obj.filepath);
+                imwrite(data_, [obj.filepath '.tif']);
                 status = 'saved';
             case {'txt', 'csv', 'json'}
                 % write plain text
@@ -344,8 +344,8 @@ methods
             if any(strcmp(props, vName))
                 value = this.(vName);
                 if ~OI.Compatibility.is_string(value)
-                    warning('Value for %s is not a string', vName')
-                    disp(this)
+%                     warning('Value for %s is not a string', vName')
+%                     disp(this)
                     value = num2str(value);
                 end
 
