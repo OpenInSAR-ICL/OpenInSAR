@@ -54,13 +54,14 @@ for thingToDo = thingToDoList
             try
                 leaderPosting = oi.engine.postings.get_posting_contents(0);
                 if matcher(leaderPosting,'STOP') || matcher('stop')
-                    fp = oi.engine.postings.get_posting_filepath(0);
-                    fopen(fp,'w');
-                    fclose(fp);
+                    leaderFilePath = oi.engine.postings.get_posting_filepath(0);
+                    leaderFileHandle = fopen(leaderFilePath,'w');
+                    fclose(leaderFileHandle);
                     return
                 end
-            catch
-                oi.ui.log('warning','error in leader posting\n');
+            catch LEADER_ERROR
+                oi.ui.log('warning','error in leader posting\n%s\n',...
+                    LEADER_ERROR.message);
             end
                 
             oi.ui.log('info','Jobs remaining in queue:\n');

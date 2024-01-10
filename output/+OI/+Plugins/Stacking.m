@@ -127,8 +127,8 @@ methods
             stack.correspondence = zeros(segCount, numel(theseVisits));
             stack.correspondence(:, bestVisit) = segments.index;
 
-            refLat = reference.segments.lat(:,1);
-            refLon = reference.segments.lon(:,1);
+            refLat = mean(reference.segments.lat,2);
+            refLon = mean(reference.segments.lon,2);
             for visitInd = 1:numel(theseVisits)
                 if visitInd == bestVisit
                     continue % done already
@@ -150,19 +150,19 @@ methods
                         % loop through the bursts in this swath
                         for burstInd = burstInds
                             % get the lat/lon coords for this burst
-                            burstLat = safeMeta.swath( ...
-                                swathInd ).burst( burstInd ).lat;
-                            burstLon = safeMeta.swath( ...
-                                swathInd ).burst( burstInd ).lon;
+                            burstLat = mean(safeMeta.swath( ...
+                                swathInd ).burst( burstInd ).lat);
+                            burstLon = mean(safeMeta.swath( ...
+                                swathInd ).burst( burstInd ).lon);
                             % find the segments with near identical coords
                             % (within 1e-4 degrees)
-                            distance = sum(( 1.11e5 .* (...
-                                [refLat refLon] - ...
-                                [burstLat(1) burstLon(1)] )).^2,2).^.5;
+                            distance = OI.Functions.haversine( ...
+                                [refLat, refLon], ...
+                                [burstLat, burstLon]);
 
                             [minDist, refSegInd] = min(distance);
                             % disp(distance'./1e3)
-                            if minDist > 5e3 % anything more than this is
+                            if minDist > 6.66e3 % anything more than this is
                                 % another segment
                                 continue
                             end

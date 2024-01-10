@@ -253,7 +253,7 @@ methods (Static)
         % check all tiffs have enough data
         if safeIsValid
             tiffSizes = arrayfun(@(x) x.bytes, measureDir);
-            safeIsValid = all(tiffSizes(3:end)> 600e6); % two bursts?
+            safeIsValid = all(tiffSizes(3:end)> 450e6); % two bursts?
         end
         if safeIsValid && nTiffs == 6 
             % if dual pol, check VV size same as VH size
