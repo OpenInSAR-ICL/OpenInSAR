@@ -147,7 +147,10 @@ methods
                 % We could just use matlab unzip but this doesn't do
                 % -DD ... which means the weird HPC rule will delete
                 % the data tomorrow-ish.
-                if status
+                safePath
+                status
+                OI.Data.Sentinel1Safe.check_valid(safePath)
+                if status && ~OI.Data.Sentinel1Safe.check_valid(safePath)
                     unzip(this.outputs{1}.zippath, outputDirectory);
                 end
             else

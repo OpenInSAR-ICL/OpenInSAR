@@ -108,6 +108,17 @@ classdef BlockMap < OI.Data.DataObj
                         % Load the map
                         [~,stack.map] = this.get_map_for_stack(si);
                     end
+                    % limit the size to avoid excessive memory usage
+                    origSize = size(stackMap);
+                    [maxDimV, maxDimI] = max(origSize);
+                    if maxDimI > 1 % wide
+                        outputSize = ...
+                            [max(1024, round(4096*origSize(1)/maxDimV)), 4096];
+                    else % tall
+                        outputSize = ...
+                            [4096, max(1024, round(4096*origSize(2)/maxDimV))];    
+                    end
+                    stack.map = imresize(stack.map,outputSize,'nearest');
 
                     
                     nBlocks = numel(stack.blocks);
@@ -220,7 +231,7 @@ classdef BlockMap < OI.Data.DataObj
                     OI.Functions.mkdirs( kmlPath );
 
                     stackExtent.save_kml_with_image( ...
-                        kmlPath, imresize(flipud(map),[1024,4096],'nearest'));
+                        kmlPath, imresize(flipud(map),outputSize,'nearest'));
 
                 end
 
