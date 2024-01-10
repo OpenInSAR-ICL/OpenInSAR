@@ -121,7 +121,7 @@ methods
         response = self.send(endpoint, '', 'GET');
     end % receive
 
-    function obj = connect(obj)
+    function obj = connect(obj, varargin)
         % Login
         username = getenv('OI_USERNAME');
         password = getenv('OI_PASSWORD');

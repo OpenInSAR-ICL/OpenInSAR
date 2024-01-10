@@ -111,19 +111,34 @@ methods
         end % if
 
         % First, log the error:
+        try
+            OI.Compatibility.print_error_stack(ERR);
+        catch ERRPRINT
+            disp(ERRPRINT)
+            rethrow(ERR);
+        end
+        WRITE_ERROR_TO_FILE = false; % TODO implement controls for this
+        if WRITE_ERROR_TO_FILE
+            this.write_error_to_file(ERR);
+        end % if
+
+
+    end
+
+    function write_error_to_file(this, ERR)
         workerId = this.id();
         if isnumeric(workerId)
             workerId = num2str(workerId);
         end % if
 
         errorFilePath = fullfile( ...
-            this.workerInfo.startDirectory, ...
-            sprintf('worker_%s.error"', workerId) ...
-            );
+        this.workerInfo.startDirectory, ...
+        sprintf('worker_%s.error"', workerId) ...
+        );
 
         fid = fopen(errorFilePath, 'w');
         try
-            errStr = OI.Compatibility.format_error(ERR);
+            errStr = OI.Compatibility.print_error_stack(ERR);
             fprintf(fid, '%s', errStr);
         catch
             % Just write any old shit

@@ -54,7 +54,11 @@ methods
         end
         nCpu = str2double(nCpu);
         obj.nCpus = nCpu;
-        maxNumCompThreads(nCpu);
+        if ~OI.Compatibility.isOctave
+            % Octave doesn't have maxNumCompThreads
+            maxNumCompThreads(nCpu);
+        end
+
     end
 
 end % methods
