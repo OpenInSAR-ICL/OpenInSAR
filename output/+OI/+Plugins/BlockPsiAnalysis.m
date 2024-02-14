@@ -110,7 +110,7 @@ methods
             candidatePhase = blockData( candidateMask, :);
 
             % Remove missing data
-            blockData = blockData(:,~missingData);
+            blockData = blockData(:,~baddies);
 
             % avfilt = @(I,x,y) imfilter((I),fspecial('average',[x,y]));
 

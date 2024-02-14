@@ -186,6 +186,10 @@ while true
                 end
             end
             postings.report_done(J, answer);
+        elseif ~oi.engine.queue.is_empty()
+            errjobstr = oi.engine.queue.jobArray{1}.to_string();
+            postings.report_error(J, [errjobstr ' _ I didnt finish my job, probably as Im missing an input.' ...
+            'I can mess things up if I start trying to create my input as something is probs already doing so.'])
         end
 
         postings = postings.check_jobs(J);
@@ -198,6 +202,12 @@ while true
             addpath('ICL_HPC')
             worker
             return
+        end
+        
+        if ~oi.engine.queue.is_empty()
+            errjobstr = oi.engine.queue.jobArray{1}.to_string();
+            postings.report_error(J, [errjobstr ' _ Im not done , probably as Im missing an input.' ...
+            'I can mess things up if I start trying to create my input as something is probs already doing so.'])
         end
         
     end

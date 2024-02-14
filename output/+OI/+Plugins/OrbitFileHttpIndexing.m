@@ -25,7 +25,7 @@ methods
         n = {};
         
         for sat = ['A' 'B']
-        for startYear=2014:2023
+        for startYear=2014:2024
             
             
             

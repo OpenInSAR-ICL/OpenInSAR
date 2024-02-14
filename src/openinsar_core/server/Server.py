@@ -1,53 +1,57 @@
-from http.server import SimpleHTTPRequestHandler
-from src.openinsar_core.job_handling.HttpJobServer import JobServerHandler, HttpJobServer
-from src.openinsar_core.server.DeploymentConfig import for_local as get_local_config
-# from src.openinsar_core.server.DeploymentConfig import DeploymentConfig
-# from src.openinsar_core.server.DeploymentConfig import for_render as get_render_config
-from time import sleep
-import os
+"""Combine all the component server handlers into one server."""
+from __future__ import annotations
 import sys
+from typing import TYPE_CHECKING
+from http.server import SimpleHTTPRequestHandler
+# from socketserver import _RequestType, BaseServer
+# from src.openinsar_core.job_handling import HttpJobServer
+# from src.openinsar_core.job_handling.Endpoints import Endpoints
+from src.openinsar_core.server.DeploymentConfig import DeploymentConfig, for_local, for_render
+from src.openinsar_core.server.ThreadedHttpServer import ThreadedHttpServer
+from src.openinsar_core.server.SinglePageAppServer import SinglePageApplicationHandler
+from src.openinsar_core.job_handling.HttpJobServer import JobServerHandler
 
 
-class MainHandler(JobServerHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+if TYPE_CHECKING:
+    class OiServerType(ThreadedHttpServer):
+        api_handler: JobServerHandler
+        spa_handler: SinglePageApplicationHandler
+
+
+class CustomHandler(SimpleHTTPRequestHandler):
+    """Switches the handler based on the path."""
+    server: OiServerType
 
     def do_GET(self):
-        print(self.path)
-        if self.path.startswith('/api/'):
+        if self.path.startswith('/doc/') or self.path.startswith('doc/'):
+            # We need to serve the docs from the root directory
+            self.path = self.path.replace('/doc/', '../doc/')
             super().do_GET()
-        elif self.path.startswith('/doc/'):
-            # The docs are in a different directory
-            print(self.directory)
-            self.directory = './output/doc'
-            # remove the '/doc' from the path
-            self.path = self.path[4:]
-            # index is the default page
-            if self.path == '/':
-                self.path = '/index.html'
-            print(self.path)
-            SimpleHTTPRequestHandler.do_GET(self)
-        else:
-            # check if there is a file extension
-            if '.' not in self.path:
-                # Send to index.html
-                self.path = '/index.html'
-            SimpleHTTPRequestHandler.do_GET(self)
+        if self.path.endswith('.js') or self.path.endswith('.css') or self.path.endswith('.ico') or self.path.endswith('.png'):
+            self.server.spa_handler.do_GET()
+        if self.path.startswith('/api/'):
+            self.server.api_handler.do_GET()
+        elif self.path.startswith('/') or self.path == '':
+            self.server.spa_handler.do_GET()
 
     def do_POST(self):
-        print(self.path)
         if self.path.startswith('/api/'):
-            super().do_POST()
-        else:
-            # send 404
-            self.send_response(404)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(b"Page not found")
+            self.server.api_handler.do_POST()
+        elif self.path.startswith('/') or self.path == '':
+            self.server.spa_handler.do_GET()
 
 
-# Create a threaded HTTP server
-def main() -> HttpJobServer:
+class OiServer(ThreadedHttpServer):
+    def __init__(self, *args, **kwargs) -> None:
+        self.api_handler: JobServerHandler
+        self.spa_handler: SinglePageApplicationHandler
+        self.handler: JobServerHandler
+        # filter out any kwargs that are not accepted by the ThreadedHttpServer
+        kwargs = {key: value for key, value in kwargs.items() if key in ThreadedHttpServer.__init__.__code__.co_varnames}
+        super().__init__(*args, handler=JobServerHandler, **kwargs)
+
+
+def main() -> OiServer:
     """
     Example usage. Runs the server on the specified platform:
     - render: Run the server on render.com
@@ -56,33 +60,49 @@ def main() -> HttpJobServer:
         >  python -m src.openinsar_core.HttpJobServer local
     """
 
-    config = get_local_config()
-    # Initialise the server
-    html_server = HttpJobServer(config=config)
-    print(1)
-    html_server.handler = MainHandler
-    html_server.use_threading = True
-    print(2)
-    html_server.directory = './output/app'
-    # Start the server
-    html_server.launch()
-    print(3)
+    # Get target platform from command line arguments
+    if len(sys.argv) > 1:
+        platform = sys.argv[1]
+    else:
+        platform = "local"
 
-    return html_server  # to keep the server alive if we're running in a thread
+    # Switch the config based on the platform
+    config: DeploymentConfig = DeploymentConfig()
+    if platform == "render":
+        config = for_render()
+    elif platform == "local":
+        config = for_local()
+        config.use_threading = False
+    else:
+        raise ValueError(f"Unknown platform: {platform}")
+
+    # Override any config options with command line arguments
+    if len(sys.argv) > 2:
+        for arg in sys.argv[2:]:
+            key, value = arg.split("=")
+            if hasattr(config, key):
+                # map the value to the correct type
+                if type(getattr(config, key)) == bool:
+                    value = value.lower() == "true"
+                elif type(getattr(config, key)) == int:
+                    value = int(value)
+                elif type(getattr(config, key)) == float:
+                    value = float(value)
+                assert isinstance(getattr(config, key), type(value)), f"Type mismatch for {key}: {type(getattr(config, key))} != {type(value)}"
+                setattr(config, key, value)
+            else:
+                raise ValueError(f"Unknown config option: {key}")
+
+    # Initialise the server
+    server = OiServer(config=config)
+    # Start the server
+    server.launch(directory='./output/')
+
+    return server  # to keep the server alive if we're running in a thread
 
 
 if __name__ == "__main__":
-    # Set environment variables for username and password
-    import bcrypt
-    test_pass = 'test_password'
-    # Hash the password
-    hashed_pass: str = bcrypt.hashpw(test_pass.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    os.environ['USERS'] = "test_user:" + str(hashed_pass)
-    t = main()
-    try:
-        while True:
-            sleep(1)
-    except KeyboardInterrupt:
-        t.stop()
-        print('Stopped')
-        sys.exit(0)
+    # Set the 'USERS' env var to get things started
+    import os
+    os.environ['USERS'] = 'test_user:this_pass_wont_work'
+    main()

@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Todo from './components/Todo.vue'
 import NotFound from './components/NotFound.vue'
-import Home from './views/Home.vue'
+import Home from './components/HomePage.vue'
 import HtmlLoader from './components/HtmlLoader.vue'
 import WorkerListVue from './components/WorkerList.vue'
 

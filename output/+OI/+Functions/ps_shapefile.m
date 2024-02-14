@@ -1,9 +1,16 @@
-function ps_shapefile(filename,latArray,lonArray,dataArray,imageDates,h,v,c)
+function ps_shapefile(filename,latArray,lonArray,dataArray,imageDates,h,v,c, L, N)
 
 OI.Functions.mkdirs(filename);
 % add '.shp' to filename if it doesn't already have it
 if numel(filename)>4 && ~strcmp(filename(end-3:end),'.shp')
     filename=[filename '.shp'];
+end
+
+if ~exist('L','var')
+    L = 0.*v;
+end
+if ~exist('N', 'var')
+    N = 0.*v;
 end
 
 % if ~isempty(dataArray)
@@ -25,11 +32,11 @@ for ii=nP:-1:1
     DataStructure(ii).Lon=lonArray(ii);
     DataStructure(ii).CODE=['p' num2str(ii)];
     DataStructure(ii).HEIGHT=h(ii);
-    DataStructure(ii).H_STDEV=0;
+    DataStructure(ii).H_STDEV=L(ii);
     DataStructure(ii).VEL=v(ii);
     DataStructure(ii).V_STDEV=0;
     DataStructure(ii).COHERENCE=c(ii);
-    DataStructure(ii).EFF_AREA=0;
+    DataStructure(ii).EFF_AREA=N(ii);
 
     if ~isempty(dataArray)
         for jj=1:nT

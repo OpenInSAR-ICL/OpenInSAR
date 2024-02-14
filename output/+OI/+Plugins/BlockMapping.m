@@ -40,6 +40,8 @@ methods
             'meanEle', -1, ...
             'blockInAOI', true, ...
             'blockInSea', false, ...
+            'usefulBlock', false, ...
+            'proportionOfAreaInSea', 0, ...
             'size', [0,0] ...
         );
         blockCount = 0;
@@ -164,8 +166,15 @@ methods
                         blockArea.lon = latLonEle(cornerInds,2);
                         blocks(ii).blockInAOI = any( ...
                             aoiArea.overlaps( blockArea ) );
-                        blocks(ii).blockInSea = all( latLonEle(inds,3) <= 0 );
-
+                        geoidHeight = OI.Data.DEM.get_geoid_height(latLonEle(inds,1),latLonEle(inds,2));
+                        seaMask = latLonEle(inds,3)<geoidHeight+1;
+                        % If no geoid correction, we could just check
+                        % elevation:
+                        % blocks(ii).blockInSea = all( latLonEle(inds,3) <= 0 );
+                        blocks(ii).blockInSea = all( seaMask );
+                        blocks(ii).proportionOfAreaInSea = ...
+                            sum(seaMask)./prod(blocks(ii).size(1:2));
+                            
                         % Recreate the position of the block in the output mosaic by
                         % subtracting the first cropped line/sample
 
@@ -226,6 +235,11 @@ methods
             blockMap.stacks(stackInd).usefulBlockIndices = find(isUsefulBlock);
             blockMap.stacks(stackInd).usefulBlocks = ...
                 blockMap.stacks(stackInd).blocks(find(isUsefulBlock));
+            
+            % Flag the block in the array as useful
+            for ubi = blockMap.stacks(stackInd).usefulBlockIndices(:)'
+                blockMap.stacks(stackInd).blocks(ubi).usefulBlock = 1;
+            end
 
         end % stack loop
 

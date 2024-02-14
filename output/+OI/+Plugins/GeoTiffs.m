@@ -24,9 +24,9 @@ methods
         stacks = engine.load( OI.Data.Stacks() );
         coregDone = engine.load(this.inputs{1});
         projObj = engine.load( OI.Data.ProjectDefinition() );
-        
+        stitchInfo = engine.load( OI.Data.StitchingInformation );
         % If required inputs are missing, return
-        if isempty(stacks) || isempty(coregDone)
+        if isempty(stacks) || isempty(coregDone) || isempty(stitchInfo)
             return
         end
         
@@ -111,7 +111,8 @@ methods
             for segInStack = 1:numel(segments)
                 this.SEGMENT = segments(segInStack);
                 mapping = mappingCells{segInStack};
-                
+                stitch = stitchInfo.stack(this.STACK);
+                validSamples = stitch.segments(segInStack).validSamples;
                 %% We need to deramp the data as we're resampling it.
                 
                 % get general info and metadata
@@ -160,10 +161,8 @@ methods
                     OI.Plugins.Geocoding.get_poe_and_timings( ...
                         cat, safeIndex, swathInfo, burstIndex );
                     
-
-
                 [derampPhase, ~, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
-                    swathInfo, burstIndex, orbit, safe, a); %#ok<ASGLU>
+                    swathInfo, burstIndex, orbit, safe, a, lineTimes); %#ok<ASGLU>
                 % We need to coregister the ramp again...
                 resampledRamp = interp2(meshAz', meshRange', derampPhase',...
                         refMeshAz'+a',refMeshRange'+r','cubic',nan);
@@ -179,12 +178,13 @@ methods
                         'VISIT_INDEX', num2str(this.VISIT), ...
                         'POLARIZATION', productType, ...
                         'REFERENCE_SEGMENT_INDEX', num2str(this.SEGMENT) ) ...
-                    );
+                    )';
                     if isempty(data)
                         return
                     end
-                    data = data.*exp(1i.*resampledRamp);
-                    data = avfilt(log(abs(data))');
+                    data = data.*exp(1i.*resampledRamp');
+                    data = log(abs(data));
+%                     data = avfilt(log(abs(data))');
                 elseif strcmpi(productType, 'VV_COHERENCE') || strcmpi(productType, 'VH_COHERENCE')
                     geoTiffObj.TYPE = productType;
                     % Load the raw data
@@ -212,16 +212,22 @@ methods
                 end
 
                 betterSamples(:) = mapping.distance(:) < currentDistance(:);
+                
+                % check there is valid data here
+                [sAz, sRg]=ind2sub(refSz,mapping.closestIndices);
+                invalidData = any( ...
+                    sAz < validSamples.firstAzimuthLine | ...
+                    sAz > validSamples.lastAzimuthLine | ...
+                    sRg < validSamples.firstRangeSample | ...
+                    sRg > validSamples.lastRangeSample, 2);
+                betterSamples(invalidData) = false;
+                
                 currentDistance(betterSamples) = mapping.distance(betterSamples);
                 % interpolate the data
                 output(betterSamples) = ...
                     sum(data(mapping.closestIndices(betterSamples,:)) ...
                     .* mapping.weights(betterSamples,:), 2);
                 
-
-                % Get the segment addresses and corresponding safes
-
-
             end
             % mask any baddies, here anything more than 15 meters from data
             output(currentDistance> 15 ) = nan;
