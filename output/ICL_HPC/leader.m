@@ -42,7 +42,7 @@
     end
 
     if strcmpi(projObj.PROCESSING_SCHEME,'PSI')
-        thingToDoList = { OI.Data.PersistentScatterersInversionSummary() };
+        thingToDoList = { OI.Data.PsiSummary() };
     elseif strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFFS')
         thingToDoList = { OI.Data.GeotiffSummary()};
     elseif strcmpi(projObj.PROCESSING_SCHEME,'EDF')
