@@ -14,8 +14,9 @@ PROJECT_NAME = OpenInSAR_Project; # Name of the project
 PROCESSING_SCHEME = PSI; # Processing scheme to use
 
 INPUT_DATA_LIST = $HERE$/$PROJECT_NAME$/input_data.txt; # File containing a list of data to process
-INPUT_DATA_DIR = $HERE$/$PROJECT_NAME$/input; # Directory where the data will be downloaded to or loaded from
+INPUT_DATA_DIR = $HERE$/input; # Directory where the data will be downloaded to or loaded from
 OUTPUT_DATA_DIR = $HERE$/$PROJECT_NAME$/work; # Directory where the output will be written to
+ORBITS_DIR = $HERE$/orbits; # Directory for downloading Orbital files
 
 SECRETS_FILEPATH = $HOME$/secrets.txt
 
