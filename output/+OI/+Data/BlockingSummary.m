@@ -1,6 +1,6 @@
 classdef BlockingSummary < OI.Data.DataObj
     properties
-        generator = 'NewBlocking'
+        generator = 'Blocking'
         id = 'BlockingSummary'
     end % properties
 
