@@ -1,5 +1,5 @@
 function fn = generate_shapefile_name(plugin, projObj )
-
+    % TODO this should be a member of the plugin base
     assert(isa(plugin, 'OI.Plugins.PluginBase'), ...
         'first argument should be an OI.Plugin class')
     fn = fullfile( ...

@@ -8,7 +8,6 @@ import pytest
 import subprocess
 import logging
 import requests
-import os
 from src.openinsar_core.job_handling.HttpJobServer import HttpJobServer
 from typing import Generator, Any
 
@@ -66,10 +65,7 @@ def test_worker_client() -> None:
 
     # Run the octave command
     try:
-        env_for_octave = os.environ.copy()
-        env_for_octave['PBS_ARRAY_INDEX'] = '123'
-        env_for_octave['nCPUs'] = '4'
-        o: str = subprocess.check_output([OCTAVE_RUN_COMMAND, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True, env=env_for_octave).decode('utf-8')
+        o: str = subprocess.check_output([OCTAVE_RUN_COMMAND, "--norc", "--eval", command], stderr=subprocess.STDOUT, shell=True).decode('utf-8')
     except subprocess.CalledProcessError as e:
         o = e.output.decode('utf-8')
         logging.warning(e.output)

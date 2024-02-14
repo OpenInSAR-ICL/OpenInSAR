@@ -1,4 +1,4 @@
-function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, burstIndex,  orbit, safe, azOff )
+function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, burstIndex,  orbit, safe, azOff, orbitTime )
     if nargin==0
         disp(1)
         return
@@ -77,8 +77,8 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
     %% 6.2: Doppler Centroid Rate Introduced by the Scanning Antenna (ks)
     % Velocity
     % orbits use a different time format currently
-    orbitTime = swathInfo.burst( burstIndex ).startTime:ati/86400:...
-        swathInfo.burst( burstIndex ).startTime + (lpb-1)*ati/86400;
+%     orbitTime = swathInfo.burst( burstIndex ).startTime:ati/86400:...
+%         swathInfo.burst( burstIndex ).startTime + (lpb-1)*ati/86400;
     interpOrbit = orbit.interpolate( orbitTime );
     velocity = sqrt(sum( ...
         [ interpOrbit.vx(:), ...
@@ -171,6 +171,17 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
         etalagPoly(end)=0;
         etalag = polyval(etalagPoly,1:lpb);
         lagPhase = 2*pi*kt.*eta.*etalag';
+%         
+%                 % adjust for azimuth misregistration
+%         eta0 = ati.*azOff(1,1);
+%         etalagPolyX = polyfit(1:size(azOff,1),ati.*azOff(:,1)-eta0,1);
+%         etalagPolyX(end)=0;
+%         etalagPolyY =polyfit(1:size(azOff,2),ati.*azOff(1,:)-eta0,1);
+%         etalagPolyX(end)=0;
+%         etalagX = polyval(etalagPolyX,1:lpb);
+%         etalagY = polyval(etalagPolyY,1:spb);
+%         etalag = etalagY + etalagX';
+%         lagPhase = 2*pi*kt.*eta.*etalag;% + 2*pi*(eta0-ati)*kt;
     else
         lagPhase = 0;
     end

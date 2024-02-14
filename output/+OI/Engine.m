@@ -28,10 +28,12 @@ methods
         this.setup();
     end
 
-    function setup(~)
-       if OI.Compatibility.isOctave
+    function setup( this )
+        if OI.Compatibility.isOctave
            pkg load image;
-       end
+        end
+        this.queue.clear;
+
     end
 
     function throw_error_if_no_project_loaded(this)

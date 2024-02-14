@@ -40,7 +40,7 @@ set_defaults() {
     current_directory=$(dirname "$(readlink -f "$0")")
 
     # Set default values
-    start_directory=$current_directory/output
+    start_directory=$current_directory/output/ICL_HPC
 
     num_workers=99
     num_cores=4
@@ -49,7 +49,7 @@ set_defaults() {
     command="WorkerClient"
     job_name="OpenInSAR_$(date +%b%d_%Hh%Mm)"
     # Target executable to launch, relative to this script
-    target="DebugMatlabWorker.sh"
+    target="worker.sh"
 
     # Get the absolute path of the target executable
     target_filepath=$(realpath "$current_directory/$target")

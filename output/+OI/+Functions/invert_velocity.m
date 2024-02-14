@@ -29,8 +29,17 @@ end
 [C, vi]=deal(zeros(sz(1),1));
 
 % Find the best models
-for jj=1:sz(1)
-[C(jj), vi(jj)]=max(abs(sum((data(jj,:).*periodogram),2)));
+if sz(1) < 20e3 % vectorise where possible if mem allows
+    CPer = zeros(size(data,1), size(periodogram,1));
+    pT = periodogram.';
+    for jj=1:sz(1)
+        CPer(jj,:) = data(jj,:)*pT;
+    end
+    [C, vi] = max(abs(CPer),[],2);
+else
+    for jj=1:sz(1)
+    [C(jj), vi(jj)]=max(abs(sum((data(jj,:).*periodogram),2)));
+    end
 end
 
 % Convert from index to rate

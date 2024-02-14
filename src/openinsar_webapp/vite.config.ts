@@ -13,8 +13,6 @@ export default defineConfig({
     }
   },
   build: {
-    minify: false,
-    sourcemap: true,
     emptyOutDir: true,
     outDir: '../../output/app/',
     rollupOptions: {

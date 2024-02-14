@@ -1,15 +1,13 @@
 import sys
 import json
-import os
-import bcrypt
-from http.server import SimpleHTTPRequestHandler
 from ..server.ThreadedHttpServer import ThreadedHttpServer
+from ..server.SinglePageAppServer import SinglePageApplicationHandler
 from ..server.DeploymentConfig import DeploymentConfig, for_local as get_local_config, for_render as get_render_config
 from .EndpointHandlers import Job, Worker, BaseJobServerHandler
 from .Endpoints import endpoints
 
 
-class JobServerHandler(SimpleHTTPRequestHandler):
+class JobServerHandler(SinglePageApplicationHandler):
     """A handler for the JobServer. This is a subclass of SimpleHTTPRequestHandler that adds a job queue and a method for adding jobs to the queue."""
     job_queues: dict[str, list[Job]] = {}
     worker_pools: dict[str, list[Worker]] = {}
@@ -18,13 +16,6 @@ class JobServerHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, job_queue: list[Job] = [], worker_registry: list[Worker] = [], **kwargs) -> None:
         """Initialise the handler with a job queue."""
         self.current_user: str | None = None
-
-        # Add a user to the user sessions
-        test_pass = 'test_password'
-        hashed_pass: str = bcrypt.hashpw(test_pass.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        os.environ['USERS'] = "test_user:" + str(hashed_pass)
-        self.user_sessions[hashed_pass] = 'test_user'
-
         # Filter out any kwargs that are not accepted by the SimpleHTTPRequestHandler
         kwargs = {key: value for key, value in kwargs.items() if key in BaseJobServerHandler.__init__.__code__.co_varnames}
         super().__init__(*args, **kwargs)
@@ -94,7 +85,6 @@ class JobServerHandler(SimpleHTTPRequestHandler):
         if 'auth_required' in endpoint[method].keys() and endpoint[method]['auth_required']:
             # Get the token from the headers
             self.current_token: str | None = self.headers.get("Authorization", None)
-            print(self.current_token)
             # ignore 'Bearer ' prefix
             if self.current_token is not None and self.current_token.startswith('Bearer '):
                 self.current_token = self.current_token[7:]
@@ -103,24 +93,16 @@ class JobServerHandler(SimpleHTTPRequestHandler):
                 user: str | None = self.user_sessions.get(self.current_token, None)
                 if user is not None:
                     self.current_user = user
-                else:
-                    print("Invalid token")
-                    print(self.user_sessions)
 
             if self.current_user is None:
                 # redirect to login
                 try:
-                    # Let the client know that they are unauthorized
-                    # self.failure_unauthorized()
-                    self.send_response(401, "Unauthorized")
-                    self.send_header("Content-type", "application/json")
+                    self.send_response(302, "Redirect")
+                    self.send_header("Location", "/api/login")
                     self.end_headers()
-                    self.wfile.write(json.dumps(obj={"success": False}).encode(encoding="utf-8"))
-                    # self.send_response(302, "Redirect")
-                    # self.send_header("Location", "/api/login")
-                    # self.end_headers()
                 except ConnectionResetError:
                     self.failure_unauthorized()
+                # self.failure_unauthorized()
                 return
 
         # Update default response callbacks
@@ -147,6 +129,7 @@ class JobServerHandler(SimpleHTTPRequestHandler):
 
 class HttpJobServer(ThreadedHttpServer):
     def __init__(self, *args, **kwargs) -> None:
+        self.handler: JobServerHandler
         # filter out any kwargs that are not accepted by the ThreadedHttpServer
         kwargs = {key: value for key, value in kwargs.items() if key in ThreadedHttpServer.__init__.__code__.co_varnames}
         super().__init__(*args, handler=JobServerHandler, **kwargs)
@@ -196,7 +179,7 @@ def main() -> HttpJobServer:
 
     # Initialise the server
     html_server = HttpJobServer(config=config)
-    html_server.directory = './output/app'
+    html_server.directory = './output'
     # Start the server
     html_server.launch()
 
@@ -205,6 +188,8 @@ def main() -> HttpJobServer:
 
 if __name__ == "__main__":
     # Set environment variables for username and password
+    import os
+    import bcrypt
     test_pass = 'test_password'
     # Hash the password
     hashed_pass: str = bcrypt.hashpw(test_pass.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
