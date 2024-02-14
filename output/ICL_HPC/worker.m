@@ -47,12 +47,23 @@ if J==1
     terminalInputLocation = fullfile(postings.postingPath,'interactive_input.txt');
     terminalOutputLocation = fullfile(postings.postingPath,'interactive_output.txt');
 
-    % write the input file
+    % write the input file.
+    % If its empty or not there (default / first time startup), write the default startup command
+    % This is janky, but is a simple way for the file to maintain control of us
+    DEFAULT_COMMAND = 'leader'
     if ~exist(terminalInputLocation,'file')
         OI.Functions.mkdirs(fileparts(terminalInputLocation))
         fid = fopen(terminalInputLocation,'w');
-        fwrite(fid,'');
+        fwrite(fid, DEFAULT_COMMAND);
         fclose(fid);
+    else
+        % read the content
+        inputCommands =  fileread(terminalInputLocation);
+        if isempty(inputCommands)
+            fid = fopen(terminalInputLocation,'w');
+            fwrite(fid, DEFAULT_COMMAND);
+            fclose(fid);
+        end
     end
 
     % start the terminal output

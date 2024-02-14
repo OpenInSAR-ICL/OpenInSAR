@@ -18,12 +18,28 @@
     oi.engine = DistributedEngine();
     oi.engine.connect( projObj );
 
-
     oi.engine.postings = oi.engine.postings.reset_workers();
     oi.engine.postings = oi.engine.postings.wipe_all_errors();
 
-    oi.engine.postings.report_ready(0);
-    nextWorker = 0;
+
+
+    % Copy helper scripts over to the postings directory
+    postingPath = oi.engine.postings.postingPath;
+    helper_scripts = { ...
+        'clear_errors.sh', ...
+        'find_error.sh', ...
+        'reset.sh', ...
+        'reset_workers.sh', ...
+    };
+    for ii = 1:length(helper_scripts)
+        if ~exist( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}), 'file' )
+            warning('Could not find helper script %s', helper_scripts{ii})
+            continue
+        end
+        if ~exist( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}), 'file' )
+            copyfile( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}) );
+        end
+    end
 
     if strcmpi(projObj.PROCESSING_SCHEME,'PSI')
         thingToDoList = { OI.Data.TransientScatterers_Summary() };
