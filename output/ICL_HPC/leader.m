@@ -20,7 +20,8 @@
 
     oi.engine.postings = oi.engine.postings.reset_workers();
     oi.engine.postings = oi.engine.postings.wipe_all_errors();
-
+    oi.engine.postings.report_ready(0);
+    nextWorker = 0;
 
 
     % Copy helper scripts over to the postings directory
