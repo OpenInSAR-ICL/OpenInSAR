@@ -48,6 +48,10 @@ methods
             for ii=1:numel(jobs)
                 jobs{ii}.target = '1';
                 engine.queue.add_job(jobs{ii});
+		if ii > 200
+		    % dont add more than X jobs, or we will clog up
+		    break
+		end
             end
             % if no more, set as finished
             if numel(jobs) == 0
