@@ -34,3 +34,9 @@ OpenInSAR*.o*
 .asv
 *.asv
 *.sh.*
+
+# Results
+*.shp
+*.shx
+*.dbf
+*.gpkg
