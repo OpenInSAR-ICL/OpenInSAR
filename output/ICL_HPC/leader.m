@@ -26,6 +26,8 @@
     nextWorker = 0;
 
     if strcmpi(projObj.PROCESSING_SCHEME,'PSI')
+        thingToDoList = { OI.Data.PsiSummary() };
+    elseif strcmpi(projObj.PROCESSING_SCHEME,'TS')
         thingToDoList = { OI.Data.TransientScatterers_Summary() };
     elseif strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFFS')
         thingToDoList = { OI.Data.GeotiffSummary()};
