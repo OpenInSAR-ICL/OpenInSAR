@@ -257,7 +257,8 @@ methods
                 if ~exist(fileparts(fp),'dir')
                     OI.Functions.mkdirs(fp);
                 end
-                bigFile = whos('data_').bytes >= 2^31; % Limit of mat v7 file format (Octave doesn't support v7.3)
+                data_file_info = whos('data_');
+                bigFile = data_file_info.bytes >= 2^31; % Limit of mat v7 file format (Octave doesn't support v7.3)
                 if OI.Compatibility.isOctave
                     if bigFile
                         save('-mat-binary', fp, 'data_');
