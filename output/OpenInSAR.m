@@ -108,12 +108,15 @@ methods
         end
         % Check if there is an xml file linking us to the current project
         if exist('CurrentProject.xml', 'file')
-            curProj = this.engine.database.fetch('project');
-            if isempty(curProj)
+            
+%             curProj = this.engine.database.fetch('project');
+%             if isempty(curProj)
                 this.engine.ui.log('debug', 'Found CurrentProject.xml\n');
                 this.engine.ui.log('info', 'Reloading current project from CurrentProject.xml\n');
                 this.load_current_project();
-            end
+%             else
+%                 warning('Loading currentProject from memory?');
+%             end
         else
             this.engine.ui.log('info', 'Running first time setup. (No CurrentProject.xml found)\n');
             % Create a new project
