@@ -55,7 +55,8 @@ missingData =[];
 blockInds = [];
     
 for blockCount = 1:numel(blocksToDo)
-    
+
+    engine.ui.log('warning','Block %i',blockCount);
     currentBlock = blocksToDo(blockCount);
     blockInfo = stackBlocks.blocks( currentBlock );
 
@@ -361,7 +362,7 @@ function this = queue_jobs(this, engine, blockMap)
         end
         priorModelTemplate = OI.Data.ApsModel();
         priorModelTemplate.STACK = num2str(stackIndex);
-        priorModel = engine.load( priorModelTemplate );
+        priorModel = engine.database.fetch( priorModelTemplate );
         if isempty( priorModel )
             jobCount = jobCount+1;
             engine.requeue_job_at_index( ...

@@ -74,6 +74,7 @@ methods
                 orbitFile = OI.Data.Orbit().find(targetPlatform, targetDatetime, orbitFiles);
 
                 if isempty( orbitFile )
+                    error(
                     jobCount = jobCount+1;
                     % create a job with the date and platform
                     engine.requeue_job_at_index( ...

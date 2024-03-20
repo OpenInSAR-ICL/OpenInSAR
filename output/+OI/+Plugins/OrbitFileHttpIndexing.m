@@ -25,7 +25,7 @@ methods
         n = {};
         
         for sat = ['A' 'B']
-        for startYear=2014:2023
+        for startYear=2014:2024
             
             
             
@@ -62,10 +62,49 @@ methods
         this.outputs{1}.filenames=n;
         
         this.outputs{1}.download_from_catalogue(engine, cat);
+       
+        this = this.update_catalogue(engine, projObj, catalogue);
+        
         engine.save( this.outputs{1} )
     end % run(
+    
+    function update_catalogue(this, engine, catalogue)
+        % save orbit file paths to catalogue
+         
+        % pull project info
+        projObj = engine.load( OI.Data.ProjectDefinition() );
+        
+        % get the files
+        orbitDir = projObj.ORBITS_DIR;
+        orbitFiles = dir(orbitDir);
+        orbitFiles = orbitFiles(3:end);
 
+        % for each safe in the catalogue
+        for ii=1:numel(catalogue.safes)
+            % get the safe
+            safe = catalogue.safes{ii};
+            % get the datetime
+            targetDatetime = safe.date;
+            % get the platform
+            targetPlatform = safe.platform;
+            % see if the orbit file exists in the orbit directory
+            orbitFile = OI.Data.Orbit().find(targetPlatform, targetDatetime, orbitFiles);
 
+            if isempty( orbitFile )
+                error('No orbit file found for %s', safe.name);
+            else
+                % add the orbit file to the catalogue
+                catalogue.safes{ii}.orbitFile = orbitFile;
+            end
+        end % for safe in catalogue
+        
+        % make paths cross-platform
+        catalogue = catalogue.make_filepaths_portable(projObj);
+        % save the catalogue
+        catalogue.overwrite = true;
+        engine.save(catalogue,catalogue);
+        this.isFinished = true;
+    end % update_catalogue
 
 end % methods
 

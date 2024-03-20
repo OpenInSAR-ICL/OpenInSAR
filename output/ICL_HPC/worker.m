@@ -47,12 +47,23 @@ if J==1
     terminalInputLocation = fullfile(postings.postingPath,'interactive_input.txt');
     terminalOutputLocation = fullfile(postings.postingPath,'interactive_output.txt');
 
-    % write the input file
+    % write the input file.
+    % If its empty or not there (default / first time startup), write the default startup command
+    % This is janky, but is a simple way for the file to maintain control of us
+    DEFAULT_COMMAND = 'leader'
     if ~exist(terminalInputLocation,'file')
         OI.Functions.mkdirs(fileparts(terminalInputLocation))
         fid = fopen(terminalInputLocation,'w');
-        fwrite(fid,'');
+        fwrite(fid, DEFAULT_COMMAND);
         fclose(fid);
+    else
+        % read the content
+        inputCommands =  fileread(terminalInputLocation);
+        if isempty(inputCommands)
+            fid = fopen(terminalInputLocation,'w');
+            fwrite(fid, DEFAULT_COMMAND);
+            fclose(fid);
+        end
     end
 
     % start the terminal output
@@ -186,6 +197,10 @@ while true
                 end
             end
             postings.report_done(J, answer);
+        elseif ~oi.engine.queue.is_empty()
+            errjobstr = oi.engine.queue.jobArray{1}.to_string();
+            postings.report_error(J, [errjobstr ' _ I didnt finish my job, probably as Im missing an input.' ...
+            'I can mess things up if I start trying to create my input as something is probs already doing so.'])
         end
 
         postings = postings.check_jobs(J);
@@ -198,6 +213,12 @@ while true
             addpath('ICL_HPC')
             worker
             return
+        end
+        
+        if ~oi.engine.queue.is_empty()
+            errjobstr = oi.engine.queue.jobArray{1}.to_string();
+            postings.report_error(J, [errjobstr ' _ Im not done , probably as Im missing an input.' ...
+            'I can mess things up if I start trying to create my input as something is probs already doing so.'])
         end
         
     end

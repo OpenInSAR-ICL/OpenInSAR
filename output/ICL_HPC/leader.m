@@ -18,28 +18,51 @@
     oi.engine = DistributedEngine();
     oi.engine.connect( projObj );
 
-
     oi.engine.postings = oi.engine.postings.reset_workers();
     oi.engine.postings = oi.engine.postings.wipe_all_errors();
-
     oi.engine.postings.report_ready(0);
     nextWorker = 0;
+
+
+    % Copy helper scripts over to the postings directory
+    postingPath = oi.engine.postings.postingPath;
+    helper_scripts = { ...
+        'clear_errors.sh', ...
+        'find_error.sh', ...
+        'reset.sh', ...
+        'reset_workers.sh', ...
+    };
+    for ii = 1:length(helper_scripts)
+        if ~exist( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}), 'file' )
+            warning('Could not find helper script %s', helper_scripts{ii})
+            continue
+        end
+        if ~exist( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}), 'file' )
+            copyfile( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}) );
+        end
+    end
 
     if strcmpi(projObj.PROCESSING_SCHEME,'PSI')
         thingToDoList = { OI.Data.PsiSummary() };
     elseif strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFFS')
-        thingToDoList = { OI.Data.GeotiffSummary() };
+        thingToDoList = { OI.Data.GeotiffSummary()};
+    elseif strcmpi(projObj.PROCESSING_SCHEME,'EDF')
+        thingToDoList = { OI.Data.GeotiffSummary(), OI.Data.PsiSummary() };
     else
         warning('Unknown processing scheme')
         thingToDoList = { OI.Data.CoregistrationSummary() };
     end
 
+    %thingToDoList = { OI.Data.FieldSamplesSummary() }
+%     thingToDoList = { OI.Data.TsCorrectionSummary() }
+%thingToDoList = { OI.Data.ClassificationComponents() }
+    
     % Flag to help refreshing worker status
     %   True - wait if no workers available
     %   False - try rehashing Matlab file cache before waiting
 doImmediateWaitForWorkers = false;
 assignment = cell(1, 100);
-
+assignment(:)={'worker not yet initialised'};
 
 for thingToDo = thingToDoList
 
@@ -53,7 +76,7 @@ for thingToDo = thingToDoList
             
             try
                 leaderPosting = oi.engine.postings.get_posting_contents(0);
-                if matcher(leaderPosting,'STOP') || matcher('stop')
+                if matcher(leaderPosting,'STOP') || matcher(leaderPosting, 'stop')
                     leaderFilePath = oi.engine.postings.get_posting_filepath(0);
                     leaderFileHandle = fopen(leaderFilePath,'w');
                     fclose(leaderFileHandle);
@@ -72,7 +95,7 @@ for thingToDo = thingToDoList
 
             % clean up old jobs and add the results to database
             for ii = 1:length(oi.engine.postings.workers)
-                [nextWorker, nextWorkerWaiting] = oi.engine.postings.get_next_worker();
+%                 [nextWorker, nextWorkerWaiting] = oi.engine.postings.get_next_worker();
                 % get the filepath
                 JJ = oi.engine.postings.workers(ii);
                 if JJ==0
@@ -143,7 +166,7 @@ for thingToDo = thingToDoList
                     oi.engine.ui.log('error','Worker %i : %s\n', JJ, posting);
                     oi.engine.ui.log('error',posting);
                     warning(posting);
-                    assignment{JJ} = '';
+%                     assignment{JJ} = ''; % don't unassign the job ffs...
                     % return % Throw back so we can debug if in interactive mode
                 end
             end
@@ -203,6 +226,11 @@ for thingToDo = thingToDoList
         end
 
         while isempty(nextJob.target)
+            % ID LIKE TO NOT RUN A LEADER JOB, IF:
+            % - there are workers that have finished and need clearing up
+            % - there are unassigned jobs
+            % TODO
+            
             % we can carry on running jobs that don't have a target
             oi.engine.run_next_job();
             % try loading our target
@@ -214,37 +242,47 @@ for thingToDo = thingToDoList
                     ['No more jobs for leader at this step,'... 
                     'running distributed jobs']);
             end
+            checkOnWorkers = true;
             break;
         end
-        if isempty(nextJob)
+        if isempty(nextJob) || checkOnWorkers
+            checkOnWorkers = false;
             continue
         end
 
         tfClash = false;
         nJobsAssigned = 0;
+        isJobAssigned = false;
         allJobsAssigned = false;
         firstJob = nextJob;
         
         % Check if our worker is running our proposed job
         % Check through workers and their current assignments
-        for workerId = oi.engine.postings.workers(:)'
-            if ~isempty(assignment{workerId}) % if worker is working
-                % check the job we want to push isn't already assigned to
-                % the worker
-                if assignment{workerId}.eq(nextJob) 
-                    nJobsAssigned = nJobsAssigned + 1;
-                    oi.engine.ui.log('debug',...
-                        'Removed an already assigned job - %s', ...
-                        nextJob.to_string());
-                    oi.engine.queue.remove_job(1);
-                    oi.engine.queue.add_job(nextJob); %add to back
-                   
-                    nextJob = oi.engine.queue.next_job();
-                    if nextJob.eq(firstJob)
-                        allJobsAssigned = true; % if we reach here we have clcyed 
-                        break
+        while ~isempty(nextJob.target) && allJobsAssigned == false
+            oi.engine.ui.log('info','Checking this job has not been assigned\n')
+            for workerId = oi.engine.postings.workers(:)'
+                if ~isempty(assignment{workerId}) && ~ischar(assignment{workerId}) % if worker is working
+                    % check the job we want to push isn't already assigned to
+                    % the worker
+                    if isa(assignment{workerId},'OI.Job') && assignment{workerId}.eq(nextJob) 
+                        nJobsAssigned = nJobsAssigned + 1;
+                        oi.engine.ui.log('debug',...
+                            'Removed an already assigned job - %s\n', ...
+                            nextJob.to_string());
+                        oi.engine.queue.remove_job(1);
+                        oi.engine.queue.add_job(nextJob); %add to back
+                        isJobAssigned = true;
+                        break % the for loop, we have found a conflict
                     end
                 end
+            end
+            if isJobAssigned
+                nextJob = oi.engine.queue.next_job();
+                if nextJob.eq(firstJob)
+                    allJobsAssigned = true; % if we reach here we have cycled 
+                end
+            else % we've found an unassigned job, so can continue to run it
+                break
             end
         end
         
@@ -254,7 +292,7 @@ for thingToDo = thingToDoList
             oi.engine.ui.log('info','All jobs appear assigned: %i\n',sum(cellfun(@(x) ~isempty(x),assignment)))
             for jj=1:numel(assignment)
                 x=assignment{jj};
-                if isempty(x);continue; end
+                if isempty(x) || ischar(x);continue; end
                 oi.ui.log('info','Worker %i - %s\n',jj,assignment{jj}.to_string());
 %                 if jj>numel(oi.engine.postings.workers)
 %                     break
@@ -274,6 +312,11 @@ for thingToDo = thingToDoList
                 continue
             end
             oi.engine.run_next_job()
+            
+            oi.ui.log('info', 'Pushing job %s\n', nextJob.to_string());
+            oi.engine.currentJob = nextJob.to_string();
+            oi.engine.run_job(nextJob, '');
+            
             if oi.engine.lastPostee
                 assignment{ oi.engine.lastPostee } = OI.Job( oi.engine.currentJob );
             end

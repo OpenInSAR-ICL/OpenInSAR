@@ -53,6 +53,13 @@ methods
         % If no platform or datetime is provided, then we need to create
         % jobs for each file in the catalogue.
         if isempty(this.datetime)
+            % check we've got orbits first, better to have them in place
+            orbsDone = engine.load( OI.Data.OrbitSummary() );
+            orbitIndex = engine.load( OI.Data.OrbitFileIndex() );
+            if isempty(orbsDone) && isempty(orbitIndex)
+                engine.ui.log('info','%s - Orbits not yet done\n', this.id)
+                return
+            end
             % first call, create jobs.
             jobsAdded = 0;
             
@@ -121,10 +128,16 @@ methods
 
         % check we have orbit files available
         if isempty(safe.orbitFile)
-            job = OI.Job( OI.Data.Orbit().generator );
-            job.target = '1';
-            engine.queue.add_job( job );
-            return;
+            error('NO ORBITS, ESA KILLED THE API SO CANT QUEUE JOB HERE');
+%             targetDatetime = safe.date;
+%             targetPlatform = safe.platform;
+%             inneficient to dir the orbit directory in every worker...
+%             (orbitFiles)
+%             safe.orbitFile = OI.Data.Orbit().find(targetPlatform, targetDatetime, orbitFiles);
+% %             job = OI.Job( OI.Data.Orbit().generator );
+%             job.target = '1';
+%             engine.queue.add_job( job );
+%             return;
         end
 
         % Otherwise, we need to preprocess

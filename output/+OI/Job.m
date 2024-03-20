@@ -67,6 +67,7 @@ methods
         % Job('name','target',{'arg1','arg2',...})
 
         % remove the Job() wrapper
+        jobStr = char(jobStr);
         jobStr = jobStr(5:end-1);
 
         % split the string into name, target, and arguments

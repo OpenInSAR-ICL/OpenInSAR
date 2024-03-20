@@ -16,13 +16,19 @@ methods
     function this = run( this, engine, varargin )
         
         engine.ui.log('debug','Begin loading inputs for %s\n',this.id);
-
+        START_QUEUE_SIZE = engine.queue.length();
+        
         cat = engine.load( OI.Data.Catalogue() );
         preprocessingInfo = engine.load( OI.Data.PreprocessedFiles() );
         stacks = engine.load( OI.Data.Stacks() );
         dem = engine.load( OI.Data.DEM() );
         projObj = engine.load( OI.Data.ProjectDefinition() );
         
+        if isprop(projObj,'MAX_QUEUE_SIZE')
+            MAX_QUEUE_SIZE = projObj.MAX_QUEUE_SIZE;
+        else
+            MAX_QUEUE_SIZE = 200; % default
+        end
 
         if isempty(preprocessingInfo) || isempty(stacks) || isempty(dem) || isempty(cat)
             return;
@@ -34,52 +40,86 @@ methods
             allDone = true;
             jobCount = 0;
             for trackInd = 1:numel(stacks.stack)
+                trackDone = true;
+                dbDoneTrackObj = sprintf('done_coreg_track_%i',trackInd);
+                if ~isempty(engine.database.fetch(dbDoneTrackObj))
+                    continue
+                end
+                
             for refSegInd = stacks.stack(trackInd).reference.segments.index
+                refSegDone = true;
+                dbDoneSegObj = sprintf('done_coreg_track_%i_seg_%i',trackInd, refSegInd);
+                if ~isempty(engine.database.fetch(dbDoneSegObj))
+                    continue
+                end
             for visitInd = ...
                 1:numel(stacks.stack(trackInd).correspondence(refSegInd,:))
                 
+                % debug...
+                if visitInd == 39 && trackInd == 2 && refSegInd == 4
+                    1;
+                end
                 % If there is no data for this combination of visit/segment
                 % skip
-                noData = ...
-                    stacks.stack(trackInd).correspondence(refSegInd, visitInd) == 0;
-                if noData
+                segmentIndexInStack = ...
+                    stacks.stack(trackInd).correspondence(refSegInd, visitInd);
+                if segmentIndexInStack == 0 % no data for this combo
                     continue
                 end
-
-                result = OI.Data.CoregOffsets();
-                result.STACK = num2str(trackInd);
-                result.REFERENCE_SEGMENT_INDEX = num2str(refSegInd);
-                result.VISIT_INDEX = num2str(visitInd);
-                result.SEGMENT_INDEX = num2str( ...
-                    stacks.stack(trackInd).correspondence(...
-                    refSegInd, visitInd) );
-
-                result2 = OI.Data.CoregisteredSegment();
-                result2.POLARIZATION = projObj.POLARIZATION(1:2);
-                result2.STACK = result.STACK;
-                result2.SEGMENT_INDEX = result.SEGMENT_INDEX;
-                result2.REFERENCE_SEGMENT_INDEX = num2str(refSegInd);
-                result2.VISIT_INDEX = num2str(visitInd);
-
-                result = result.identify( engine );
-                result2 = result2.identify( engine );
-                resultInDatabase = engine.database.find( result );
-                result2InDatabase = engine.database.find( result2 );
-                thisOneMissing = isempty( resultInDatabase ) || ...
-                    isempty(result2InDatabase);
-                allDone = allDone && ~thisOneMissing;
+                safeIndex = stacks.stack(trackInd).segments.safe(segmentIndexInStack);
+                polFromSafe = cat.safes{safeIndex}.polarization;
+                polCells = cellstr(reshape(polFromSafe, 2, [])')';
+                nPols = numel(polCells);
+                results = cell(1+nPols,1);
+                results{1} = OI.Data.CoregOffsets().configure( ...
+                    'STACK', num2str(trackInd), ...
+                    'REFERENCE_SEGMENT_INDEX', num2str(refSegInd), ...
+                    'VISIT_INDEX', num2str(visitInd), ...
+                    'SEGMENT_INDEX', num2str(segmentIndexInStack) );
+                iPol = 1;
+                for polCell = polCells
+                    results{1+iPol} = OI.Data.CoregisteredSegment().configure( ...
+                        'STACK', num2str(trackInd), ...
+                        'REFERENCE_SEGMENT_INDEX', num2str(refSegInd), ...
+                        'VISIT_INDEX', num2str(visitInd), ...
+                        'SEGMENT_INDEX', num2str(segmentIndexInStack), ...
+                        'POLARIZATION', polCell{1});
+                    iPol = iPol+1;
+                end
+                thisOneMissing = false;
+                for ii=1:numel(results)
+                    results{ii} = results{ii}.identify( engine );
+                    resultInDatabase = engine.database.find( results{ii} );
+                    if isempty(resultInDatabase)
+                        thisOneMissing = true;
+                    end
+                end
+                % latch off - were not done
+                allDone = allDone && ~thisOneMissing; 
                 if allDone % add to output
-                    this.outputs{1}.value(end+1,:) = [trackInd, refSegInd];
+                    this.outputs{1}.value(end+1,:) = [trackInd, refSegInd, visitInd];
                 elseif thisOneMissing
+                    trackDone = false;
+                    refSegDone = false;
                     jobCount = jobCount+1;
                     engine.requeue_job_at_index( ...
                         jobCount, ...
                         'trackIndex',trackInd, ...
                         'referenceSegmentIndex', refSegInd, ...
                         'visitIndex', visitInd);
+                    
+                    if engine.queue.length - START_QUEUE_SIZE > MAX_QUEUE_SIZE
+                        return % We have enough jobs, we're wasting time!
+                    end
                 end
             end % visit
+            if refSegDone
+                engine.database.add(1,dbDoneSegObj);
+            end
             end % reference
+            if trackDone
+                engine.database.add(1,dbDoneTrackObj);
+            end
             end % track
             if allDone % we have done all the tracks and segments
                 engine.save( this.outputs{1} );
@@ -97,7 +137,8 @@ methods
             'STACK', num2str(this.trackIndex), ...
             'REFERENCE_SEGMENT_INDEX', num2str(this.referenceSegmentIndex), ...
             'VISIT_INDEX', num2str(this.visitIndex), ...
-            'SEGMENT_INDEX', num2str( segInd ) ).identify( engine );
+            'SEGMENT_INDEX', num2str( segInd ), ...
+            'overwrite', this.isOverwriting ).identify( engine );
         resultsExist = true;
         resultFromDatabase = engine.database.find( result );
         haveFoundOffsets = ~isempty( resultFromDatabase );
@@ -223,7 +264,8 @@ methods
         [orbit, lineTimes] = ...
             OI.Plugins.Geocoding.get_poe_and_timings( ...
                 cat, safeIndex, swathInfo, burstIndex );
-
+        origLineTimes = lineTimes;
+        
         % Orbit for the reference
         [refOrbit, refLineTimes] = ...
             OI.Plugins.Geocoding.get_poe_and_timings( ...
@@ -240,9 +282,20 @@ methods
             if isLongOnFirstDim
                 lineTimes = lineTimes(:);
             end
-                
         end
-                        
+        % ...   The output raster has to match the dims of the reference.
+        %       We will find the indices which satisfy this, even if they're out of
+        %       the segment.     
+  
+
+        % If we use large values for t, we reach the limits of double
+        % precision, causing horrendous bugs and phase shifts
+        % orbitCentre = mean(orbit.t);
+        orbitCentre = mean(lineTimes);
+        origLineTimes = origLineTimes - orbitCentre;
+        lineTimes = lineTimes - orbitCentre;
+        orbit.t = orbit.t - orbitCentre;
+
         if ~haveFoundOffsets % if we already have offsets we can skip this
             % we need one more input...
             geocodingData = OI.Data.LatLonEleForImage().configure( ...
@@ -257,27 +310,9 @@ methods
                 return % throw back to engine to generate geocoding data
             end
 
-            % interpolate orbits
-
-            % % our satellite is here:
-            % tOrbit = orbit.interpolate( lineTimes );
-            % satXYZ = [ ...
-            %         tOrbit.x(:), ...
-            %         tOrbit.y(:), ...
-            %         tOrbit.z(:) ...
-            %     ];
-            % satV = [ ...
-            %         tOrbit.vx(:), ...
-            %         tOrbit.vy(:), ...
-            %         tOrbit.vz(:) ...
-            %   ];
-            % But we don't care. We want to find where it is when imaging refXYZ
             % We start with a single line:
-            coregLineTimes = linspace(lineTimes(1),lineTimes(end),lpbRef);
-            % ...   The output raster has to match the dims of the reference.
-            %       We will find the indices which satisfy this, even if they're out of
-            %       the segment.
-            tOrbit = orbit.interpolate( coregLineTimes );
+
+            tOrbit = orbit.interpolate( lineTimes );
             satXYZ = [ ...
                     tOrbit.x(:), ...
                     tOrbit.y(:), ...
@@ -291,9 +326,8 @@ methods
     
             % Estimate the doppler rate
             refGroundXYZ = OI.Functions.lla2xyz( lle );
-            midDem = OI.Functions.lla2xyz(mean(lle)); % mean xyz would be ...
-            lle = [];
-            
+            midDem = OI.Functions.lla2xyz(mean(lle)); 
+            % mean xyz would be ...
             % below the surface of the earth, as compared to mean lle.
             linesPerDoppler =  lpbRef./ ...
                 ( OI.Functions.doppler_eq(satXYZ(1,:), satV(1,:), midDem) - ...
@@ -301,23 +335,26 @@ methods
     
             % Find the doppler error and use this to align the azimuth lines
             satT = lineTimes;
-            lastErr = 9e9; isConverged = false;
+            lastErr = 9e9; iters =0; isConverged = false; iterLimit = 100;
             while ~isConverged
                 [satT, dopplerErr] = ....
                     OI.Plugins.Coregistration.dopplerIter(...
                     satT, orbit, refGroundXYZ(1:spbRef:end,:), linesPerDoppler, ati);
-                isConverged = dopplerErr / lastErr > 0.99;
-                lastErr = dopplerErr;
+                notMuchBetter = (sum(dopplerErr.^2) > lastErr * 0.99);
+                notMuchWorse = (sum(dopplerErr.^2) < lastErr * 1.01);
+                isConverged =  (notMuchBetter && notMuchWorse) || iters >= iterLimit;
+                iters = iters + 1;
+                lastErr = sum(dopplerErr.^2);
             end
             
             % repeat this but for the whole reference segment
             satT = repelem(satT,spbRef,1);
-            lastErr = 9e9; isConverged = false;
+            lastErr = 9e9; iters =0; isConverged = false; iterLimit = 100;
             while ~isConverged
                 [satT, dopplerErr] = ...
                     OI.Plugins.Coregistration.dopplerIter(...
                     satT, orbit, refGroundXYZ, linesPerDoppler, ati);
-                isConverged = mean(abs(dopplerErr(:))) ./ lastErr > 0.99;
+                isConverged = mean(abs(dopplerErr(:))) / lastErr > 0.99 || iters >= iterLimit;
                 lastErr = mean(abs(dopplerErr(:)));
             end
            
@@ -335,6 +372,8 @@ methods
             % calculate the range offsets
             r = (OI.Functions.range_eq(satXYZ, refGroundXYZ) - nearRange) ./ ...
                 swathInfo.rgSpacing - refMeshRange(:);
+            % TODO I THINK THERE IS AS OFF BY ONE ERROR HERE. r should
+            % equal r+1;
             r = reshape(r,refSz);
            
             % We can now clear the ground coordinates as we're just
@@ -347,6 +386,9 @@ methods
             engine.save(result, [a(:) r(:)]);
         else
             azRgOffsets = engine.load( result );
+            if isempty(azRgOffsets)
+                return
+            end
             a = reshape(azRgOffsets(:,1),refSz);
             r = reshape(azRgOffsets(:,2),refSz);
             clearvars azRgOffsets
@@ -379,7 +421,8 @@ methods
                 'STACK', num2str(this.trackIndex), ...
                 'SEGMENT_INDEX', num2str(segInd), ...
                 'REFERENCE_SEGMENT_INDEX', num2str(this.referenceSegmentIndex), ...
-                'VISIT_INDEX', num2str(this.visitIndex) ...
+                'VISIT_INDEX', num2str(this.visitIndex), ...
+                'overwrite', this.isOverwriting ...
             );
 
             % load the reference data
@@ -392,7 +435,7 @@ methods
             
             % get ramp
             [derampPhase, ~, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
-                swathInfo, burstIndex, orbit, safe, a); %#ok<ASGLU>
+                swathInfo, burstIndex, orbit, safe, a, lineTimes); %#ok<ASGLU>
 %             [derampPhase, demodulatePhase, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
 %                 swathInfo, burstIndex, orbit, safe, a); %#ok<ASGLU>
 
@@ -426,8 +469,9 @@ methods
         % we win
         this.isFinished = true;
     end % run
-
-% rdata = OI.Data.Tiff.read_cropped( cat.safes{ refSafeIndex }.strips{refSwathIndex }.getFilepath(),1,[1 lpb]+(stacks.stack.segments.burst( refSegInd )-1)*lpb,[]);figure(2);
+% normz = @(x) x./abs(x);
+% avfilt = @(x,w,h) imfilter(x, fspecial('average', [w, h]));
+% rdata = OI.Data.Tiff.read_cropped( cat.safes{ refSafeIndex }.strips{refSwathIndex }.getFilepath(),1,[1 lpb]+(stacks.stack(stackInd).segments.burst( refSegInd )-1)*lpb,[]);figure(2);
 % rdata = double(rdata);
 % p = coregData;
 % s = rdata;
@@ -469,3 +513,37 @@ methods (Static = true)
 end
 
 end % classdef
+% 
+% 'R:\projects\insardatastore\ephemeral\saa116\Wales\work\coregistration\CoregisteredSegment_stack_1_segment_6_visit_5_polarization_VH.mat'
+% dd = dir('R:\projects\insardatastore\ephemeral\saa116\Wales\work\coregistration\');
+% names = {dd.name};
+% sizes = [dd.bytes];
+% isData = cellfun( @(x) contains(x,'CoregisteredSegment_'), names);
+% dataNames = names(isData);
+% dataSizes = sizes(isData);
+% 
+% for ii=1:numel(dataNames)
+%     name = dataNames{ii};
+%     otherPol = 'VV';
+%     myPol = 'VH';
+%     mySize = dataSizes(ii);
+%     if all(name(end-5:end-4) == otherPol)
+%         otherPol = 'VH';
+%         myPol = 'VV';
+%     end
+%     otherName = strrep(name, myPol, otherPol);
+%     otherInd = find(strcmpi(dataNames,otherName));
+%     if isempty(otherInd)
+%         fprintf(1,'No other pol for %s', name);
+%         continue
+%     else
+%         % due to compression.. diff file sizes...
+%         if abs(mySize - dataSizes(otherInd)) > 100e6
+%             warning('Mismatch for %s and %s - \n%i and %i\n',name, otherName, mySize, dataSize(otherInd))
+%         end
+%     end
+% end
+% 
+
+
+

@@ -83,7 +83,8 @@ classdef Database < handle
             else
                 uName = dataObj.id;
             end
-
+            
+            uName = this.shorten_id(uName);
             if ~isfield(this.entryMap, uName)
                 this.entryMap.(uName) = length(this.data) + 1;
                 this.data{end+1} = dataObj;
@@ -96,7 +97,10 @@ classdef Database < handle
 
         end%add
         
+
+        
         function dataObj = fetch(this, id)
+            id = this.shorten_id(id);
             if isfield(this.entryMap, id)
                 dataObj = this.data{this.entryMap.(id)};
             else
@@ -119,6 +123,7 @@ classdef Database < handle
             % and add the data object to the database if it does
             entry = [];
             % Check the database
+            dataObj.id = this.shorten_id(dataObj.id);
             if isfield(this.entryMap, dataObj.id)
                 if OI.Compatibility.contains(dataObj.id,'$')
                     error('Unresolved placeholders in requested data object')
@@ -177,4 +182,14 @@ classdef Database < handle
 
         end
     end%private methods
+    
+    methods (Static = true)
+        function id = shorten_id(id)
+            if numel(id) > 63
+                if strcmpi(id(1:20),'CoregisteredSegment_')
+                    id = ['CrgSg_' id(21:end)];
+                end
+            end
+        end
+    end
 end

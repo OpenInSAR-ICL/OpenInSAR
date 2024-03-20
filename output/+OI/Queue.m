@@ -48,6 +48,24 @@ methods
             nextJob = this.jobArray{1};
         end
     end
+    
+    function printf( this, ui, debugLevel )
+        L = numel(this.jobArray);
+        if nargin == 1
+            fprintf(1,'Queue as of %s:\n',datestr(now()));
+            for ii=1:L
+                fprintf(1,'%i - %s\n',ii, this.jobArray{ii}.to_string)
+            end
+        else
+            
+            if nargin <= 2; debugLevel = 'info'; end
+            ui.log(debugLevel,'Queue as of %s:\n',datestr(now()))
+            for ii=1:L
+                ui.log(debugLevel,'%i - %s\n',ii, this.jobArray{ii}.to_string)
+            end
+        end
+        
+    end
 
     function this = prioritise_argument(this, key, val, inPlace)
         % in place is whether to push these to front of queue or sort
@@ -122,15 +140,17 @@ methods
                 idx = 1;
             end
             newJobArray = cell(size(this.jobArray));
-            for k = 1:length(this.jobArray)
-                if k == idx
-                    newJobArray{1} = this.jobArray{idx};
-                elseif k < idx
-                    newJobArray{k+1} = this.jobArray{k};
-                elseif k > idx
-                    newJobArray{k} = this.jobArray{k};
-                end
-            end
+            newJobArray{1} = this.jobArray{idx};
+            newJobArray(2:end) = this.jobArray([1:idx-1 idx+1:end]);
+%             for k = 1:length(this.jobArray)
+%                 if k == idx
+%                     newJobArray{1} = this.jobArray{idx};
+%                 elseif k < idx
+%                     newJobArray{k+1} = this.jobArray{k};
+%                 elseif k > idx
+%                     newJobArray{k} = this.jobArray{k};
+%                 end
+%             end
             this.jobArray = newJobArray;
         else
             error('Invalid index');

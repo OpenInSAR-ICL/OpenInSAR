@@ -98,6 +98,11 @@ classdef BlockMap < OI.Data.DataObj
 
 
         function kmlPath = make_map_kml(this, kmlDir)
+            
+            if nargin == 1
+                kmlDir = '.';
+            end
+            
             if isempty(this.stacks) && isfield(this.stacks(1),'map')
                 warning('Map not loaded')
             else
@@ -109,7 +114,7 @@ classdef BlockMap < OI.Data.DataObj
                         [~,stack.map] = this.get_map_for_stack(si);
                     end
                     % limit the size to avoid excessive memory usage
-                    origSize = size(stackMap);
+                    origSize = size(stack.map);
                     [maxDimV, maxDimI] = max(origSize);
                     if maxDimI > 1 % wide
                         outputSize = ...
@@ -147,11 +152,10 @@ classdef BlockMap < OI.Data.DataObj
                         \ blockLonCorners(:);
 
                     % Determine the lat/lon coordinates at the corners of the map
-                    mapSize = size(map);
                     azRgCorners = [1 1; ...
-                        1 mapSize(2); ...
-                        mapSize(1) mapSize(2); ...
-                        mapSize(1) 1];
+                        1 origSize(2); ...
+                        origSize(1) origSize(2); ...
+                        origSize(1) 1];
 
                     mapLatCorners = [azRgCorners ones(4,1)] * latCoeff;
                     mapLonCorners = [azRgCorners ones(4,1)] * lonCoeff;
@@ -166,10 +170,16 @@ classdef BlockMap < OI.Data.DataObj
                     borderPixels = 20;
                     for bi=1:nBlocks
                         block = stack.blocks(bi);
-                        bit = map(block.azOutputStart + borderPixels: ...
-                            block.azOutputEnd - borderPixels, ...
-                            block.rgOutputStart + borderPixels: ...
-                            block.rgOutputEnd - borderPixels,...
+                        xMatch = find(sum(stack.map == bi));
+                        yMatch = find(sum(stack.map == bi,2));
+                        if numel(yMatch) < 60 || numel(xMatch) < 60
+                            borderPixels = 1;
+                        end
+                        
+                        bit = map(yMatch(1) + borderPixels: ...
+                            yMatch(end) - borderPixels, ...
+                            xMatch(1) + borderPixels: ...
+                            xMatch(end) - borderPixels,...
                             :);
                         digit = imresize( ...
                             OI.Functions.digit_to_image( bi , true), ...
@@ -186,43 +196,20 @@ classdef BlockMap < OI.Data.DataObj
                         end
                         
                         % Highlight blocks in AOI
-                        if block.blockInAOI
+                        % block.blockInAOI & ~block.blockInSea
+                        if block.usefulBlock 
                             % invert colour masking
                             digit = min(max(1-digit,0),1); 
                         end
                         
-                        map(block.azOutputStart + borderPixels: ...
-                            block.azOutputEnd - borderPixels, ...
-                            block.rgOutputStart + borderPixels: ...
-                            block.rgOutputEnd - borderPixels, ...
+                        map(yMatch(1) + borderPixels: ...
+                            yMatch(end) - borderPixels, ...
+                            xMatch(1) + borderPixels: ...
+                            xMatch(end) - borderPixels,...
                             :) = bit.*digit;
                         1;
                    end
 
-                                        % Add some digits
-%                     for bi=1:nBlocks
-%                         block = stack.blocks(bi);
-%                         bit = map( ...
-%                             block.azOutputStart:block.azOutputEnd, ...
-%                             block.rgOutputStart:block.rgOutputEnd);
-%                         digit = imresize( ...
-%                             OI.Functions.digit_to_image( bi , true), ...
-%                             size(bit),'nearest');
-% 
-%                         % We need to reorient the characters
-%                         % Depending on the orientation of the output kml,
-%                         % And due to ml/oct arrays being 'upside down' anyway.
-%                         isUpsideDown = stackExtent.lat(end)<stackExtent.lat(1);
-%                         if isUpsideDown
-%                             digit  = fliplr(digit);
-%                         else
-%                             digit = flipud(digit);
-%                         end
-% 
-%                         map(block.azOutputStart:block.azOutputEnd, ...
-%                             block.rgOutputStart:block.rgOutputEnd) = digit;
-%                     end
-                   
                     kmlFilename = ['Block_mapping_stack_' num2str(si)];
                     kmlPath = fullfile(kmlDir,kmlFilename);
                     kmlPath = OI.Functions.abspath( kmlPath );

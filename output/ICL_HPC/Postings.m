@@ -286,6 +286,7 @@ classdef Postings
                     p = fileread(fp);
                     if ~has(p,'READY') && ~has(p,'FINISHED')
                         delete(fp);
+                        continue
                     end
 
                     % if more than an hour old and 'ready', delete

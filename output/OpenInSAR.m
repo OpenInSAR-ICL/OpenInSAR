@@ -28,7 +28,7 @@ methods
             % Handle command line arguments
             this = this.parse_args(varargin{:});
         end
-
+        
         % Run any neccessary first-time setup
         this.setup();
 
@@ -37,6 +37,7 @@ methods
             this = this.main();
         end
         this.configure();
+        
     end
 
     function this = parse_args( this, varargin )
@@ -107,10 +108,15 @@ methods
         end
         % Check if there is an xml file linking us to the current project
         if exist('CurrentProject.xml', 'file')
-            this.engine.ui.log('debug', 'Found CurrentProject.xml\n');
-            this.engine.ui.log('info', 'Reloading current project from CurrentProject.xml\n');
-            % Load the project
-            this.load_current_project();
+            
+%             curProj = this.engine.database.fetch('project');
+%             if isempty(curProj)
+                this.engine.ui.log('debug', 'Found CurrentProject.xml\n');
+                this.engine.ui.log('info', 'Reloading current project from CurrentProject.xml\n');
+                this.load_current_project();
+%             else
+%                 warning('Loading currentProject from memory?');
+%             end
         else
             this.engine.ui.log('info', 'Running first time setup. (No CurrentProject.xml found)\n');
             % Create a new project
