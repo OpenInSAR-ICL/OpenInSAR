@@ -38,29 +38,32 @@ methods
         if tfProjectFileExists
             % Make a backup in home directory
             homeDir = OI.OperatingSystem.get_usr_dir();
-            [~, projectName] = fileparts(this.projectPath);
+            [~, projectName, ext] = fileparts(this.projectPath);
 
             try % to set the actual project name
-                if strcmpi(projectName, 'CurrentProject.xml')
+                if strcmpi(projectName, 'CurrentProject') && strcmpi(ext,'.xml')
                     % open the project file and get the project name
                     this.xmlStruct = OI.Data.XmlFile( this.projectPath ).to_struct();
                     projectName = this.xmlStruct.PROJECT_NAME;
                 end
-                if strcmpi(projectName, 'CurrentProject.oi')
+                if strcmpi(projectName, 'CurrentProject') && strcmpi(ext,'.oi')
                     % read the file
                     fid = fopen(this.projectPath);
                     tline = fgetl(fid);
                     while ischar(tline)
                         if contains(tline, 'PROJECT_NAME')
                             % 'PROJECT_NAME = SOMETHING'
-                            projectName = strsplit(tline, '=');
-                            projectName = projectName{2};
+                            projectNameCell = strsplit(tline, '=');
+                            projectName = projectNameCell{2};
+                            % Remove anything following first space or ;
+                            projectNameCell = strsplit(projectName,{' ', ';'});
                             % remove leading and trailing white spaces
-                            projectName = strtrim(projectName);
+                            projectName = strtrim(projectNameCell{1});
                             % remove any awkward characters
-                            for awkwardChar = '\/:*?"<>|%!;$£'
-                                projectName = strrep(projectName, awkwardChar, '');
-                            end
+                            legalChars = ['A':'Z', 'a':'z', '0':'9', ' ', '_', '-', '.'];
+                            projectName = projectName(ismember(projectName, legalChars));
+                            % remove any leading or trailing spaces
+                            projectName = strtrim(projectName);
                             break
                         end
                         tline = fgetl(fid);
