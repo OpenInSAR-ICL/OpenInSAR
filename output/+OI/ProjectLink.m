@@ -39,6 +39,35 @@ methods
             % Make a backup in home directory
             homeDir = OI.OperatingSystem.get_usr_dir();
             [~, projectName] = fileparts(this.projectPath);
+
+            try % to set the actual project name
+                if strcmpi(projectName, 'CurrentProject.xml')
+                    % open the project file and get the project name
+                    this.xmlStruct = OI.Data.XmlFile( this.projectPath ).to_struct();
+                    projectName = this.xmlStruct.PROJECT_NAME;
+                end
+                if strcmpi(projectName, 'CurrentProject.oi')
+                    % read the file
+                    fid = fopen(this.projectPath);
+                    tline = fgetl(fid);
+                    while ischar(tline)
+                        if contains(tline, 'PROJECT_NAME')
+                            % 'PROJECT_NAME = SOMETHING'
+                            projectName = strsplit(tline, '=');
+                            projectName = projectName{2};
+                            % remove leading and trailing white spaces
+                            projectName = strtrim(projectName);
+                            % remove any awkward characters
+                            for awkwardChar = '\/:*?"<>|%!;$£'
+                                projectName = strrep(projectName, awkwardChar, '');
+                            end
+                            break
+                        end
+                        tline = fgetl(fid);
+                    end
+                end
+            end
+
             backupDir = fullfile(homeDir, 'OpenInSAR_projects');
             uniqueDate = datestr(now,'yyyy-mm-dd');
             backupFilepath = fullfile(backupDir, [projectName '_' uniqueDate '.oi']);
