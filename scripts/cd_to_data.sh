@@ -1,13 +1,16 @@
+# Get the path of the cwd and this script
+
+
+LASTDIR=$(pwd) || { echo "Failed to get current directory"; exit 1; }
+
+thisScriptDir=$(dirname "${BASH_SOURCE[0]}")
+
+echo "Original working directory: $LASTDIR"
+
 # OI loads projects using a link file in the repository.
 linkFileName='CurrentProject.xml'
 linkFileLocation=$(realpath $thisScriptDir/../output/)
-linkFilePath=$linkFileLocation$linkFileName
-
-# Get the path of the cwd and this script
-originalPath=$(pwd)
-thisScriptDir=$(dirname $0)
-echo "originalPath: $originalPath"
-echo "thisScriptDir: $thisScriptDir"
+linkFilePath=$linkFileLocation/$linkFileName
 
 # validate that we're on the ICL HPC
 allHostNames=$(hostname -A)
@@ -20,11 +23,22 @@ fi
 if [ -f $linkFilePath ]; then
     # get the filepath of the project file
     projectFile=$(grep -oPm1 "(?<=<relative_path>)[^<]+" $linkFilePath)
-    if [ -f $projectFile ]; then
-        # get the directory of the project file
-        projectsDir=$(dirname $projectFile)
+    # this is relative to the linkFileLocation, so we need to append that
+    # first add a trailing slash to the linkFileLocation if it doesn't have one
+    if [[ $linkFileLocation != */ ]]; then
+        linkFileLocation="$linkFileLocation/"
+    fi
+    # we need to replace '$USERNAME' with the actual username
+    projectFile=$(echo $projectFile | sed "s/\$USERNAME/$USER/")
+    # now we can get the full path
+    projectFile=$(realpath $linkFileLocation/$projectFile)
+    echo -e "\033[1;32mProject file: $projectFile\033[0m"
+    projectDir=$(dirname $projectFile)
+
+    if [ -d $projectsDir ]; then
         # cd to the projects directory
         cd $projectDir
+	echo -e "\033[1;32mChanged directory to: $projectDir\033[0m"
         # Try to read the current project name from the project file. 
         # This might be one of two formats, depending on if we're .xml or .oi
         if [[ $projectFile == *".xml" ]]; then
@@ -33,7 +47,6 @@ if [ -f $linkFilePath ]; then
             currentProjectName=$(grep -oPm1 "(?<=PROJECT_NAME = ).*(?=;)" $projectFile)
         fi
         echo -e "\033[1;32mCurrent project: $currentProjectName\033[0m"
-
     else
         echo -e "\033[1;31mLink file not found at: $linkFilePath\033[0m"
     fi
@@ -41,6 +54,7 @@ else
     echo -e "\033[1;31mCurrentProject.xml does not exist at: $currentProjectXml\033[0m"
 fi
 
-# Read the data path
+echo "If you ran this script using 'source' or '. ./scripts/cd_to_data.sh', you can return to the original directory by running 'cd \$LASTDIR'"
 
-export originalPath
+export LASTDIR="$LASTDIR"
+
