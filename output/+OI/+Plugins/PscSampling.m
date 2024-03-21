@@ -8,12 +8,15 @@ properties
     outputs = {OI.Data.PscSampleSummary()}
     id = 'PscSampling'
     STACK = ''
+    method = '';
+    maxTotalMemory = 4e9;
 end
 
 methods
 
     function this = PscSampling(varargin)
         this.isArray = true;
+        this.method = [this.id '_' num2str(floor(this.maxTotalMemory./1e9)) 'GBmax'];
     end % constructor
 
     function this = run(this, engine, varargin)
@@ -29,10 +32,7 @@ methods
             this = this.queue_jobs(engine);
         else
             % otherwise, consolidate the results for this stack
-            success = sample_psc_dataset_for_stack(this, engine);
-            if success
-                this.isFinished = true;
-            end
+            this = sample_psc_dataset_for_stack(this, engine);
         end
 
     end % run
@@ -45,50 +45,46 @@ methods
 
         allDone = true;
         jobCount = 0;
-        targetTemplate = OI.Data.PscSample();
 
         for stackInd = 1:numel(blockMap.stacks)
             this.STACK = stackInd;
             % check if we've consolidated this stack already
-            target = targetTemplate.configure( 'STACK', num2str(stackInd) ).identify( engine );
+            target = this.generate_target().identify( engine );
             if ~target.exists()
                 allDone = false;
-                this.STACK = stackInd;
-                engine.requeue_job_at_index( jobCount );
+                engine.requeue_job_at_index( jobCount, 'STACK', stackInd );
             end
         end % for each stack
 
         if allDone
+            engine.save(this.outputs{1});
             this.isFinished = true;
         end
 
     end % queue_jobs
-
-end % methods
-
-
-methods (Static = true) 
-
-    function success = sample_psc_dataset_for_stack(engine, stackInd)
-        %% Parameters
-        stabilityThreshold = 3;
-        % load in up to this many values, initially:
-        maxTotalMemory = 4e9; 
-        % after filtering low stability pix missing values, target this size for array:
-        % maxWorkingMemory = 0.5e9;
-        
-        success = false; %#ok<NASGU>
-
-        % Create the output object
-        pscSample = OI.Data.PscSample( ...
-            'STACK', num2str(stackInd), ...
-            'type', 'stack' ...
+    
+    function target = generate_target(this)
+        target = OI.Data.PscSample().configure( ...
+            'STACK', num2str(this.STACK), ...
+            'type', 'stack', ...
             'BLOCK', 'ALL', ...
             'POLARISATION', 'VV', ...
-            'METHOD', [this.id '-' num2str(floor(maxTotalMemory./1e9)) 'GBmax'] ...
-        ).identify( engine );
+            'METHOD', this.method ...
+        );
+    end
+    
+    
+    function this = sample_psc_dataset_for_stack(this, engine)
+
+        
+        %% Parameters
+        stabilityThreshold = 3;
+
+        % Create the output object
+        pscSample = this.generate_target();
 
         %% Load inputs
+        stackInd = this.STACK;
         stacks = engine.load( OI.Data.Stacks() );
         blockMap = engine.load( OI.Data.BlockMap() );
         stackMap = blockMap.stacks( this.STACK );
@@ -101,7 +97,7 @@ methods (Static = true)
         % training set
         bytesPerComplexDouble = 16;
         memToPixels = @(mem) floor(mem / (bytesPerComplexDouble .*nBlocks .* nDays));
-        nPixPerBlockLoad = memToPixels( maxTotalMemory );
+        nPixPerBlockLoad = memToPixels( this.maxTotalMemory );
         % nPixPerBlockUse = memToPixels( maxWorkingMemory );
         % psPerKm = nPixPerBlockLoad / (BlockSizeSquared)
         nSamples = nPixPerBlockLoad.*nBlocks;
@@ -202,9 +198,15 @@ methods (Static = true)
         pscSample.sampleLLE = pscLLE;
 
         engine.save( pscSample );
-        success = true;
+        this.isFinished = true;
 
     end % do_psc_sampling
+
+end % methods
+
+
+methods (Static = true) 
+
 
 end % static methods
 

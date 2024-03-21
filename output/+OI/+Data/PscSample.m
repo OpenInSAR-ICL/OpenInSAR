@@ -37,21 +37,9 @@ end
 methods
 
     function obj = PscSample(varargin)
-
-        % Copy over fields from varargin
-        selfProps = properties(obj);
-        for i = 1:2:length(varargin)-1
-            if any(strcmp(varargin{i}, selfProps))
-                obj.(varargin{i}) = varargin{i+1};
-            end
-        end
-
-        required_fields = {'STACK', 'BLOCK', 'POLARISATION', 'METHOD'};
-        for rf = required_fields
-            if isempty(this.(rf{1}))
-                error('PscSample:Constructor', 'Please specify the %s field in order that the sample can be identified', rf{1});
-            end
-        end
+        obj.hasFile = true;
+        obj.filepath = '$WORK$/fields/$id$';
+        obj.fileextension = 'mat';
     end
 
 end 
