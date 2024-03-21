@@ -27,12 +27,17 @@ methods
         for sat = ['A' 'B']
         for startYear=2014:2024
             for startMonth=1:12
+                if datenum([startYear startMonth '01'],'YYYYMMDD') > now()
+                    break
+                end
+                
                 startMonth = num2str(startMonth);
                 if numel(startMonth)~=2
                     startMonth = ['0' startMonth];
                 end
                 PAGE = ...
                     [SITE 'S1' sat '/' num2str(startYear) '/' num2str(startMonth)];
+                
                 try
                     w = webread(PAGE);
                     links = strsplit(w,'</a>');
@@ -65,7 +70,7 @@ methods
         engine.save( this.outputs{1} )
     end % run(
     
-    function update_catalogue(this, engine, catalogue)
+    function this = update_catalogue(this, engine, catalogue)
         % save orbit file paths to catalogue
          
         % pull project info
