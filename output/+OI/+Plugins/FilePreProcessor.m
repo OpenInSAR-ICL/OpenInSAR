@@ -3,7 +3,7 @@ classdef FilePreProcessor < OI.Plugins.PluginBase
 %   Parameter extraction, initial geocoding, orbit interpolation, etc.
 
 properties
-    inputs = {OI.Data.Catalogue(), OI.Data.Orbit()}
+    inputs = {OI.Data.Catalogue(), OI.Data.OrbitFileIndex()}
     outputs = {OI.Data.PreprocessedFiles()}
     datetime = '';
     platform = '';
