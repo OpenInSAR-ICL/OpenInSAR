@@ -74,7 +74,9 @@ methods
                 orbitFile = OI.Data.Orbit().find(targetPlatform, targetDatetime, orbitFiles);
 
                 if isempty( orbitFile )
-                    error(
+                    warning('ERROR No orbit file found for %s - %s\n All orbit files should already have been pulled.',targetPlatform, targetDatetime.to_string())
+                    return
+
                     jobCount = jobCount+1;
                     % create a job with the date and platform
                     engine.requeue_job_at_index( ...
