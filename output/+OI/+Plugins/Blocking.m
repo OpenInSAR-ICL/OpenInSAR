@@ -57,8 +57,8 @@ classdef Blocking < OI.Plugins.PluginBase
 
             % load the binary data, and save it as a .mat / OpenInSAR file
             binary_file = sprintf('T%i_S%i_B%i_P%s', this.STACK, this.SEGMENT, this.BLOCK, this.POLARISATION);
-
             fid = fopen(fullfile(OI.Plugins.Blocking.get_binary_dir(projObj), binary_file), 'r+');
+            
             if fid == -1
                 engine.ui.log('warning', 'Binary file not found: %s\n', binary_file);
                 return
@@ -107,6 +107,7 @@ classdef Blocking < OI.Plugins.PluginBase
             fprintf(1,'%s - Stack %i segment %i\n',datestr(now), stackInd, seg);
             % Check the binary dir for data
             binDir = OI.Plugins.Blocking.get_binary_dir(projObj);
+
             binDirStruct = dir(binDir);
             binDirContents = {binDirStruct.name};
             binDirFileSizes = [];
@@ -183,31 +184,21 @@ classdef Blocking < OI.Plugins.PluginBase
                     extract = coregData( ...
                         blockInfo.rgDataStart:blockInfo.rgDataEnd, ...
                         blockInfo.azDataStart:blockInfo.azDataEnd);
-%                     realExtract = zeros(2,prod(blockInfo.size(1:2)));
-%                     realExtract(1,:) = real(extract);
-%                     realExtract(2,:) = imag(extract);
                    realExtract = [real(extract(:)'); imag(extract(:)')];
             
                    % TODO this would be a lot easier if it was
                    % block-in-stack instead...
                     binary_file = sprintf('T%i_S%i_B%i_P%s', stackInd, seg, ubi, pol);
                     binary_filepath = fullfile(OI.Plugins.Blocking.get_binary_dir(projObj), binary_file);
-%                     offset = OI.Plugins.Blocking.calc_binary_offset(stacks.stack(stackInd), blockInfo, visitInd);
+
                     % Open the file, seek to the offset, write the data, close the file
                     if visitInd == 1
                         fid = fopen(binary_filepath, 'W');
                     else
                         fid = fopen(binary_filepath, 'A');
                     end
-%                     fseek(fid, offset, 'bof');
                     fwrite(fid, realExtract, 'double');
                     fclose(fid);
-%                     imagesc(log(abs(extract)))
-                    
-%                     fid = fopen(binary_filepath, 'r');
-%                     ddd = fread(fid,[2,Inf],'double');
-%                     fclose(fid)
-                    2;
 
                 end % block loop
     
@@ -222,7 +213,6 @@ classdef Blocking < OI.Plugins.PluginBase
                     muTimePerVisit, sum(timePerVisit), ...
                     datestr(now() + remTime./86400));
                     
-                1;
             end % visit loop
 
             % Write a file in the binary dir to indicate that the segment is done
@@ -395,10 +385,6 @@ classdef Blocking < OI.Plugins.PluginBase
             amp = sum(log(abs(blockData(:,:,~baddies))),3,'omitnan');
             amp = amp./(sz(3) - sum(baddies)); % roundabout way of doing mean
             amp(isnan(amp)) = 0;
-            
-            if strcmpi(direction,'ASCENDING')
-%                 amp = flipud(fliplr(amp)); %
-            end
         
             blockExtent = OI.Data.GeographicArea().configure( ...
                 'lat', blockInfo.latCorners, ...
@@ -414,6 +400,7 @@ classdef Blocking < OI.Plugins.PluginBase
                 [blockName '.kml']);
             previewKmlPath = OI.Functions.abspath( previewKmlPath );
             OI.Functions.mkdirs( previewKmlPath );
+            
             % save the preview
             if all(POL == 'VH')
                 cLims = [2.5 5];
@@ -423,7 +410,6 @@ classdef Blocking < OI.Plugins.PluginBase
             blockExtent.save_kml_with_image( ...
                 previewKmlPath, fliplr(amp), cLims);
         end
-
 
     end % methods (Static = true)
 

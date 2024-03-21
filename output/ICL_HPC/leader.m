@@ -44,6 +44,8 @@
 
     if strcmpi(projObj.PROCESSING_SCHEME,'PSI')
         thingToDoList = { OI.Data.PsiSummary() };
+    elseif strcmpi(projObj.PROCESSING_SCHEME,'TS')
+        thingToDoList = { OI.Data.TransientScatterers_Summary() };
     elseif strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFFS')
         thingToDoList = { OI.Data.GeotiffSummary()};
     elseif strcmpi(projObj.PROCESSING_SCHEME,'EDF')
@@ -294,11 +296,6 @@ for thingToDo = thingToDoList
                 x=assignment{jj};
                 if isempty(x) || ischar(x);continue; end
                 oi.ui.log('info','Worker %i - %s\n',jj,assignment{jj}.to_string());
-%                 if jj>numel(oi.engine.postings.workers)
-%                     break
-%                 end
-%                 wId = oi.engine.postings.workers(jj);
-%                 oi.ui.log('info','Worker %i - %s\n',wId,assignment{jj}.to_string());
             end
             pause(5)
         else

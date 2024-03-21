@@ -95,28 +95,27 @@ methods
     end
 
     function this = main(this, varargin)
-        this.ui.log('info', 'Starting OpenInSAR main\n');
+        currentProject = this.engine.load( OI.Data.ProjectDefinition() );
+        this.ui.log('info','Project: %s is now active\n', ...
+            currentProject.PROJECT_NAME);
+        this.ui.log('debug', 'Starting OpenInSAR main\n');
     end
 
     function this = setup(this, varargin)
         % Run any neccessary first-time setup
-        this.ui.log('info', 'Running setup\n');
+        this.ui.log('debug', 'Running setup\n');
         [~,currentDir] = fileparts(pwd);
         % Check if we are in the correct directory
         if ~strcmp(currentDir, 'OpenInSAR')
-            this.ui.log('error', 'Please call OpenInSAR from the OpenInSAR directory\n');
+            this.ui.log('info', 'Starting directory is %s\n', strrep(pwd,'\','\\'));
         end
         % Check if there is an xml file linking us to the current project
         if exist('CurrentProject.xml', 'file')
-            
-%             curProj = this.engine.database.fetch('project');
-%             if isempty(curProj)
+            curProj = this.engine.database.fetch('project');
+            if isempty(curProj)
                 this.engine.ui.log('debug', 'Found CurrentProject.xml\n');
-                this.engine.ui.log('info', 'Reloading current project from CurrentProject.xml\n');
                 this.load_current_project();
-%             else
-%                 warning('Loading currentProject from memory?');
-%             end
+            end
         else
             this.engine.ui.log('info', 'Running first time setup. (No CurrentProject.xml found)\n');
             % Create a new project
@@ -132,6 +131,7 @@ methods
         if exist(currentProjectPath, 'file')
             % Load the project
             this.engine.load_project(currentProjectPath);
+
         else
             % Throw an error and try to create a new project
             this.ui.log('error', 'Could not find project at %s\n', ...

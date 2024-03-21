@@ -87,11 +87,7 @@ properties
     ORBITS_DIR = '$WORK$/Orbits/'
     pathVars = {'HERE','HOME','ROOT','WORK','INPUT_DATA_DIR','OUTPUT_DATA_DIR','ORBITS_DIR'}
 
-
-    required_vars = {'PROJECT_NAME', 'AOI', ''}
-
-
-    SECRETS_FILEPATH = '$HERE$/secrets.txt'
+    SECRETS_FILEPATH = '$HOME$/.OpenInSAR/secrets.txt'
 end
 
 methods
@@ -99,24 +95,24 @@ methods
     function this = ProjectDefinition( filename )
         if nargin > 0
             this = OI.Data.ProjectDefinition.load_from_file( filename );
+            % set up project directories
+            this = this.setup_project_directories();
         end
     end
 
     function this = get_relative_paths(this)
 
-        % get 'ROOT':
-        %   the root directory of the OpenInSAR script
+        % get 'ROOT', the root directory of the OpenInSAR script
         this.ROOT = fileparts(fileparts(fileparts( mfilename( 'fullpath' ) )));
 
-        % get 'HERE':
-        %   the directory of the project definition file
+        % get 'HERE', the directory of the project definition file
         hereFolder = fileparts( this.filepath );
         if isempty(hereFolder)
             hereFolder = pwd;
         end
         this.HERE = fullfile( hereFolder );
 
-        % get 'HOME':
+        % get 'HOME', the users home directrory
         this.HOME = OI.OperatingSystem.get_usr_dir();
     end
 
@@ -133,10 +129,6 @@ methods
                 this.WORK = value;
             case 'PROJECT_NAME'
                 this.PROJECT_NAME = value;
-                OI.Functions.mkdirs( fullfile( this.HERE, value, 'work' ));
-                OI.Functions.mkdirs( fullfile( this.HERE, value, 'work','preview' ));
-                OI.Functions.mkdirs( fullfile( this.HERE, value, 'input','preview' ));
-                OI.Functions.mkdirs( fullfile( this.HERE, value, 'postings','preview' ));
             case 'AOI'
                 this.AOI = OI.Data.AreaOfInterest( value );
             case {'START_DATE', 'END_DATE'}
@@ -150,6 +142,14 @@ methods
                 this.(key) = value;
             end % switch
         end % for
+    end
+
+    function this = setup_project_directories( this )
+        % set up project directories
+        OI.Functions.mkdirs( this.WORK );
+        OI.Functions.mkdirs( this.OUTPUT_DATA_DIR );
+        OI.Functions.mkdirs( this.INPUT_DATA_DIR );
+        OI.Functions.mkdirs( this.ORBITS_DIR );
     end
 
 end% methods
@@ -187,28 +187,7 @@ methods (Static)
         end
         
         this = this.format_properties(optionsFromFile);
-
-%         % Copy over all the properties
-%         optionKeysIn = fieldnames(optionsFromFile);
         propertyKeys = properties( this );
-% 
-%         % Warn if any unknown properties in file
-%         for i = 1:length(optionKeysIn)
-%             if ~any( strcmp( optionKeysIn{i}, propertyKeys ) )
-%                 warning('Unknown property %s in project file', optionKeysIn{i});
-%             end
-%         end
-% 
-%         % copy over the properties
-%         for i = 1:length(propertyKeys)
-%             if any( strcmp( propertyKeys{i}, optionKeysIn ) )
-%                 try 
-%                     this.(propertyKeys{i}) = optionsFromFile.(propertyKeys{i});
-%                 catch
-%                     warning('Could not set property %s', propertyKeys{i});
-%                 end
-%             end
-%         end
 
         % string interpolation of the properties
         for i = 1:length(propertyKeys)
@@ -216,7 +195,9 @@ methods (Static)
                 this.(propertyKeys{i}) = this.string_interpolation( this.(propertyKeys{i}) );
             end
         end
+
     end%load constructor
+    
 
 
     function optionsStruct = load_from_xml( fileContent )
