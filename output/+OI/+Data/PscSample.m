@@ -3,25 +3,35 @@ classdef PscSample < OI.Data.DataObj
 % Scatterer Candidates (PSCs) from a stack of SAR images.
 
 properties
-    id = 'PscSampling_s$STACK$_b$BLOCK$_p$POLARISATION$_m$METHOD$'
+    id = 'PscSample_s$STACK$_b$BLOCK$_p$POLARISATION$_m$METHOD$'
     generator = 'PscSampling'
     STACK = ''
     BLOCK = ''
     POLARISATION = ''
     METHOD = ''
     type = ''
-    coherence = []
-    velocity = []
-    heightError = []
-    amplitudeStability = []
-    displacement = []
-    sampleStabilityThreshold = []
+
+    % common to all sample sets
     sampleStability = []
     samplePhase = []
     sampleAz = []
     sampleRg = []
+
+    % optional
+    coherence = []
+    velocity = []
+    heightError = []
+    displacement = []
+    sampleStabilityThreshold = []
     sampleMask = []
+
+    % specific to block-wise sample
     blockInfo = []
+    
+    % specific to global sample
+    sampleBlock = []
+    sampleLLE = []
+
 end
 
 methods

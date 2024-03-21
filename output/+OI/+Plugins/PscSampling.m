@@ -1,12 +1,13 @@
 classdef PscSampling < OI.Plugins.PluginBase
-
+% PscSampling
+% Pull out global samples of persistent scatterers from the stacks in this
+% project.
 
 properties
     inputs = {OI.Data.BlockPsiSummary()}
     outputs = {OI.Data.PscSampleSummary()}
     id = 'PscSampling'
     STACK = ''
-    BLOCK = []
 end
 
 methods
@@ -24,20 +25,16 @@ methods
         end
 
         % If we have no parameters, generate jobs
-        if isempty( this.STACK ) && isempty( this.BLOCK )
+        if isempty( this.STACK )
             this = this.queue_jobs(engine);
-            return % pass back to engine
+        else
+            % otherwise, consolidate the results for this stack
+            success = sample_psc_dataset_for_stack(this, engine);
+            if success
+                this.isFinished = true;
+            end
         end
 
-        % if we have a stack and a block, we run the psc sampling
-        if ~isempty( this.STACK ) && ~isempty( this.BLOCK )
-            this.psc_sampling(engine);
-        end
-
-        % If our parameter is just the stack, we run a clean up/consolidate job
-        if ~isempty( this.STACK ) && isempty( this.BLOCK )
-            this = this.consolidate(engine);
-        end
     end % run
 
     function this = queue_jobs(this, engine)
@@ -47,94 +44,56 @@ methods
         end
 
         allDone = true;
-        jobCount = 0
+        jobCount = 0;
         targetTemplate = OI.Data.PscSample();
 
         for stackInd = 1:numel(blockMap.stacks)
             this.STACK = stackInd;
-            % check if we've consolidated this stack
-            target = targetTemplate.configure( ...
-                'STACK', num2str(stackInd), ...
-                'BLOCK', 'ALL'
-            ).identify( engine );
-            if target.exists()
-                continue % to next stack
-            end
-
-            % otherwise queue jobs for each block in the stack
-            stackBlockMap = blockMap.stacks(stackInd);
-            jobsInStack = 0;
-            for blockInd = stackBlockMap.usefulBlockIndices(:)'
-                target = target.configure( ...
-                    'BLOCK', num2str(blockInd), ...
-                ).identify( engine );
-
-                if ~target.exists();
-                    allDone = false;
-                    jobCount = jobCount + 1;
-                    jobsInStack = jobsInStack + 1;
-                    % queue the job
-                    this.BLOCK = blockInd;
-                    engine.requeue_job_at_index( jobCount );
-                end
-            end % for blockInd = 1:numel(usefulBlocks)
-
-            % if no blocks remain to be processed, queue a job to consolidate the stack
-            if jobsInStack == 0
-                jobCount = jobCount + 1;
-                % queue a job to consolidate the stack
+            % check if we've consolidated this stack already
+            target = targetTemplate.configure( 'STACK', num2str(stackInd) ).identify( engine );
+            if ~target.exists()
+                allDone = false;
                 this.STACK = stackInd;
-                this.BLOCK = [];
                 engine.requeue_job_at_index( jobCount );
             end
-        end % for stackInd = 1:numel(blockMap.stacks)
+        end % for each stack
 
+        if allDone
+            this.isFinished = true;
+        end
 
     end % queue_jobs
-
-    function this = consolidate(this, engine)
-        
-    end
 
 end % methods
 
 
 methods (Static = true) 
 
-    function do_psc_sampling(engine, stackInd, blockMap)
-        this.STACK = stackInd;
-        usefulBlock = blockMap.stacks(stackInd).usefulBlocks(1);
-        
+    function success = sample_psc_dataset_for_stack(engine, stackInd)
         %% Parameters
-        this = struct( ...
-            'BLOCK', usefulBlock.indexInStack, ...
-            'STACK', stackInd);
         stabilityThreshold = 3;
         % load in up to this many values, initially:
         maxTotalMemory = 4e9; 
         % after filtering low stability pix missing values, target this size for array:
-        maxWorkingMemory = 0.5e9;
+        % maxWorkingMemory = 0.5e9;
         
-        
+        success = false; %#ok<NASGU>
+
+        % Create the output object
+        pscSample = OI.Data.PscSample( ...
+            'STACK', num2str(stackInd), ...
+            'type', 'stack' ...
+            'BLOCK', 'ALL', ...
+            'POLARISATION', 'VV', ...
+            'METHOD', [this.id '-' num2str(floor(maxTotalMemory./1e9)) 'GBmax'] ...
+        ).identify( engine );
+
         %% Load inputs
         stacks = engine.load( OI.Data.Stacks() );
         blockMap = engine.load( OI.Data.BlockMap() );
         stackMap = blockMap.stacks( this.STACK );
         nDays = numel(stacks.stack(this.STACK).visits);
         nBlocks = numel(stackMap.usefulBlocks);
-        normz = @(x) x./abs(x);
-        avfilt = @(x,w,h) imfilter(x, fspecial('average', [w, h]));
-        baselinesObjectTemplate = OI.Data.BlockBaseline().configure( ...
-        'STACK', num2str(this.STACK), ...
-        'BLOCK', num2str(this.BLOCK) ...
-        ).identify( engine );
-        baselinesObject = engine.load( baselinesObjectTemplate );
-        if isempty(baselinesObject)
-            return
-        end
-        
-        timeSeries = baselinesObject.timeSeries(:)';
-        kFactors = baselinesObject.k(:)';
         stack = stacks.stack(stackInd);
         
         %% Memory management
@@ -143,8 +102,8 @@ methods (Static = true)
         bytesPerComplexDouble = 16;
         memToPixels = @(mem) floor(mem / (bytesPerComplexDouble .*nBlocks .* nDays));
         nPixPerBlockLoad = memToPixels( maxTotalMemory );
-        nPixPerBlockUse = memToPixels( maxWorkingMemory );
-        psPerKm = nPixPerBlockLoad / (5*5);
+        % nPixPerBlockUse = memToPixels( maxWorkingMemory );
+        % psPerKm = nPixPerBlockLoad / (BlockSizeSquared)
         nSamples = nPixPerBlockLoad.*nBlocks;
         phi = zeros(nSamples, nDays); % The phase of each pixel, for each day
         phi(1) = 1i; 
@@ -199,14 +158,12 @@ methods (Static = true)
             if nPixPerBlockLoad > nAvail
                 index = index(1:nAvail);
             end
-            
-            sz = stackMap.usefulBlocks(iiBlock).size;
+
             cands = psPhaseObject.candidateMask;
             candidateInds = find(cands(:));
             pscLLE(index, 1)=blockGeocode.lat(candidateInds(mask));
             pscLLE(index, 2)=blockGeocode.lon(candidateInds(mask));
             pscLLE(index, 3)=blockGeocode.ele(candidateInds(mask));
-            
             
             phi(index,:) = psPhaseObject.candidatePhase(mask,:);
             pscAz(index) = psPhaseObject.candidateAz(mask);
@@ -223,7 +180,7 @@ methods (Static = true)
                 'Finished by (est) %s\n'], ...
                 iiBlock, nBlocks, timePerBlock(iiBlock), ...
                 muTimePerBlock, sum(timePerBlock), ...
-                datestr(now() + remTime./86400) );
+                datestr(now() + remTime./86400) ); %#ok<DATST,TNOW1>
         
         end % for iiBlock = 1:nBlocks
         
@@ -236,50 +193,18 @@ methods (Static = true)
         pscBlock(noDataMask) = [];
         pscAS(noDataMask) = [];
         pscLLE(noDataMask,:) = [];
-        
-        % See if we need to downsample the data
-        workingBytes = numel(phi) * bytesPerComplexDouble;
-        oversize = workingBytes > maxWorkingMemory;
-        
-        %% Downsample the data to a manageable size
-        % how many pixels per block we want to keep: nPixPerBlockUse in params at top
-        if oversize
-            removeMask = false(size(phi,1),1);
-            blockThresholdAS = zeros(nBlocks,1);
-            % Downsample, keeping the most stable pixels in each block
-            for iiBlock = 1:nBlocks
-                blockIndex = stackMap.usefulBlockIndices( iiBlock );
-                blockMask = pscBlock == blockIndex;
-                % if there are fewer pixels in this block than we want to keep, skip
-                if sum(blockMask) < nPixPerBlockUse
-                    continue
-                end
-                % Get the stability values for this block
-                blockAS = pscAS(blockMask);
-                % Sort the stability values
-                [sortedAS, sortIndex] = sort(blockAS);
-                % Find the threshold stability value for this block
-                blockThresholdAS(iiBlock) = sortedAS(end-nPixPerBlockUse+1);
-                % Find the indices of the pixels that are below the threshold
-                blockRemoveMask = blockAS < blockThresholdAS(iiBlock);
-                % Convert the block indices to global indices
-                removeMask(blockMask) = blockRemoveMask;
-            end
-            % Remove the pixels that are below the threshold
-            phi(removeMask,:) = [];
-            pscAz(removeMask) = [];
-            pscRg(removeMask) = [];
-            pscBlock(removeMask) = [];
-            pscAS(removeMask) = [];
-            pscLLE(removeMask,:) = [];
-        end % if oversize
+
+        pscSample.samplePhase = phi;
+        pscSample.sampleAz = pscAz;
+        pscSample.sampleRg = pscRg;
+        pscSample.sampleStability = pscAS;
+        pscSample.sampleBlock = pscBlock;
+        pscSample.sampleLLE = pscLLE;
+
+        engine.save( pscSample );
+        success = true;
+
     end % do_psc_sampling
-
-    function this = consolidate(this)
-        % Consolidate all block samples in this stack
-
-
-    end
 
 end % static methods
 
