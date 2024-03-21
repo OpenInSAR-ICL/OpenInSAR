@@ -55,8 +55,9 @@ methods
         if isempty(this.datetime)
             % check we've got orbits first, better to have them in place
             orbsDone = engine.load( OI.Data.OrbitSummary() );
-            if isempty(orbsDone)
-                engine.ui.log('debug','Orbits not yet done\n')
+            orbitIndex = engine.load( OI.Data.OrbitFileIndex() );
+            if isempty(orbsDone) && isempty(orbitIndex)
+                engine.ui.log('info','%s - Orbits not yet done\n', this.id)
                 return
             end
             % first call, create jobs.
@@ -127,16 +128,7 @@ methods
 
         % check we have orbit files available
         if isempty(safe.orbitFile)
-            error('NO ORBITS, AND ESA KILLED THE API SO CANT QUEUE JOB HERE');
-%             targetDatetime = safe.date;
-%             targetPlatform = safe.platform;
-%             inneficient to dir the orbit directory in every worker...
-%             (orbitFiles)
-%             safe.orbitFile = OI.Data.Orbit().find(targetPlatform, targetDatetime, orbitFiles);
-% %             job = OI.Job( OI.Data.Orbit().generator );
-%             job.target = '1';
-%             engine.queue.add_job( job );
-%             return;
+            error('NO ORBITS, ESA KILLED THE API SO CANT QUEUE JOB HERE');
         end
 
         % Otherwise, we need to preprocess

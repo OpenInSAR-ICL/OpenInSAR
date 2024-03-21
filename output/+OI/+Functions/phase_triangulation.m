@@ -13,4 +13,5 @@ theCMm1 = theCM .* (1 - eye(n));
 %Iterate
 for jj=1:maxit
     newtheta=theCMm1*(newtheta);
+    newtheta = newtheta ./ norm(newtheta);
 end

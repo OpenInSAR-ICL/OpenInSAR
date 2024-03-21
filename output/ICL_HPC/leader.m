@@ -18,12 +18,29 @@
     oi.engine = DistributedEngine();
     oi.engine.connect( projObj );
 
-
     oi.engine.postings = oi.engine.postings.reset_workers();
     oi.engine.postings = oi.engine.postings.wipe_all_errors();
-
     oi.engine.postings.report_ready(0);
     nextWorker = 0;
+
+
+    % Copy helper scripts over to the postings directory
+    postingPath = oi.engine.postings.postingPath;
+    helper_scripts = { ...
+        'clear_errors.sh', ...
+        'find_error.sh', ...
+        'reset.sh', ...
+        'reset_workers.sh', ...
+    };
+    for ii = 1:length(helper_scripts)
+        if ~exist( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}), 'file' )
+            warning('Could not find helper script %s', helper_scripts{ii})
+            continue
+        end
+        if ~exist( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}), 'file' )
+            copyfile( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}) );
+        end
+    end
 
     if strcmpi(projObj.PROCESSING_SCHEME,'PSI')
         thingToDoList = { OI.Data.PsiSummary() };
@@ -237,29 +254,37 @@ for thingToDo = thingToDoList
 
         tfClash = false;
         nJobsAssigned = 0;
+        isJobAssigned = false;
         allJobsAssigned = false;
         firstJob = nextJob;
         
         % Check if our worker is running our proposed job
         % Check through workers and their current assignments
-        for workerId = oi.engine.postings.workers(:)'
-            if ~isempty(assignment{workerId}) && ~ischar(assignment{workerId}) % if worker is working
-                % check the job we want to push isn't already assigned to
-                % the worker
-                if isa(assignment{workerId},'OI.Job') && assignment{workerId}.eq(nextJob) 
-                    nJobsAssigned = nJobsAssigned + 1;
-                    oi.engine.ui.log('debug',...
-                        'Removed an already assigned job - %s', ...
-                        nextJob.to_string());
-                    oi.engine.queue.remove_job(1);
-                    oi.engine.queue.add_job(nextJob); %add to back
-                   
-                    nextJob = oi.engine.queue.next_job();
-                    if nextJob.eq(firstJob)
-                        allJobsAssigned = true; % if we reach here we have clcyed 
-                        break
+        while ~isempty(nextJob.target) && allJobsAssigned == false
+            oi.engine.ui.log('info','Checking this job has not been assigned\n')
+            for workerId = oi.engine.postings.workers(:)'
+                if ~isempty(assignment{workerId}) && ~ischar(assignment{workerId}) % if worker is working
+                    % check the job we want to push isn't already assigned to
+                    % the worker
+                    if isa(assignment{workerId},'OI.Job') && assignment{workerId}.eq(nextJob) 
+                        nJobsAssigned = nJobsAssigned + 1;
+                        oi.engine.ui.log('debug',...
+                            'Removed an already assigned job - %s\n', ...
+                            nextJob.to_string());
+                        oi.engine.queue.remove_job(1);
+                        oi.engine.queue.add_job(nextJob); %add to back
+                        isJobAssigned = true;
+                        break % the for loop, we have found a conflict
                     end
                 end
+            end
+            if isJobAssigned
+                nextJob = oi.engine.queue.next_job();
+                if nextJob.eq(firstJob)
+                    allJobsAssigned = true; % if we reach here we have cycled 
+                end
+            else % we've found an unassigned job, so can continue to run it
+                break
             end
         end
         
@@ -271,11 +296,6 @@ for thingToDo = thingToDoList
                 x=assignment{jj};
                 if isempty(x) || ischar(x);continue; end
                 oi.ui.log('info','Worker %i - %s\n',jj,assignment{jj}.to_string());
-%                 if jj>numel(oi.engine.postings.workers)
-%                     break
-%                 end
-%                 wId = oi.engine.postings.workers(jj);
-%                 oi.ui.log('info','Worker %i - %s\n',wId,assignment{jj}.to_string());
             end
             pause(5)
         else
@@ -289,6 +309,11 @@ for thingToDo = thingToDoList
                 continue
             end
             oi.engine.run_next_job()
+            
+            oi.ui.log('info', 'Pushing job %s\n', nextJob.to_string());
+            oi.engine.currentJob = nextJob.to_string();
+            oi.engine.run_job(nextJob, '');
+            
             if oi.engine.lastPostee
                 assignment{ oi.engine.lastPostee } = OI.Job( oi.engine.currentJob );
             end

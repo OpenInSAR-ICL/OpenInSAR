@@ -1,7 +1,7 @@
 function distance = haversine(latLonA, latLonB, radius)
-% Calculate the distance between points given in lat lon coordinates, in
-% meters. Assumes a spherical earth of 6371000 radius. Assumes degrees and
-% meters.
+% Calculate the approximate distance between points. 
+% Assumes a spherical earth of 6371000 radius. 
+% Assumes degrees in and meters out.
 % Usage:
 %   latLonA = [51.477, 0] % The Greenwich Observatory
 %   latLonB = [51.48, -0.008] % The Kings Arms
