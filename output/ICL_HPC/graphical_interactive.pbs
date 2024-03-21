@@ -1,0 +1,6 @@
+#PBS -I
+#PBS -X
+#PBS -lselect=1:ncpus=8:mem=16gb
+#PBS -lwalltime=01:00:00
+
+module load matlab/R2021a
