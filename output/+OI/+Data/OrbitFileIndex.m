@@ -40,13 +40,14 @@ methods
                 if abs(startDates(jj) - targetDatetime.daysSinceZero) > 2
                     continue
                 end
+                
+                
                 if this.compare( targetPlatform, targetDatetime, fn)
                     link = this.links{jj};
-                    if exist([oDir '/' fn],'file')
+                    ff = [oDir '/' fn];
+                    if exist(ff,'file') || exist(strrep(ff,'.zip',''),'file')
                         continue
                     end
-%                     ofn = [oDir '/' fn]
-%                     websave(ofn,link);
                     unzip(link, oDir)
                 end
             end

@@ -26,9 +26,6 @@ methods
         
         for sat = ['A' 'B']
         for startYear=2014:2024
-            
-            
-            
             for startMonth=1:12
                 startMonth = num2str(startMonth);
                 if numel(startMonth)~=2
@@ -57,14 +54,14 @@ methods
             end
         end
         end
-        
+
         this.outputs{1}.links=h;
         this.outputs{1}.filenames=n;
-        
+
         this.outputs{1}.download_from_catalogue(engine, cat);
-       
-        this = this.update_catalogue(engine, projObj, catalogue);
-        
+
+        this = this.update_catalogue(engine, cat);
+
         engine.save( this.outputs{1} )
     end % run(
     
