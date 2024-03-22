@@ -35,8 +35,10 @@ methods
         ) );
         timeSeries = baselinesObject.timeSeries(:)';
         kFactors = baselinesObject.k';
-        ts = timeSeries-timeSeries(1);
-        tsp = ts*4*pi/(365.25.*0.055);
+        
+        % save these for convenience
+        apsModel.referenceTimeSeries = timeSeries;
+        apsModel.referenceKFactors = kFactors;
 
         pscSample = engine.load( OI.Data.PscSample().configure('METHOD','PscSampling_4GBmax','BLOCK','ALL','STACK', this.STACK, 'POLARISATION','VV') );
 

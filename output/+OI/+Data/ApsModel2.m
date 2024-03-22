@@ -10,6 +10,8 @@ classdef ApsModel2 < OI.Data.DataObj
         % calibration of input
         referencePointPhase
         referencePointIndex
+        referenceTimeSeries
+        referenceKFactors
 
         virtualMasterImage_initial
         temporalCoherence_initial
@@ -37,13 +39,23 @@ classdef ApsModel2 < OI.Data.DataObj
             this.fileextension = 'mat';
         end%ctor
 
-        function interpolatedPhase = interpolate(this, lat, lon)
-            for imageIndex = size(this.apsGrid, 3)
-                interpolatedPhase(:,imageIndex) = interp2( lonGrid, latGrid, ...
+        function interpolatedPhase = interpolate(this, lat, lon, ele)
+            for imageIndex = size(this.apsGrid, 3):-1:1
+                interpolatedPhase(:,imageIndex) = interp2( this.lonGrid, this.latGrid, ...
                     this.apsGrid(:,:,imageIndex), lon(:), lat(:) );
             end
-        end
 
-    end
-end
+            % Do elevation-dependent aps if requested
+            if nargin > 3
+                dEle = ele - this.referenceElevation;
+                interpolatedPhase = interpolatedPhase ....
+                    .* exp( -1i .* this.elevationToPhase .* dEle );
+            end
+
+            % remove reference phase
+            interpolatedPhase = interpolatedPhase .* this.referencePointPhase;
+        end % interpolate
+
+    end % methods
+end % classdef
 

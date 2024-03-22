@@ -18,6 +18,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
 
         function this = run(this, engine, varargin)
             PHASE_TO_M_PER_A = 4 * pi / (365.25 .* 0.055);
+            normz = @(x) x./abs(x);
 
             %% LOAD INPUTS
             blockMap = engine.load(OI.Data.BlockMap());
@@ -64,12 +65,8 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             end
 
             % load APS
-            apsModelTemplate = OI.Data.ApsModel().configure('STACK', num2str(this.STACK));
-            apsModel = engine.load(apsModelTemplate);
-            if isempty(apsModel) % Generate if not found
-                return;
-            end
-            apsEst = apsModel.phase;
+            apsModel =engine.load( OI.Data.ApsModel2().configure('STACK',this.STACK) );
+            aps = apsModel.interpolate( bg.lat(:), bg.lon(:), bg.ele(:) );
 
             % Load block info
             stackBlocks = blockMap.stacks(this.STACK);
@@ -95,22 +92,24 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             end
             sz = size(blockData);
             blockData = reshape(blockData, [], sz(3));
-            missingData = sum(blockData) == 0;
-            blockData = blockData(:, ~missingData);
-            apsEst = apsEst(:, ~missingData);
-            apsModel.referencePhase = apsModel.referencePhase(~missingData);
-            % load block
-            apsInterpolation = zeros(size(blockData));
-            normz = @(x) OI.Functions.normalise(x);
-            for ii = 1:size(blockData, 2)
-                tempApsInterp = interp2(apsModel.rgGrid, apsModel.azGrid, reshape(apsEst(:, ii), size(apsModel.rgGrid, 1), size(apsModel.rgGrid, 2), []), pRgGrid(:), pAzGrid(:));
-                tempApsInterp(isnan(tempApsInterp)) = 0;
-                apsInterpolation(:, ii) = tempApsInterp;
-                blockData(:, ii) = blockData(:, ii) .* conj(apsInterpolation(:, ii));
-            end
+%             missingData = sum(blockData) == 0;
+%             blockData = blockData(:, ~missingData);
+%             apsEst = apsEst(:, ~missingData);
+%             apsModel.referencePhase = apsModel.referencePhase(~missingData);
+%             % load block
+%             apsInterpolation = zeros(size(blockData));
+%             normz = @(x) OI.Functions.normalise(x);
+%             for ii = 1:size(blockData, 2)
+%                 tempApsInterp = interp2(apsModel.rgGrid, apsModel.azGrid, reshape(apsEst(:, ii), size(apsModel.rgGrid, 1), size(apsModel.rgGrid, 2), []), pRgGrid(:), pAzGrid(:));
+%                 tempApsInterp(isnan(tempApsInterp)) = 0;
+%                 apsInterpolation(:, ii) = tempApsInterp;
+%                 blockData(:, ii) = blockData(:, ii) .* conj(apsInterpolation(:, ii));
+%             end
+% 
+%             blockData = normz(blockData .* conj(apsModel.referencePhase));
 
-            blockData = normz(blockData .* conj(apsModel.referencePhase));
-
+            blockData = normz( blockData .* conj( aps ) );
+            
             % remove low pass
             displacement = movmean(blockData, 11, 2);
             displacement = normz(displacement);
@@ -125,7 +124,9 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
 
             % estimate v
             [Cv, v] = OI.Functions.invert_velocity(blockData, baselinesObject.timeSeries(1, :) .* PHASE_TO_M_PER_A);
-
+            % v is backwards for some reason
+            v = -v;
+            
             % Save the PSI outputs
             C0 = reshape(Cv, sz(1:2));
             v0 = reshape(v, sz(1:2));
@@ -167,13 +168,19 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             % Write preview KMLs
             mask0s = @(A) OI.Functions.mask0s(A);
             if baselinesObject.azimuthVector(3) > 0 % ascending
-                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(Cv), 'Coherence', '1');
-                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(v .* mask0s(MASK)), 'Velocity', '1');
-                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(q .* mask0s(MASK)), 'HeightError', '1');
+                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
+                    blockInfo, fliplr(flipud(Cv)), 'Coherence', '1');
+                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
+                    blockInfo, fliplr(flipud(v .* mask0s(MASK))), 'Velocity', '1');
+                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
+                    blockInfo, fliplr(flipud(q .* mask0s(MASK))), 'HeightError', '1');
             else % descending
-                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(Cv), 'Coherence', '1');
-                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(v .* mask0s(MASK)), 'Velocity', '1');
-                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(q .* mask0s(MASK)), 'HeightError', '1');
+                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
+                    blockInfo, fliplr(Cv), 'Coherence', '1');
+                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
+                    blockInfo, fliplr(v .* mask0s(MASK)), 'Velocity', '1');
+                OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
+                    blockInfo, fliplr(q .* mask0s(MASK)), 'HeightError', '1');
             end
 
             OI.Functions.ps_shapefile( ...
