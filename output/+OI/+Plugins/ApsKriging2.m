@@ -22,6 +22,22 @@ methods
 
 
     function this = estimate_aps_for_stack(this, engine)
+        apsModel = OI.Data.ApsModel2().configure( ...
+            'STACK', this.STACK);
+        if apsModel.identify(engine).exists()
+            return
+        end
+        
+        blockMap = engine.load( OI.Data.BlockMap() );
+        baselinesObject = engine.load( OI.Data.BlockBaseline().configure( ...
+            'STACK', num2str(this.STACK), ...
+            'BLOCK', num2str(blockMap.stacks(this.STACK).usefulBlockIndices(1)) ...
+        ) );
+        timeSeries = baselinesObject.timeSeries(:)';
+        kFactors = baselinesObject.k';
+        ts = timeSeries-timeSeries(1);
+        tsp = ts*4*pi/(365.25.*0.055);
+
         pscSample = engine.load( OI.Data.PscSample().configure('METHOD','PscSampling_4GBmax','BLOCK','ALL','STACK', this.STACK, 'POLARISATION','VV') );
 
         pscLLE = pscSample.sampleLLE;
@@ -40,11 +56,11 @@ methods
 
         C0 = abs(mean(p3,2));
 
-        apsModel.reference = phi(masi,:);
-        apsModel.referenceInd = masi;
-        apsModel.phi = phi;
-        apsModel.vm0 = mean(p2,2);
-        apsModel.C0 = C0;
+        apsModel.referencePointPhase = phi(masi,:);
+        apsModel.referencePointIndex = masi;
+        apsModel.inputPhase = pscSample.samplePhase;
+        apsModel.virtualMasterImage_initial = mean(p2,2);
+        apsModel.temporalCoherence_initial = C0;
 
         F = @(c) min(12*pi,(1-c.^2)./c.^2);
 
@@ -72,7 +88,7 @@ methods
         cost = @(x) var(eC - (1-sill).*exp(-midBins/x));
         decay = fminsearch(cost, 1000);
 
-        apsModel.variogram = struct('sill',sill,'decay',decay);
+        apsModel.variogramStructs = struct('sill',sill,'decay',decay);
 
         % Initial estimate:
         D = sqrt((dx-dx').^2+(dy-dy').^2);
@@ -81,19 +97,19 @@ methods
         TT=T.*sqrt(F(C0)).*sqrt(F(C0))';
 
         L=numel(C0);
-        pTT=pinv([TT ones(L,1); ones(1,L) 0]);
-
-
+        
+        pTT=inv([TT ones(L,1); ones(1,L) 0]);
         W = pTT*[T.*F(C0); ones(1,L)];
+        
         W(end,:)=[];
         W=W./sum(W,2);
         AE = normz(W'*phiTraining);
         phi0=normz(phiTraining.*conj(AE));
         [cq, q] = OI.Functions.invert_height( ...
-        normz(phi0), ...
-        kFactors, ...
-        600, ...
-        200 ...
+            normz(phi0), ...
+            kFactors, ...
+            600, ...
+            200 ...
         );
         disp('cq')
         mean(cq)
@@ -106,17 +122,17 @@ methods
         mean(Cv)
 
         phi1 = phi.*exp(1i.*kFactors.*q).*exp(1i.*tsp.*v).*conj(phi(masi,:)).*conj(AE);
-        apsModel.vm1 = mean(phi1,2);
-        phi1 = normz(phi1.*conj(apsModel.vm1));
+        apsModel.virtualMasterImage_working = mean(phi1,2);
+        phi1 = normz(phi1.*conj(apsModel.virtualMasterImage_working));
         phi1 = phi1.*AE;
 
         eRamp = [];
-        for ii = nDays:-1:1
+        for ii = size(phi1,2):-1:1
             cost = @(x) -abs(exp(1i*x.*pscLLE(:,3)') * phi1(:,ii));
             eRamp(ii) = fminsearch(cost,0);
         end
 
-        apsModel.eRamp = eRamp;
+        apsModel.elevationToPhase = eRamp;
         phi1=phi1.*exp(1i.*eRamp.*(pscLLE(:,3)-pscLLE(masi,3)));
         apsModel.referenceElevation = pscLLE(masi,3);
 
@@ -153,15 +169,18 @@ methods
                 
             end
             iatoc=toc(iatic);
-            fprintf(1,'%f sec remaining\n',iatoc.*(ia-1));
+            if mod(ia,10) == 1
+                fprintf(1,'%f sec remaining\n',iatoc.*(ia-1));
+            end
         end
 
         ae1=normz(ae);
         apsModel.latGrid = latGrid;
         apsModel.lonGrid = lonGrid;
-        apsModel.values = ae1;
+        apsModel.apsGrid = ae1;
 
         engine.save(apsModel)
+        this.isFinished=true;
     end % estimate
 
     function this = queue_jobs(this, engine)

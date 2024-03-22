@@ -31,7 +31,7 @@ classdef ApsModel2 < OI.Data.DataObj
     end
     
     methods
-        function this = ApsModel( ~ )
+        function this = ApsModel2( ~ )
             this.hasFile = true;
             this.filepath = '$WORK$/aps/$id$';
             this.fileextension = 'mat';
