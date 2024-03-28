@@ -191,13 +191,15 @@ methods
                     OI.Plugins.Geocoding.get_poe_and_timings( ...
                         cat, safeIndex, swathInfo, burstIndex );
                     
-                % centre the line times
+                % centre the orbit line times
                 orbitCentre = mean(lineTimes);
-                lineTimes = lineTimes - orbitCentre;
                 orbit.t = orbit.t - orbitCentre;
                     
-                [derampPhase, ~, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
-                    swathInfo, burstIndex, orbit, safe, a, lineTimes); %#ok<ASGLU>
+                % deramp
+                [derampPhase, ~, azMisregistrationPhase] = ...
+                    OI.Functions.deramp_demod_sentinel1( ...
+                    swathInfo, burstIndex, orbit, safe, a, 0); %#ok<ASGLU>
+                
                 % We need to coregister the ramp again...
                 resampledRamp = interp2(meshAz', meshRange', derampPhase',...
                         refMeshAz'+a',refMeshRange'+r','cubic',nan);
