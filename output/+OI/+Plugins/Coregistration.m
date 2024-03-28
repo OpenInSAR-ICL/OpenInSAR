@@ -435,7 +435,7 @@ methods
             
             % get ramp
             [derampPhase, ~, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
-                swathInfo, burstIndex, orbit, safe, a, lineTimes); %#ok<ASGLU>
+                swathInfo, burstIndex, orbit, safe, a, 0);
 %             [derampPhase, demodulatePhase, azMisregistrationPhase] = OI.Functions.deramp_demod_sentinel1(...
 %                 swathInfo, burstIndex, orbit, safe, a); %#ok<ASGLU>
 

@@ -1,8 +1,4 @@
-function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, burstIndex,  orbit, safe, azOff, orbitTime )
-    if nargin==0
-        disp(1)
-        return
-    end
+function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, burstIndex,  orbit, safe, azOff, orbitTimeOffset )
     % deramp_sentinel1 - Deramp and demodulate Sentinel-1 data
     %  realphi = deramp_sentinel1( swathInfo, burstIndex,  orbit, safe )
     %  Deramp and demodulate Sentinel-1 data
@@ -39,7 +35,16 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
     %   tau = t0 + (n - 1) * time_per_sample
     %   t0 is the slant range time (s) of the first range sample, which is
     %      provided in the annotation files
-    
+    if nargin==0
+        error('no arguments provided, see help')
+    end
+    if ~exist('orbitTimeOffset','var') || numel(orbitTimeOffset) ~= 1
+        warning(['orbitTime is derived from the annotations of the image ' ...
+            'being deramped. The offset should be provided as a single ' ...
+            'value which relates the mean difference in time of the azimuth' ...
+            ' lines to timing of the orbit object provided']);
+        orbitTimeOffset = 0;
+    end
     % helper functions:
     s2n = @str2num;
     
@@ -79,7 +84,7 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
     % orbits use a different time format currently
 %     orbitTime = swathInfo.burst( burstIndex ).startTime:ati/86400:...
 %         swathInfo.burst( burstIndex ).startTime + (lpb-1)*ati/86400;
-    interpOrbit = orbit.interpolate( orbitTime );
+    interpOrbit = orbit.interpolate( eta + orbitTimeOffset );
     velocity = sqrt(sum( ...
         [ interpOrbit.vx(:), ...
         interpOrbit.vy(:), ...
