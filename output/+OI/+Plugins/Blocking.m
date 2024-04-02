@@ -39,7 +39,8 @@ classdef Blocking < OI.Plugins.PluginBase
 
             % If we have no block argument, we are spliting the segment
             if isempty(this.BLOCK) && ~isempty(this.SEGMENT)
-                this = this.split_segment(engine, cat, stacks, blockMap, projObj);
+                preprocessingInfo = engine.load( OI.Data.PreprocessedFiles() );
+                this = this.split_segment(engine, cat, stacks, preprocessingInfo, blockMap, projObj);
                 return
             end
 
@@ -48,7 +49,7 @@ classdef Blocking < OI.Plugins.PluginBase
 
         end
 
-        function this = finalise_block(this, engine, cat, stacks, blockMap, projObj)
+        function this = finalise_block(this, engine, cat, ~, blockMap, projObj)
 
             assert(~isempty(this.BLOCK), 'No block specified');
             assert(~isempty(this.SEGMENT), 'No segment specified');
@@ -66,7 +67,7 @@ classdef Blocking < OI.Plugins.PluginBase
             blockDataRI = fread(fid, [2,inf], 'double');
             fclose(fid);
             blockData = blockDataRI(1,:)+1i.*blockDataRI(2,:);
-            blockDataRI = [];
+            blockDataRI = []; %#ok<NASGU>
             
             % Make the block object
             blockInfo = blockMap.stacks(this.STACK).blocks(this.BLOCK);
@@ -99,7 +100,7 @@ classdef Blocking < OI.Plugins.PluginBase
             
         end
 
-        function this = split_segment(this, engine, cat, stacks, blockMap, projObj)
+        function this = split_segment(this, engine, cat, stacks, preprocInfo, blockMap, projObj)
             seg = this.SEGMENT;
             stackInd = this.STACK;
             pol = this.POLARISATION;
@@ -110,10 +111,10 @@ classdef Blocking < OI.Plugins.PluginBase
 
             binDirStruct = dir(binDir);
             binDirContents = {binDirStruct.name};
-            binDirFileSizes = [];
-            if ~isempty(binDirContents)
-                binDirFileSizes = [binDirStruct.bytes];
-            end
+%             binDirFileSizes = [];
+%             if ~isempty(binDirContents)
+%                 binDirFileSizes = [binDirStruct.bytes];
+%             end
 
             % check we haven;t already done this segment
             seg_done_binary_file = sprintf('T%i_S%i_P%s', stackInd, seg, pol);
@@ -158,12 +159,6 @@ classdef Blocking < OI.Plugins.PluginBase
                     if blockInfo.segmentIndex ~= seg || doneBlocks(ubi)
                         continue
                     end
-                    
-                    blockObj = OI.Data.Block().configure( ...
-                        'POLARISATION', this.POLARISATION, ...
-                        'STACK', num2str(this.STACK), ...
-                        'BLOCK', num2str(blockInfo.indexInStack), ...
-                        'blockInfo', blockInfo).identify(engine);
 
                     if isempty(coregData)
                         coregData = engine.load( ...
@@ -175,10 +170,42 @@ classdef Blocking < OI.Plugins.PluginBase
                         ).identify(engine) ...
                         );
                         if isempty(coregData)
-                            error('Should be data here for %s',sprintf('coreg _ s %i seg %i visit %i %s', stackInd, seg, visitInd, pol));
-                            return
-                        end
-                    end
+                            % check if we expect data here...
+                            segmentIndexInStack = ...
+                                stacks.stack(stackInd).correspondence(seg, visitInd);
+                            safeIndex = stacks.stack(stackInd).segments.safe(segmentIndexInStack);
+                            
+                            safeAvailable = safeIndex ~= 0;
+                            
+                            if safeAvailable
+                                safePolStr = cat.safes{safeIndex}.polarization;
+                                nPolChars = numel(safePolStr);
+                                badMetadata = ...
+                                    nPolChars == 0 || mod(nPolChars, 2) == 1;
+                                if badMetadata
+                                   error('Invalid polarisation info for safe: %i', ...
+                                       safeIndex);
+                                end
+                                polsInSafe = cellstr(reshape(safePolStr, [], 2));
+                                polAvailable = any(strcmpi(polsInSafe, pol));
+                            end
+                            
+                            if safeAvailable && polAvailable
+                                miss = sprintf( ...
+                                    'coreg _ s %i seg %i visit %i %s', ...
+                                    stackInd, seg, visitInd, pol);
+                                error('Missing coregistered data: %s', miss);
+                            end
+                            
+                            % If we are missing data for a legit reason,
+                            % fill blanks.
+                            info = ...
+                                stacks.get_reference_info(preprocInfo, stackInd, seg);
+                            coregData = ...
+                                zeros(info.samplesPerBurst, info.linesPerBurst, ...
+                                'like',1i);
+                        end % lazy load
+                    end % no data 
 
                     % Extract the data
                     extract = coregData( ...
@@ -238,15 +265,15 @@ classdef Blocking < OI.Plugins.PluginBase
                 binDirStruct = dir(OI.Plugins.Blocking.get_binary_dir(projObj));
                 if ~isempty(binDirStruct)
                     binDirContents = {binDirStruct.name};
-                    binDirFileSizes = [binDirStruct.bytes];
+%                     binDirFileSizes = [binDirStruct.bytes];
                 else
                     binDirContents = {};
-                    binDirFileSizes = [];
+%                     binDirFileSizes = [];
                 end
                 file_in_dir = @(x) any(strcmp(x, binDirContents));
                 % Use arrayfun to check in the first N characters match the file in the dir
-                file_in_dir_n = @(x, n) arrayfun(@(y) strcmp(x(1:n), y(1:n)), binDirContents);
-                find_binary_file = @(x) file_in_dir_n(x, numel(binary_file)) && strcmp(x(1:numel(binary_file)), binary_file);
+%                 file_in_dir_n = @(x, n) arrayfun(@(y) strcmp(x(1:n), y(1:n)), binDirContents);
+%                 find_binary_file = @(x) file_in_dir_n(x, numel(binary_file)) && strcmp(x(1:numel(binary_file)), binary_file);
 
                 % QUEUE A JOB FOR EACH SEGMENT
                 nJobs = 0;
@@ -267,7 +294,7 @@ classdef Blocking < OI.Plugins.PluginBase
                     polCell = cellstr(reshape(safe.polarization, 2, [])');
                     for POL = polCell'
                         nSegPolCombos = nSegPolCombos + 1;
-                        segPolCombos(nSegPolCombos, :) = [stackInd, seg, polCode.(POL{1}), false];
+                        segPolCombos(nSegPolCombos, :) = [stackInd, seg, polCode.(POL{1}), false]; %#ok<AGROW>
                         % Check for the binary flag for this stack_seg_pol combination
                         binary_file = sprintf('T%i_S%i_P%s', stackInd, seg, POL{1});
                         if file_in_dir(binary_file)
@@ -366,7 +393,7 @@ classdef Blocking < OI.Plugins.PluginBase
             binSize = bytesPerDouble * doublesPerComplex * samplesPerBlock * numberOfVisits;
         end
 
-        function offset = calc_binary_offset(stack, blockInfo, visitIndex)
+        function offset = calc_binary_offset(~, blockInfo, visitIndex)
             % Calculate the expected offset of the visit in the binary file
             bytesPerDouble = 8;
             doublesPerComplex = 2;
@@ -374,7 +401,7 @@ classdef Blocking < OI.Plugins.PluginBase
             offset = bytesPerDouble * doublesPerComplex * samplesPerBlock * (visitIndex - 1);
         end
 
-        function previewKmlPath = preview_block(projObj, blockInfo, blockData, POL, direction)
+        function previewKmlPath = preview_block(projObj, blockInfo, blockData, POL, ~)
             % get the block extent
             sz = blockInfo.size;
             sz(3) = size(blockData,3);

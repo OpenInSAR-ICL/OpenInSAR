@@ -55,10 +55,6 @@ methods
             for visitInd = ...
                 1:numel(stacks.stack(trackInd).correspondence(refSegInd,:))
                 
-                % debug...
-                if visitInd == 39 && trackInd == 2 && refSegInd == 4
-                    1;
-                end
                 % If there is no data for this combination of visit/segment
                 % skip
                 segmentIndexInStack = ...
