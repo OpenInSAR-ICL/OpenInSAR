@@ -268,6 +268,7 @@ methods
                 cat, refSafeIndex, refSwathInfo, refBurstIndex ); %#ok<ASGLU>
 
         % ensure 'virtual' timings for secondary match the size of reference timings
+        % trim or extend at the end. Line 1 remains our reference.
         if (lpbRef ~= lpb)
             engine.ui.log('warning',...
                 ['Lines per burst mismatch between reference and secondary' ...
@@ -279,6 +280,7 @@ methods
                 lineTimes = lineTimes(:);
             end
         end
+
         % ...   The output raster has to match the dims of the reference.
         %       We will find the indices which satisfy this, even if they're out of
         %       the segment.     
@@ -291,7 +293,8 @@ methods
         origLineTimes = origLineTimes - orbitCentre;
         lineTimes = lineTimes - orbitCentre;
         orbit.t = orbit.t - orbitCentre;
-
+        %!
+        haveFoundOffsets = false;
         if ~haveFoundOffsets % if we already have offsets we can skip this
             % we need one more input...
             geocodingData = OI.Data.LatLonEleForImage().configure( ...
@@ -352,6 +355,7 @@ methods
                     satT, orbit, refGroundXYZ, linesPerDoppler, ati);
                 isConverged = mean(abs(dopplerErr(:))) / lastErr > 0.99 || iters >= iterLimit;
                 lastErr = mean(abs(dopplerErr(:)));
+                iters = iters + 1;
             end
            
             % calc azimuth azimuth shift
@@ -379,7 +383,8 @@ methods
             tOrbit = [];
             
             % save the results
-            engine.save(result, [a(:) r(:)]);
+            %!
+            %engine.save(result, [a(:) r(:)]);
         else
             azRgOffsets = engine.load( result );
             if isempty(azRgOffsets)
@@ -404,6 +409,8 @@ methods
         safe = cat.safes{safeIndex};
         refSafe = cat.safes{refSafeIndex};
         % for each polarisation requested and available
+        %!
+        projObj.POLARIZATION = 'VV';
         for pol = {'HH','VH','VV'} % do default last, to align how we check
             % if the plugin has finished
             if isempty(strfind(projObj.POLARIZATION,pol{1}))

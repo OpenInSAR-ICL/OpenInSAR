@@ -24,7 +24,16 @@ methods
     function this = estimate_aps_for_stack(this, engine)
         apsModel = OI.Data.ApsModel2().configure( ...
             'STACK', this.STACK);
-        if apsModel.identify(engine).exists()
+        if ~this.isOverwriting && apsModel.identify(engine).exists()
+            return
+        end
+        
+        pscSampleObj = OI.Data.PscSample().configure('METHOD','PscSampling_4GBmax','BLOCK','ALL','STACK', this.STACK, 'POLARISATION','VV');
+        pscSample = engine.load( pscSampleObj );
+        nSamples = numel(pscSample.sampleAz);
+        
+        FEW_SAMPLES = nSamples < 15e3; % ~ 4gb for N^2 complex double mat
+        if isempty(pscSample)
             return
         end
         
@@ -40,29 +49,29 @@ methods
         apsModel.referenceTimeSeries = timeSeries;
         apsModel.referenceKFactors = kFactors;
 
-        pscSample = engine.load( OI.Data.PscSample().configure('METHOD','PscSampling_4GBmax','BLOCK','ALL','STACK', this.STACK, 'POLARISATION','VV') );
-
+        
         pscLLE = pscSample.sampleLLE;
         phi = pscSample.samplePhase;
-
-        normz = @(x) x./abs(x);
-
         % reference point:
         [~, masi]=max(pscSample.sampleStability);
+        
+        clearvars pscSample
+        
+        normz = @(x) x./abs(x);
+
+
 
         % phase to use:
-        p2=phi.*conj(phi(masi,:));
-        p3=normz(p2.*conj(mean(p2,2)));
-
-        phiTraining = p3;
-
-        C0 = abs(mean(p3,2));
-
+        phiTraining=phi.*conj(phi(masi,:));
+        apsModel.virtualMasterImage_initial = mean(phiTraining,2);
         apsModel.referencePointPhase = phi(masi,:);
         apsModel.referencePointIndex = masi;
-        apsModel.inputPhase = pscSample.samplePhase;
-        apsModel.virtualMasterImage_initial = mean(p2,2);
+        apsModel.inputPhase = pscSampleObj;
+        
+        phiTraining=normz(phiTraining.*conj(mean(phiTraining,2)));
+        C0 = abs(mean(phiTraining,2));
         apsModel.temporalCoherence_initial = C0;
+
 
         F = @(c) min(12*pi,(1-c.^2)./c.^2);
 
@@ -92,33 +101,81 @@ methods
 
         apsModel.variogramStructs = struct('sill',sill,'decay',decay);
 
-        % Initial estimate:
-        D = sqrt((dx-dx').^2+(dy-dy').^2);
-        T = (1-sill).*exp(-D./decay);
 
-        TT=T.*sqrt(F(C0)).*sqrt(F(C0))';
+        % Grid spacing
+        gSpace = 100;
+        ngX = ceil((max(dx)-min(dx))/gSpace);
+        ngY = ceil((max(dy)-min(dy))/gSpace);
 
-        L=numel(C0);
         
-        pTT=inv([TT ones(L,1); ones(1,L) 0]);
-        W = pTT*[T.*F(C0); ones(1,L)];
+        yAxis = linspace(min(dy),max(dy),ngY);
+        xAxis = linspace(min(dx),max(dx),ngX);
+        [xGrid, yGrid]=meshgrid(xAxis,yAxis);
+        apsModel.xGrid = xGrid;
+        apsModel.yGrid = yGrid;
+        % Initial estimate of APS at each PSC:
+        if FEW_SAMPLES
+
+            D = sqrt((dx-dx').^2+(dy-dy').^2);
+            T = (1-sill).*exp(-D./decay);
+
+            TT=T.*sqrt(F(C0)).*sqrt(F(C0))';
+
+            L=numel(C0);
+
+%             pTT=inv([TT ones(L,1); ones(1,L) 0]);
+%             W = pTT*[T.*F(C0); ones(1,L)];
+            W = [TT ones(L,1); ones(1,L) 0] \ [T.*F(C0); ones(1,L)];
+            
+            W(end,:)=[];
+            W=W./sum(W,2);
+            AE = normz(W'*phiTraining);
+      
+        else % many samples
+
+            kdt = KDTreeSearcher([dx dy]);
+            K = 500;
+            KNN = zeros(K,ngY,ngX);
+            KNND = KNN;
+            for iY=ngY:-1:1
+                iatic=tic;
+                for iX = ngX:-1:1
+
+                    tY = yGrid(iY,iX);
+                    tX = xGrid(iY,iX);
+                    [KNN(:,iY,iX), KNND(:,iY,iX)] =  knnsearch(kdt, [tX, tY], 'k', K);
+                end
+                iatoc=toc(iatic);
+                if mod(iY,10) == 1
+                    fprintf(1,'%f sec remaining\n',iatoc.*(iY-1));
+                end
+            end
         
-        W(end,:)=[];
-        W=W./sum(W,2);
-        AE = normz(W'*phiTraining);
-        phi0=normz(phiTraining.*conj(AE));
+            AEG=[];
+            for iY=ngY:-1:1
+            for iX = ngX:-1:1
+                ssi=(iX-1)*ngY+iY;
+                AEG(ssi,:) = mean(phiTraining(KNN(:,iY,iX),:));
+            end
+            end
+            apsModel.apsGrid = reshape(AEG,ngY,ngX,nD);
+            AE = apsModel.interpolate(dy(:),dx(:),pscLLE(:,3),true);
+
+        end
+        
+        phiTraining=normz(phiTraining.*conj(AE).*apsModel.referencePointPhase);
         [cq, q] = OI.Functions.invert_height( ...
-            normz(phi0), ...
+            normz(phiTraining), ...
             kFactors, ...
             600, ...
             200 ...
         );
         disp('cq')
         mean(cq)
-        phi0=phi0.*exp(1i.*kFactors.*q);
+        phiTraining=phiTraining.*exp(1i.*kFactors.*q);
         ts = timeSeries-timeSeries(1);
         tsp = ts*4*pi/(365.25.*0.055);
-        [Cv, v]=OI.Functions.invert_velocity(phi0, tsp, 0.1, 500);
+        [Cv, v]=OI.Functions.invert_velocity(phiTraining, tsp, 0.1, 500);
 
         disp('Cv')
         mean(Cv)
@@ -138,31 +195,34 @@ methods
         phi1=phi1.*exp(1i.*eRamp.*(pscLLE(:,3)-pscLLE(masi,3)));
         apsModel.referenceElevation = pscLLE(masi,3);
 
-        % Grid spacing
-        gSpace = 100;
-        ngX = ceil((max(dx)-min(dx))/gSpace);
-        ngY = ceil((max(dy)-min(dy))/gSpace);
-
+        
         latAxis = linspace(min(pscLLE(:,1)),max(pscLLE(:,1)),ngY);
         lonAxis = linspace(min(pscLLE(:,2)),max(pscLLE(:,2)),ngX);
         [lonGrid, latGrid]=meshgrid(lonAxis,latAxis);
 
+        
         % get weights for each grid point
         ae=zeros(size(latGrid,1),size(latGrid,2),nD);
 
         for ia=size(latGrid,1):-1:1
             iatic=tic;
             for ir = size(lonGrid,2):-1:1
-                
-                lat = latGrid(ia,ir);
-                lon = lonGrid(ia,ir);
+                if FEW_SAMPLES
+                    lat = latGrid(ia,ir);
+                    lon = lonGrid(ia,ir);
 
-                [dy1, dx1]=OI.Functions.haversineXY(pscLLE(:,1:2), [lat,lon]);
-                dd = hypot(dx1,dy1);
-                tt = (1-sill).*exp(-dd./decay);
-                tt = tt ./ sum(tt);
-                
-                a=tt.*phi1;
+                    [dy1, dx1]=OI.Functions.haversineXY(pscLLE(:,1:2), [lat,lon]);
+                    dd = hypot(dx1,dy1);
+                    tt = (1-sill).*exp(-dd./decay);
+                    tt = tt ./ sum(tt);
+
+                    a=tt.*phi1;
+                else
+                    dd = KNND(:,ia,ir);
+                    tt = (1-sill).*exp(-dd./decay);
+                    tt = tt ./ sum(tt);
+                    a=tt.*phi1(KNN(:,ia,ir),:);
+                end
                 acm = a'*a;
                 acm=acm./acm(1);
                 pp=OI.Functions.phase_triangulation(acm); % note this is conj

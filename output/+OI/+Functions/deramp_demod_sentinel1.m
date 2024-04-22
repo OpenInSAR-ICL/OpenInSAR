@@ -1,4 +1,4 @@
-function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, burstIndex,  orbit, safe, azOff, orbitTimeOffset )
+function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, burstIndex,  orbit, safe, azOff, orbitTime, aat )
     % deramp_sentinel1 - Deramp and demodulate Sentinel-1 data
     %  realphi = deramp_sentinel1( swathInfo, burstIndex,  orbit, safe )
     %  Deramp and demodulate Sentinel-1 data
@@ -38,13 +38,13 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
     if nargin==0
         error('no arguments provided, see help')
     end
-    if ~exist('orbitTimeOffset','var') || numel(orbitTimeOffset) ~= 1
-        warning(['orbitTime is derived from the annotations of the image ' ...
-            'being deramped. The offset should be provided as a single ' ...
-            'value which relates the mean difference in time of the azimuth' ...
-            ' lines to timing of the orbit object provided']);
-        orbitTimeOffset = 0;
-    end
+%     if ~exist('orbitTimeOffset','var') || numel(orbitTimeOffset) ~= 1
+%         warning(['orbitTime is derived from the annotations of the image ' ...
+%             'being deramped. The offset should be provided as a single ' ...
+%             'value which relates the mean difference in time of the azimuth' ...
+%             ' lines to timing of the orbit object provided']);
+%         orbitTimeOffset = 0;
+%     end
     % helper functions:
     s2n = @str2num;
     
@@ -84,7 +84,7 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
     % orbits use a different time format currently
 %     orbitTime = swathInfo.burst( burstIndex ).startTime:ati/86400:...
 %         swathInfo.burst( burstIndex ).startTime + (lpb-1)*ati/86400;
-    interpOrbit = orbit.interpolate( eta + orbitTimeOffset );
+    interpOrbit = orbit.interpolate( orbitTime );
     velocity = sqrt(sum( ...
         [ interpOrbit.vx(:), ...
         interpOrbit.vy(:), ...
@@ -153,7 +153,8 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
             annotationPath);
     end
     % Doppler centroid is given relative to polynomial origin
-    fnc = polyval(dcEstimatePoly, tao - s2n(dcEst.t0));
+    %     fnc = polyval(dcEstimatePoly, tao - s2n(dcEst.t0));
+    fnc = polyval(dcEstimatePoly, tao - tao(1));
 
     %% 6.6: Reference zero-Doppler Azimuth Time etaref
     etaref = -fnc ./ ka;
@@ -172,10 +173,34 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
     % https://proceedings.esa.int/files/116.pdf
     if nargin > 4
         % adjust for azimuth misregistration
-        etalagPoly = polyfit(1:size(azOff,1),ati.*azOff(:,1),1);
+        etalagPoly = polyfit(linspace(-1,1,size(azOff,1)),ati.*azOff(:,1),1);
+        etalagPolyR = polyfit(linspace(-1,1,size(azOff,2)),ati.*azOff(1,:),1);
         etalagPoly(end)=0;
-        etalag = polyval(etalagPoly,1:lpb);
-        lagPhase = 2*pi*kt.*eta.*etalag';
+        etalagPolyR(end)=0;
+        
+        etalag = polyval(etalagPoly,linspace(-1,1,lpb)');
+        etalagR = polyval(etalagPoly,linspace(-1,1,spb));
+        etalag = etalag + etalagR;
+%         datestr(swathInfo.startTime.daysSinceZero, 'yyyy-mm-dd')
+%         etastart = (swathInfo.burst(1).startTime - ...
+%             swathInfo.burst(burstIndex).startTime).* 86400 / ati
+%         round(etastart)
+%         aat
+%         etastart = aat ./ ati - 254000
+%         round(etastart)
+%         etalag = etalag + round(etastart) .* ati;
+% %         etastart=-1
+% %         etalag = etalag + round(etastart).*ati;
+% %         lagPhase = 2*pi*kt.*(eta).*(etalag;
+% %         lagPhase = pi*kt.*(eta + etalag/2).*etalag;
+%         lagPhase = -2 .* pi.*kt .* ...
+%             eta .* etalag; % This works well now? I think maybe the combo of tao/t0 and removing the mean azOff??
+%         % There's still a bit of nonsense though
+        lagPhase = - pi.*kt .* ...
+            (2.*(eta-etaref) .* etalag);% - etalag.^2);
+%             ( etalag.^2 + 2 .* (eta-etaref) .* etalag );
+        
+%         lagPhase= -pi.*kt.*(eta - etalag - etaref).^2;
 %         
 %                 % adjust for azimuth misregistration
 %         eta0 = ati.*azOff(1,1);
