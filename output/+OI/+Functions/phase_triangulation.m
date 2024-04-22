@@ -6,7 +6,7 @@ end
 n=size(theCM,1);
 
 [phi, D] = eig(theCM);
-bestComponent = 1 + (D(1) > D(end)) .* (n - 1);
+bestComponent = 1 + (D(1) < D(end)) .* (n - 1);
 newtheta = phi(:, bestComponent);
 theCMm1 = theCM .* (1 - eye(n));
 
