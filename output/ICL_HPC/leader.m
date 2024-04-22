@@ -9,9 +9,14 @@
     addpath('ICL_HPC')
 
     projectPath = OI.ProjectLink().projectPath;
-
-    oi = OpenInSAR('-log','info','-project', projectPath);
-
+    if ~exist('oi','var') || ...
+            (exist('currentProjectPath','var') ...
+            && ~strcmpi(currentProjectPath,projectPath))
+        oi = OpenInSAR('-log','info','-project', projectPath);
+        currentProjectPath = projectPath;
+    end
+    
+    
 
     % load the project object
     projObj = oi.engine.load( OI.Data.ProjectDefinition() );
@@ -22,7 +27,7 @@
     oi.engine.postings = oi.engine.postings.wipe_all_errors();
     oi.engine.postings.report_ready(0);
     nextWorker = 0;
-
+    lastJob = OI.Job();
 
     % Copy helper scripts over to the postings directory
     postingPath = oi.engine.postings.postingPath;
@@ -65,6 +70,9 @@
 doImmediateWaitForWorkers = false;
 assignment = cell(1, 100);
 assignment(:)={'worker not yet initialised'};
+
+
+oi.engine.ui.set_debug_level('info')
 
 for thingToDo = thingToDoList
 
@@ -130,7 +138,8 @@ for thingToDo = thingToDoList
                 % finished
                 if matcher( posting, 'FINISHED') || OI.Compatibility.contains(posting,'_FINISHED')
                     assignment{JJ}='';
-                    oi.engine.ui.log('info','Worker %i : %s\n', JJ,posting);
+                    oi.engine.ui.log('info','Worker %i finished\n', JJ);
+                    oi.engine.ui.log('debug','Worker %i : %s\n', JJ,posting);
                     ss = strsplit(posting, '_ANSWER=');
                     if numel(ss)>1
                         answer = ss{2};
@@ -179,7 +188,7 @@ for thingToDo = thingToDoList
                 if ~isempty(nextJob) && ~isempty(nextJob.target) && nextJob.target
                     % jobs require assignment, but
                     % still no workers, lets wait a bit
-                    oi.ui.log('info','%s\n',datestr(now())) %#ok<TNOW1,DATST>
+                    oi.ui.log('info','%s\n',datestr(now())); %#ok<TNOW1,DATST>
                     
                     if isunix
                         system('qstat')
@@ -216,6 +225,7 @@ for thingToDo = thingToDoList
         % check the job isn't already running
         nextJob = oi.engine.queue.next_job();
         
+        
         if isempty(nextJob)
             % try loading our target
             oi.engine.load( thingToDo{1} );
@@ -226,6 +236,9 @@ for thingToDo = thingToDoList
                 break
             end
         end
+        
+        oi.ui.log('info', 'next job is %s\n', nextJob.to_string() )
+
 
         while isempty(nextJob.target)
             % ID LIKE TO NOT RUN A LEADER JOB, IF:
@@ -262,13 +275,15 @@ for thingToDo = thingToDoList
         % Check through workers and their current assignments
         while ~isempty(nextJob.target) && allJobsAssigned == false
             oi.engine.ui.log('info','Checking this job has not been assigned\n')
+            oi.engine.ui.log('info','%s\n', nextJob.to_string());
+            
             for workerId = oi.engine.postings.workers(:)'
                 if ~isempty(assignment{workerId}) && ~ischar(assignment{workerId}) % if worker is working
                     % check the job we want to push isn't already assigned to
                     % the worker
                     if isa(assignment{workerId},'OI.Job') && assignment{workerId}.eq(nextJob) 
                         nJobsAssigned = nJobsAssigned + 1;
-                        oi.engine.ui.log('debug',...
+                        oi.engine.ui.log('info',...
                             'Removed an already assigned job - %s\n', ...
                             nextJob.to_string());
                         oi.engine.queue.remove_job(1);
@@ -279,11 +294,21 @@ for thingToDo = thingToDoList
                 end
             end
             if isJobAssigned
+                oi.engine.ui.log('info','Job is assigned to %i\n', workerId);
+                cJob = nextJob;
                 nextJob = oi.engine.queue.next_job();
-                if nextJob.eq(firstJob)
-                    allJobsAssigned = true; % if we reach here we have cycled 
+                
+                oi.engine.ui.log('info','Current job: %s\n', cJob.to_string());
+                oi.engine.ui.log('info','Next job: %s\n', nextJob.to_string());
+                oi.engine.ui.log('info','First job: %s\n', firstJob.to_string());
+                
+                if nextJob.eq(firstJob) || isempty(nextJob.target) || nextJob.eq(cJob)
+                    allJobsAssigned = true; % if we reach here we have cycled
+                    break % redundant but let's be clear
                 end
+                % refresh assignment here
             else % we've found an unassigned job, so can continue to run it
+                oi.engine.ui.log('info','Job is not assigned\n');
                 break
             end
         end
@@ -308,14 +333,22 @@ for thingToDo = thingToDoList
                 nextWorker = 0;
                 continue
             end
-            oi.engine.run_next_job()
             
             oi.ui.log('info', 'Pushing job %s\n', nextJob.to_string());
             oi.engine.currentJob = nextJob.to_string();
-            oi.engine.run_job(nextJob, '');
+
             
+            if lastJob.eq(nextJob)
+                disp('how')
+            end
+            lastJob = nextJob;
+            oi.engine.run_job(nextJob, '');
+
+
             if oi.engine.lastPostee
                 assignment{ oi.engine.lastPostee } = OI.Job( oi.engine.currentJob );
+            else
+                warning('could not find a worker here??');
             end
         else
             % Job already assigned?

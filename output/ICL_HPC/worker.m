@@ -107,7 +107,7 @@ end
 firstWait = true; % make the first wait shorter
 % main loop
 while true
-    postings.report_ready(J);
+    postings = postings.report_ready(J);
     jobstr = '';
     while isempty(jobstr)
         postings = postings.check_jobs(J);
@@ -119,7 +119,7 @@ while true
             break
         else
             
-            postings.report_ready(J);
+            postings = postings.report_ready(J);
             if firstWait
                 fprintf(1,'%s - waiting...', datetime("now"));
                 pause(10)
@@ -201,6 +201,11 @@ while true
             errjobstr = oi.engine.queue.jobArray{1}.to_string();
             postings.report_error(J, [errjobstr ' _ I didnt finish my job, probably as Im missing an input.' ...
             'I can mess things up if I start trying to create my input as something is probs already doing so.'])
+            %!!! need to clear job and wait for next one here.
+            %! currently its re-runing old job which is the opposite of what we want.
+            oi.engine.queue.clear
+            postings = postings.report_ready(J);
+            break
         end
 
         postings = postings.check_jobs(J);
@@ -219,6 +224,9 @@ while true
             errjobstr = oi.engine.queue.jobArray{1}.to_string();
             postings.report_error(J, [errjobstr ' _ Im not done , probably as Im missing an input.' ...
             'I can mess things up if I start trying to create my input as something is probs already doing so.'])
+            oi.engine.queue.clear
+            postings = postings.report_ready(J);
+            break
         end
         
     end
