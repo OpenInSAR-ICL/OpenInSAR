@@ -28,6 +28,11 @@ classdef ApsModel2 < OI.Data.DataObj
         % interpolators
         latGrid
         lonGrid
+        
+        xGrid
+        yGrid
+        referenceXY 
+        
         apsGrid
 
     end
@@ -39,14 +44,36 @@ classdef ApsModel2 < OI.Data.DataObj
             this.fileextension = 'mat';
         end%ctor
 
-        function interpolatedPhase = interpolate(this, lat, lon, ele)
+        function interpolatedPhase = interpolate(this, lat, lon, ele, isXY)
+            % interpolate(this, lat, lon, ele, isXY)
+            % Use isXY to interpolate using the XY grids (meters) instead of 
+            % lat/lon
+            % lat - latitude or, if isXY, Y
+            % lon - longitude or, if isXY, X
+            % ele - meters elevation w.r.t. reference point
+            % XY is relative to XY of reference point.
+            if nargin == 4
+                isXY = false;
+            end
+            
+            if isXY
+                assert(~(isempty(this.xGrid) || isempty(this.yGrid)) )
+            else
+                assert(~(isempty(this.lonGrid) || isempty(this.latGrid)) )
+            end
+            
             for imageIndex = size(this.apsGrid, 3):-1:1
+                if isXY
+                interpolatedPhase(:,imageIndex) = interp2( this.xGrid, this.yGrid, ...
+                    this.apsGrid(:,:,imageIndex), lon(:), lat(:) );
+                else
                 interpolatedPhase(:,imageIndex) = interp2( this.lonGrid, this.latGrid, ...
                     this.apsGrid(:,:,imageIndex), lon(:), lat(:) );
+                end
             end
 
             % Do elevation-dependent aps if requested
-            if nargin > 3
+            if nargin > 3 && ~isempty(this.elevationToPhase)
                 dEle = ele - this.referenceElevation;
                 interpolatedPhase = interpolatedPhase ....
                     .* exp( -1i .* this.elevationToPhase .* dEle );
