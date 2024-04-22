@@ -1,7 +1,7 @@
 classdef BlockPsiAnalysis < OI.Plugins.PluginBase
     
 properties
-    inputs = {OI.Data.BlockBaselineSummary()}
+    inputs = {OI.Data.BlockBaselineSummary(), OI.Data.BlockingSummary()}
     outputs = {OI.Data.BlockPsiSummary()}
     id = 'BlockPsiAnalysis'
     STACK = []
@@ -66,7 +66,7 @@ methods
 
         blockInfo = blockMap.stacks(this.STACK).blocks(this.BLOCK);
 
-        if ~psPhaseObject.identify(engine).exists()
+        if ~psPhaseObject.identify(engine).exists() || this.isOverwriting
 
             
             
@@ -74,7 +74,15 @@ methods
             kFactors = baselinesObject.k(:)';
 
             % Load the block data
-            blockData = engine.load( blockObj );
+            try
+                blockData = engine.load( blockObj );
+            catch % plaster for race condition issue in Blocking
+                engine.ui.log('warning', ...
+                    'Failed to load %s\nWill retry once.\n', ...
+                    blockObj.filepath);
+                pause(60);
+                blockData = engine.load( blockObj );
+            end
             
             if isempty(blockData)
                 % No data for this block
@@ -212,6 +220,8 @@ methods
                 'coherence', C, ...
                 'velocity', v, ...
                 'heightError', q, ...
+                'blocks', this.BLOCK, ...
+                'referencePhase', aps .* apsResidual, ...
                 'amplitudeStability', amplitudeStability, ...
                 'displacement', [], ...
                 'candidateStabilityThreshold', candidateThreshold, ...
@@ -224,7 +234,7 @@ methods
             );
 
             engine.save( psPhaseObject, psPhaseStruct );
-
+            this.isFinished = true;
         else
             C = engine.load( coherenceObj );
             v = engine.load( velocityObject );
@@ -244,7 +254,7 @@ methods
         
         
         previewShpCoherenceMask = (C>.5);
-        if sum(previewShpCoherenceMask)<=0
+        if sum(previewShpCoherenceMask(:))<=0
             shpDir = fileparts(blockFilePath);
             fid = fopen(blockFilePath,'w');
             fclose(fid);
@@ -380,7 +390,7 @@ methods (Static = true)
             otherwise
                 clims = [0 1];
         end
-        dataToPreview = OI.Functions.grayscale_to_rgb(dataToPreview, imageColormap);
+        dataToPreview = OI.Functions.grayscale_to_rgb(dataToPreview, imageColormap, clims);
       
         blockExtent = OI.Data.GeographicArea().configure( ...
             'lat', blockInfo.latCorners, ...

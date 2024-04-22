@@ -98,6 +98,7 @@ methods
 
 
         % Create a KML file.
+        OI.Functions.mkdirs(filename);
         fid = fopen(filename, 'w');
         fprintf(fid, '%s', kmlStr);
         fclose(fid);

@@ -14,6 +14,7 @@ classdef Postings
         function obj=Postings(project)
             obj.postingPath=fullfile(strrep(project.WORK,'/work','/') ,'postings/');
             obj.workPath=project.WORK;
+            OI.Functions.mkdirs([obj.postingPath 1]);
         end
 
         function fp = get_posting_filepath(obj, J)

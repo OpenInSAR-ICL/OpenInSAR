@@ -24,6 +24,9 @@ properties
     displacement = []
     sampleStabilityThreshold = []
     sampleMask = []
+    
+    blocks = []
+    referencePhase = []
 
     % specific to block-wise sample
     blockInfo = []

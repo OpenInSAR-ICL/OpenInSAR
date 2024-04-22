@@ -111,10 +111,6 @@ classdef Blocking < OI.Plugins.PluginBase
 
             binDirStruct = dir(binDir);
             binDirContents = {binDirStruct.name};
-%             binDirFileSizes = [];
-%             if ~isempty(binDirContents)
-%                 binDirFileSizes = [binDirStruct.bytes];
-%             end
 
             % check we haven;t already done this segment
             seg_done_binary_file = sprintf('T%i_S%i_P%s', stackInd, seg, pol);
@@ -220,6 +216,11 @@ classdef Blocking < OI.Plugins.PluginBase
 
                     % Open the file, seek to the offset, write the data, close the file
                     if visitInd == 1
+                        % unclear if 'W' auto clears prior file. Let's make
+                        % sure.
+                        fid = fopen(binary_filepath, 'w'); % note lowercase
+                        fclose(fid);
+                        % Use buffered writing.
                         fid = fopen(binary_filepath, 'W');
                     else
                         fid = fopen(binary_filepath, 'A');
@@ -265,15 +266,13 @@ classdef Blocking < OI.Plugins.PluginBase
                 binDirStruct = dir(OI.Plugins.Blocking.get_binary_dir(projObj));
                 if ~isempty(binDirStruct)
                     binDirContents = {binDirStruct.name};
-%                     binDirFileSizes = [binDirStruct.bytes];
                 else
                     binDirContents = {};
-%                     binDirFileSizes = [];
                 end
                 file_in_dir = @(x) any(strcmp(x, binDirContents));
                 % Use arrayfun to check in the first N characters match the file in the dir
-%                 file_in_dir_n = @(x, n) arrayfun(@(y) strcmp(x(1:n), y(1:n)), binDirContents);
-%                 find_binary_file = @(x) file_in_dir_n(x, numel(binary_file)) && strcmp(x(1:numel(binary_file)), binary_file);
+                % file_in_dir_n = @(x, n) arrayfun(@(y) strcmp(x(1:n), y(1:n)), binDirContents);
+                % find_binary_file = @(x) file_in_dir_n(x, numel(binary_file)) && strcmp(x(1:numel(binary_file)), binary_file);
 
                 % QUEUE A JOB FOR EACH SEGMENT
                 nJobs = 0;
@@ -313,7 +312,7 @@ classdef Blocking < OI.Plugins.PluginBase
                     end
                 end % segment loop
                 % If none of the segments have been done, continue to the next stack
-                if ~allDone && nJobs == nSegPolCombos
+                if ~allDone && (nJobs == nSegPolCombos)
                     continue % to next stack
                 end
 
@@ -366,6 +365,8 @@ classdef Blocking < OI.Plugins.PluginBase
             if allDone
                 this.isFinished = true;
                 engine.save( this.outputs{1} );
+            else
+                this.isFinished = false;
             end
         end % queue_jobs
 

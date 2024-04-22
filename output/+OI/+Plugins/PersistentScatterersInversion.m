@@ -66,6 +66,10 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
 
             % load APS
             apsModel =engine.load( OI.Data.ApsModel2().configure('STACK',this.STACK) );
+            if isempty(apsModel)
+                return
+            end
+            
             aps = apsModel.interpolate( bg.lat(:), bg.lon(:), bg.ele(:) );
 
             % Load block info

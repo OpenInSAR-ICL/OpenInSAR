@@ -31,16 +31,17 @@ methods
     end
 
     function A = get_annotations( this )
-        if isempty(this.annotatioPath)
+        if isempty(this.annotationPath)
             error('not initialised correctly')
         end
         tAnnotationPath = this.annotationPath;
+        % Check for relative path
         % usually the first two chars is './' which works (on win?) but lets be safe
-        if strcmp(tAnnotationPath(1:2), './')
+        if strcmp(tAnnotationPath(1:2), './') || strcmp(tAnnotationPath(1:2), '.\') || strcmp(tAnnotationPath(1:2), '.\\') 
             tAnnotationPath = tAnnotationPath(3:end);
         end
         % get the full path to the annotation file
-        tAnnotationPath = fullfile(safeFolderPath, tAnnotationPath);
+        tAnnotationPath = fullfile(this.safePath, tAnnotationPath);
         A = OI.Data.XmlFile( tAnnotationPath ).to_struct();
     end
 
