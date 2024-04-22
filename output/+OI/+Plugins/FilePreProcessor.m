@@ -81,7 +81,9 @@ methods
                     engine.requeue_job_at_index(jobsAdded, ...
                         'platform', safePlatform, ...
                         'datetime', safeDatetime.datenum());
-                    
+                    if jobsAdded > 200
+                        break
+                    end
                 else % add the data to an array, to save later if complete
                     fns = fieldnames(existing);
                     for fn = fns(:)'
