@@ -69,7 +69,8 @@ methods
             'type', 'stack', ...
             'BLOCK', 'ALL', ...
             'POLARISATION', 'VV', ...
-            'METHOD', this.method ...
+            'METHOD', this.method, ...
+            'overwrite', this.isOverwriting ...
         );
     end
     
@@ -106,8 +107,13 @@ methods
         pscAz = zeros(nSamples,1); % The azimuth of each pixel
         pscRg = pscAz; % The range of each pixel
         pscAS = pscAz; % The stability of each pixel
+        pscCoh = pscAz;
+        pscVel = pscAz;
+        pscQ = pscAz;
         pscBlock = pscAz;  % The block index of each pixel
         pscLLE = zeros(nSamples,3);
+        pscBlocks = zeros(nBlocks,1);
+        pscRef = zeros(nBlocks, nDays);
         
         %% Load the data
         timePerBlock = zeros(1,numel(stack.visits));
@@ -148,7 +154,7 @@ methods
             end
         
             % Also remove any pixels that aren't stable enough
-            mask = mask & tpAS > stabilityThreshold;
+            mask = mask & (tpAS > stabilityThreshold);
             
             nAvail = sum(mask);
             if nPixPerBlockLoad > nAvail
@@ -166,7 +172,21 @@ methods
             pscRg(index) = psPhaseObject.candidateRg(mask);
             pscBlock(index) = blockIndex;
             pscAS(index) = tpAS(mask);
-        
+            pscCoh(index) = psPhaseObject.coherence(candidateInds(mask));
+            pscVel(index) = psPhaseObject.velocity(candidateInds(mask));
+            pscQ(index) = psPhaseObject.heightError(candidateInds(mask));
+
+            doExtras = ...
+                (isobject(psPhaseObject) && ...
+                isprop(psPhaseObject,'referencePhase')) || ...
+                (isstruct(psPhaseObject) && ...
+                isfield(psPhaseObject,'referencePhase'));
+            
+            if doExtras && ~isempty(psPhaseObject.referencePhase)
+                pscBlocks(iiBlock) = blockIndex;
+                pscRef(iiBlock,:) = psPhaseObject.referencePhase;
+            end
+            
             timePerBlock(iiBlock) = toc(bTic);
             muTimePerBlock = mean(timePerBlock(1:iiBlock));
             remTime = muTimePerBlock * (nBlocks - iiBlock);
@@ -188,6 +208,9 @@ methods
         pscRg(noDataMask) = [];
         pscBlock(noDataMask) = [];
         pscAS(noDataMask) = [];
+        pscCoh(noDataMask) = [];
+        pscVel(noDataMask) = [];
+        pscQ(noDataMask) = [];
         pscLLE(noDataMask,:) = [];
 
         pscSample.samplePhase = phi;
@@ -196,7 +219,14 @@ methods
         pscSample.sampleStability = pscAS;
         pscSample.sampleBlock = pscBlock;
         pscSample.sampleLLE = pscLLE;
-
+        
+        pscSample.coherence = pscCoh;
+        pscSample.velocity = pscVel;
+        pscSample.heightError = pscQ;
+        
+        pscSample.blocks = pscBlocks;
+        pscSample.referencePhase = pscRef;
+        
         engine.save( pscSample );
         this.isFinished = true;
 
