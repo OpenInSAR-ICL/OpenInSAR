@@ -1,6 +1,6 @@
 classdef OrbitSummary < OI.Data.DataObj
     properties
-        generator = 'GetOrbits'
+        generator = 'OrbitFileHttpIndexing'
         id = 'OrbitSummary'
         fileCount = 0;
         sceneCount = 0;

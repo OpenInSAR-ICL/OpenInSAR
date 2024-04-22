@@ -24,9 +24,27 @@ methods
         h = {};
         n = {};
         
+        A_RANGE = [201403 str2num(datestr(now(),'YYYYmm'))];
+        B_RANGE = [201603 202206];
+        
         for sat = ['A' 'B']
         for startYear=2014:2024
+            engine.ui.log('info','Getting orbits for S1%s - %i\n', sat, startYear);
             for startMonth=1:12
+                
+                if sat=='A'
+                    firstMonth = A_RANGE(1);
+                    lastMonth = A_RANGE(2);
+                else
+                    firstMonth = B_RANGE(1);
+                    lastMonth = B_RANGE(2);     
+                end
+                thisMonth= startYear*100+startMonth;
+                if thisMonth <= firstMonth || thisMonth > lastMonth
+                    continue
+                end
+                    
+                
                 if datenum([startYear startMonth '01'],'YYYYMMDD') > now()
                     break
                 end
@@ -35,6 +53,9 @@ methods
                 if numel(startMonth)~=2
                     startMonth = ['0' startMonth];
                 end
+                
+                
+                
                 PAGE = ...
                     [SITE 'S1' sat '/' num2str(startYear) '/' num2str(startMonth)];
                 
@@ -66,7 +87,7 @@ methods
         this.outputs{1}.download_from_catalogue(engine, cat);
 
         this = this.update_catalogue(engine, cat);
-
+        engine.save( OI.Data.OrbitSummary() );
         engine.save( this.outputs{1} )
     end % run(
     
@@ -105,6 +126,7 @@ methods
         % save the catalogue
         catalogue.overwrite = true;
         engine.save(catalogue,catalogue);
+        
         this.isFinished = true;
     end % update_catalogue
 

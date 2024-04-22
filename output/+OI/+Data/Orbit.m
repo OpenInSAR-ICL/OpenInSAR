@@ -2,7 +2,7 @@ classdef Orbit < OI.Data.DataObj
 
 properties
     id = 'Orbit';
-    generator = 'GetOrbits';
+    generator = 'OrbitFileHttpIndexing';
     nameOfPoeFile
     link
     platform

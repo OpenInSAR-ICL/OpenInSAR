@@ -29,7 +29,7 @@ methods
         end
         
         for ii=1:numel(cat.safes)
-            fprintf(1,'%i - %f \n',ii,ii/numel(cat.safes));
+            %fprintf(1,'%i - %f \n',ii,ii/numel(cat.safes));
             targetDatetime = cat.safes{ii}.date;
             % get the platform
             targetPlatform = cat.safes{ii}.platform;
