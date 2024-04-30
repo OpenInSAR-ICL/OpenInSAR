@@ -28,6 +28,7 @@ classdef ApsModel2 < OI.Data.DataObj
         % interpolators
         latGrid
         lonGrid
+        referenceLLE
         
         xGrid
         yGrid
@@ -60,6 +61,16 @@ classdef ApsModel2 < OI.Data.DataObj
                 assert(~(isempty(this.xGrid) || isempty(this.yGrid)) )
             else
                 assert(~(isempty(this.lonGrid) || isempty(this.latGrid)) )
+                
+                % If we've built the model on an XY grid, but the user has
+                % specified lat/lon. Then we need to find the respective XY
+                % coords.
+                if ~isempty(this.xGrid)
+                    [lat,lon]=OI.Functions.haversineXY([lat(:) lon(:)],this.referenceLLE(:,1:2));
+                    
+                    % now we have converted to XY
+                    isXY = true;
+                end
             end
             
             for imageIndex = size(this.apsGrid, 3):-1:1
