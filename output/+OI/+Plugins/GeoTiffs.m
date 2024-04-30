@@ -322,6 +322,9 @@ methods
                     'VISIT', visitIndex, ...
                     'STACK', stackIndex, ...
                     'MAPPING_AVAILABLE', true);
+                if jobCount > 200
+                    break
+                end
             end
         end
         
@@ -472,7 +475,7 @@ methods
 
                 % get masks for each direction in terms of if the error decreases
                 err = latError.^2 + lonError.^2;
-                disp(sum(err(:)))
+                % disp(sum(err(:)))
                 uErr = upErrorLat.^2 + upErrorLon.^2;
                 dErr = downErrorLat.^2 + downErrorLon.^2;
                 lErr = leftErrorLat.^2 + leftErrorLon.^2;
