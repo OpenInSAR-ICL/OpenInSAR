@@ -76,6 +76,7 @@ methods
         F = @(c) min(12*pi,(1-c.^2)./c.^2);
 
         % get the distance from the reference point
+        apsModel.referenceLLE = pscLLE(masi,1:2);
         [dy, dx]=OI.Functions.haversineXY(pscLLE(:,1:2), pscLLE(masi,1:2));
         dd = hypot(dx,dy);
         [sdd, ~]=sort(dd);
@@ -113,25 +114,25 @@ methods
         [xGrid, yGrid]=meshgrid(xAxis,yAxis);
         apsModel.xGrid = xGrid;
         apsModel.yGrid = yGrid;
-        % Initial estimate of APS at each PSC:
-        if FEW_SAMPLES
-
-            D = sqrt((dx-dx').^2+(dy-dy').^2);
-            T = (1-sill).*exp(-D./decay);
-
-            TT=T.*sqrt(F(C0)).*sqrt(F(C0))';
-
-            L=numel(C0);
-
-%             pTT=inv([TT ones(L,1); ones(1,L) 0]);
-%             W = pTT*[T.*F(C0); ones(1,L)];
-            W = [TT ones(L,1); ones(1,L) 0] \ [T.*F(C0); ones(1,L)];
-            
-            W(end,:)=[];
-            W=W./sum(W,2);
-            AE = normz(W'*phiTraining);
-      
-        else % many samples
+%         % Initial estimate of APS at each PSC:
+%         if FEW_SAMPLES
+% 
+%             D = sqrt((dx-dx').^2+(dy-dy').^2);
+%             T = (1-sill).*exp(-D./decay);
+% 
+%             TT=T.*sqrt(F(C0)).*sqrt(F(C0))';
+% 
+%             L=numel(C0);
+% 
+% %             pTT=inv([TT ones(L,1); ones(1,L) 0]);
+% %             W = pTT*[T.*F(C0); ones(1,L)];
+%             W = [TT ones(L,1); ones(1,L) 0] \ [T.*F(C0); ones(1,L)];
+%             
+%             W(end,:)=[];
+%             W=W./sum(W,2);
+%             AE = normz(W'*phiTraining);
+%       
+%         else % many samples
 
             kdt = KDTreeSearcher([dx dy]);
             K = 500;
@@ -159,11 +160,13 @@ methods
             end
             end
             apsModel.apsGrid = reshape(AEG,ngY,ngX,nD);
+            % apsModel will add the reference phase back on;
             AE = apsModel.interpolate(dy(:),dx(:),pscLLE(:,3),true);
+            AE = AE.*conj(apsModel.referencePointPhase);
 
-        end
+%         end
         
-        phiTraining=normz(phiTraining.*conj(AE).*apsModel.referencePointPhase);
+        phiTraining=normz(phiTraining.*conj(AE));
         [cq, q] = OI.Functions.invert_height( ...
             normz(phiTraining), ...
             kFactors, ...
@@ -207,22 +210,22 @@ methods
         for ia=size(latGrid,1):-1:1
             iatic=tic;
             for ir = size(lonGrid,2):-1:1
-                if FEW_SAMPLES
-                    lat = latGrid(ia,ir);
-                    lon = lonGrid(ia,ir);
-
-                    [dy1, dx1]=OI.Functions.haversineXY(pscLLE(:,1:2), [lat,lon]);
-                    dd = hypot(dx1,dy1);
-                    tt = (1-sill).*exp(-dd./decay);
-                    tt = tt ./ sum(tt);
-
-                    a=tt.*phi1;
-                else
+%                 if FEW_SAMPLES
+%                     lat = latGrid(ia,ir);
+%                     lon = lonGrid(ia,ir);
+% 
+%                     [dy1, dx1]=OI.Functions.haversineXY(pscLLE(:,1:2), [lat,lon]);
+%                     dd = hypot(dx1,dy1);
+%                     tt = (1-sill).*exp(-dd./decay);
+%                     tt = tt ./ sum(tt);
+% 
+%                     a=tt.*phi1;
+%                 else
                     dd = KNND(:,ia,ir);
                     tt = (1-sill).*exp(-dd./decay);
                     tt = tt ./ sum(tt);
                     a=tt.*phi1(KNN(:,ia,ir),:);
-                end
+%                 end
                 acm = a'*a;
                 acm=acm./acm(1);
                 pp=OI.Functions.phase_triangulation(acm); % note this is conj
@@ -240,6 +243,7 @@ methods
         apsModel.latGrid = latGrid;
         apsModel.lonGrid = lonGrid;
         apsModel.apsGrid = ae1;
+        apsModel.overwrite = this.isOverwriting;
 
         engine.save(apsModel)
         this.isFinished=true;
