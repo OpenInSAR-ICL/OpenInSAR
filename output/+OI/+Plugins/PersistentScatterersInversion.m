@@ -94,8 +94,15 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             if isempty(blockData)
                 return
             end
+
+            
             sz = size(blockData);
             blockData = reshape(blockData, [], sz(3));
+            
+            mu = mean(abs(blockData),2);
+            sigma = var(abs(blockData),0,2).^.5;
+            as = mu./sigma;
+            
 %             missingData = sum(blockData) == 0;
 %             blockData = blockData(:, ~missingData);
 %             apsEst = apsEst(:, ~missingData);
@@ -127,7 +134,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             blockData = normz(blockData);
 
             % estimate v
-            [Cv, v] = OI.Functions.invert_velocity(blockData, baselinesObject.timeSeries(1, :) .* PHASE_TO_M_PER_A);
+            [Cv, v] = OI.Functions.invert_velocity(blockData, baselinesObject.timeSeries(1, :) .* PHASE_TO_M_PER_A, 0.1, 101);
             % v is backwards for some reason
             v = -v;
             
@@ -140,7 +147,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             engine.save(resultObj_q, q0);
 
             % Threshold for writing SHP
-            MASK = Cv > .4;
+            MASK = Cv > .4 & as(:) > 1.75;
 
             % So disp - exp(1i v) is the residual
             res = displacement(MASK, :) .* conj(displacement(MASK, round(mean(size(displacement, 2)))));
@@ -150,9 +157,12 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             res = res .* exp(-1i .* baselinesObject.timeSeries(1, :) .* PHASE_TO_M_PER_A .* v(MASK));
             res = res .* conj(normz(mean(res, 2)));
             res = res .* conj(normz(mean(res)));
+            res = movmean(res,20,2);
             uwres = unwrap(angle(res)')';
             uwres = uwres - uwres(:, 1);
             uwres = uwres .* (0.055 ./ (4 * pi));
+            ts = baselinesObject.timeSeries(1, :)-baselinesObject.timeSeries(1, 1);
+            uwres = uwres + ts .* PHASE_TO_M_PER_A .* v(MASK) .* (0.055 ./ (4 * pi)) ;
 
             datestrCells = cell(length(baselinesObject.timeSeries), 1);
             for ii = 1:length(baselinesObject.timeSeries)
@@ -191,10 +201,10 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
                 shpName, ...
                 bg.lat(MASK), ...
                 bg.lon(MASK), ...
-                uwres, ... % displacements 2d Array
+                -uwres, ... % displacements 2d Array
                 datestrCells, ... % datestr(timeSeries(1),'YYYYMMDD')
                 q(MASK), ...
-                v(MASK), ...
+                -v(MASK), ...
                 Cv(MASK));
 
             this.isFinished = true;
@@ -220,7 +230,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
                     % Check if the block is already done
                     priorObj = engine.database.find(resultObj);
 
-                    if isempty(priorObj)
+                    if isempty(priorObj) || ~priorObj.exists
                         jobCount = jobCount + 1;
                         engine.requeue_job_at_index( ...
                             jobCount, ...
