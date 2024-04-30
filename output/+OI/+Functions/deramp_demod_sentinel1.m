@@ -160,13 +160,14 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
     etaref = -fnc ./ ka;
     etaref = etaref - etaref(round(spb/2));
     
+    etaref = [0:lpb-1]'*ati;
     % finally...
     kt=(ka.*ks)./(ka-ks);
 
     % phi phase
     realphi=-pi*kt.*(eta-etaref).^2;
-    realdemod=-2*pi.*kt.*(eta - etaref);
-    
+    realdemod=-2*pi.*kt.*(eta);
+    realphi = realphi;% + realdemod;
     % Check if azimuth offsets were provided
     % INTERFEROMETRIC PROCESSING OF SLC SENTINEL-1 TOPS DATA
     % Raphael Grandin, ESA Fringe 2015
