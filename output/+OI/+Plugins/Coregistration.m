@@ -294,7 +294,7 @@ methods
         lineTimes = lineTimes - orbitCentre;
         orbit.t = orbit.t - orbitCentre;
         %!
-        haveFoundOffsets = false;
+%         haveFoundOffsets = false;
         if ~haveFoundOffsets % if we already have offsets we can skip this
             % we need one more input...
             geocodingData = OI.Data.LatLonEleForImage().configure( ...
@@ -383,8 +383,7 @@ methods
             tOrbit = [];
             
             % save the results
-            %!
-            %engine.save(result, [a(:) r(:)]);
+            engine.save(result, [a(:) r(:)]);
         else
             azRgOffsets = engine.load( result );
             if isempty(azRgOffsets)
@@ -410,7 +409,7 @@ methods
         refSafe = cat.safes{refSafeIndex};
         % for each polarisation requested and available
         %!
-        projObj.POLARIZATION = 'VV';
+%         projObj.POLARIZATION = 'VV';
         for pol = {'HH','VH','VV'} % do default last, to align how we check
             % if the plugin has finished
             if isempty(strfind(projObj.POLARIZATION,pol{1}))
