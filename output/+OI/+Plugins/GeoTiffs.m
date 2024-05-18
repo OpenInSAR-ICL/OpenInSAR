@@ -57,15 +57,26 @@ methods
         % If the mapping has not been calculated, calculate it and then generate new jobs
         if isempty(this.MAPPING_AVAILABLE) || ~this.MAPPING_AVAILABLE
             if isempty(this.SEGMENT)
-                error('Calling this job with a stack but no Segment. idk what to do')
-            end
-            this = this.generate_mapping(engine, stacks);
-            return;
+                warning([ ...
+                'The object does not know whether not the mapping files are available, set MAPPING_AVAILABLE to true/false.\n' ...
+                'Additionally no ''SEGMENT'' has been provided as a target for mapping.\n' ...
+                'The plugin will proceed assuming that mapping files are available (and fail fairly quickly if not).\n' ...
+                ])
+            else
+                this = this.generate_mapping(engine, stacks);
+                return;
+            end    
+        end
+        
+        if isempty(this.VISIT)
+            error('Object does not know what to do. Please instruct which VISIT to process.')
         end
 
         % TODO this info should now be in STACKS object
         cat = engine.load(OI.Data.Catalogue() );
         thisStack = stacks.stack(this.STACK);
+        % load the mapping data
+        segments = thisStack.reference.segments.index;
         firstSeg = find(thisStack.correspondence(:,this.VISIT),1);
         if isempty(firstSeg)
             warning('No valid data for this date, in this stack and segment');
@@ -80,6 +91,7 @@ methods
             'VISIT', this.VISIT, ...
             'DATE', visitDatestr);
 
+        % TODO this should go in types loop? line-108?
         % Allocate the output raster
         output = zeros(this.SIZE);
         
@@ -87,17 +99,7 @@ methods
         oGrid = this.generate_grid(this.AOI, this.SIZE);
         tiffMeta = this.get_geotiff_metadata( oGrid.latGrid, oGrid.lonGrid, this.SIZE);
 
-        % load the mapping data
-        segments = thisStack.reference.segments.index;
-        for segInd = numel(segments):-1:1
-            segIndInStack = thisStack.reference.segments.index(segInd);
-            % Load the mapping
-            mapping = engine.load(OI.Data.GeoTiffMapping().configure( ...
-                'STACK', this.STACK, ...
-                'SEGMENT', segIndInStack ...
-            ));
-            mappingCells{segInd} = mapping;
-        end
+        mappingCells = this.load_mapping( engine, thisStack );
         
         preprocessingInfo = engine.load( OI.Data.PreprocessedFiles() );
         avfilt = @(x) imfilter(x, fspecial('average', [4, 20]));
@@ -118,6 +120,12 @@ methods
                 % get general info and metadata
                 % address of the data in the catalogue and metadata
                 segInCatalogue = stacks.stack(this.STACK).correspondence(this.SEGMENT, this.VISIT);
+                
+                % If no data for this seg/visit, move on
+                if ~segInCatalogue
+                    continue
+                end
+                
                 safeIndex = stacks.stack(this.STACK).segments.safe( segInCatalogue );
                 safe = cat.safes{safeIndex};
                 swathIndex = stacks.stack(this.STACK).segments.swath( segInCatalogue );
@@ -250,6 +258,20 @@ methods
         this.isFinished = true;
         
     end % run
+    
+    function mappingCells = load_mapping(this, engine, thisStack)
+        % load the mapping data
+        segments = thisStack.reference.segments.index;
+        for segInd = numel(segments):-1:1
+            segIndInStack = thisStack.reference.segments.index(segInd);
+            % Load the mapping
+            mapping = engine.load(OI.Data.GeoTiffMapping().configure( ...
+                'STACK', this.STACK, ...
+                'SEGMENT', segIndInStack ...
+            ));
+            mappingCells{segInd} = mapping;
+        end
+    end
     
     function this = queue_jobs(this, engine, stacks)
         
