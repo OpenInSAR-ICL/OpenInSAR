@@ -37,13 +37,19 @@
         'reset.sh', ...
         'reset_workers.sh', ...
     };
-    for ii = 1:length(helper_scripts)
-        if ~exist( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}), 'file' )
-            warning('Could not find helper script %s', helper_scripts{ii})
-            continue
-        end
-        if ~exist( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}), 'file' )
-            copyfile( fullfile(oi.engine.postings.postingPath, helper_scripts{ii}) );
+
+    try % to copy helper scripts
+        for ii = 1:length(helper_scripts)
+
+            helpFileIn = fullfil(oi.engine.database.fetch('ROOT'),'..',helper_scripts{ii});
+            helpFileOut = fullfile(oi.engine.postings.postingPath, helper_scripts{ii});
+            if ~exist( helpFileIn, 'file' )
+                warning('Could not find helper script %s', helper_scripts{ii})
+                continue
+            end
+            if ~exist( helpFileOut, 'file' )
+                copyfile( helpFileIn, helpFileOut );
+            end
         end
     end
 
@@ -52,7 +58,7 @@
     elseif strcmpi(projObj.PROCESSING_SCHEME,'TS')
         thingToDoList = { OI.Data.TransientScatterers_Summary() };
     elseif strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFFS')
-        thingToDoList = { OI.Data.GeotiffSummary()};
+        thingToDoList = { OI.Data.GeocodingSummary(), OI.Data.CoregistrationSummary(), OI.Data.GeotiffSummary()};
     elseif strcmpi(projObj.PROCESSING_SCHEME,'EDF')
         thingToDoList = { OI.Data.GeotiffSummary(), OI.Data.PsiSummary() };
     else
