@@ -54,21 +54,24 @@ methods
                         if contains(tline, 'PROJECT_NAME')
                             % 'PROJECT_NAME = SOMETHING'
                             projectNameCell = strsplit(tline, '=');
-                            projectName = projectNameCell{2};
-                            % Remove anything following first space or ;
-                            projectNameCell = strsplit(projectName,{' ', ';'});
-                            % remove leading and trailing white spaces
+                            % remove leading spaces from everything after =
+                            projectName = strtrim(projectNameCell{2});
+                            % Split on spaces, semicolons, comments
+                            projectNameCell = strsplit(projectName,{' ', ';' , '#'});
+                            % pick out name
                             projectName = strtrim(projectNameCell{1});
                             % remove any awkward characters
                             legalChars = ['A':'Z', 'a':'z', '0':'9', ' ', '_', '-', '.'];
                             projectName = projectName(ismember(projectName, legalChars));
                             % remove any leading or trailing spaces
-                            projectName = strtrim(projectName);
+                            projectName = strtrim(projectName); % redundant?
                             break
                         end
                         tline = fgetl(fid);
                     end
                 end
+            catch ERR
+                ERR
             end
 
             backupDir = fullfile(homeDir, 'OpenInSAR_projects');
