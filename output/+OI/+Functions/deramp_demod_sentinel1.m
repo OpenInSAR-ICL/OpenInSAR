@@ -152,67 +152,32 @@ function [realphi, realdemod, lagPhase] = deramp_demod_sentinel1( swathInfo, bur
         error('Unknown format for dc estimate poly in annotations %s',...
             annotationPath);
     end
-    % Doppler centroid is given relative to polynomial origin
-    %     fnc = polyval(dcEstimatePoly, tao - s2n(dcEst.t0));
-    fnc = polyval(dcEstimatePoly, tao - tao(1));
+    % Doppler centroid ('fnc') is given relative to polynomial origin
+    fnc = polyval(dcEstimatePoly, tao - s2n(dcEst.t0));
 
     %% 6.6: Reference zero-Doppler Azimuth Time etaref
-    etaref = -fnc ./ ka;
-    etaref = etaref - etaref(round(spb/2));
-    
-    etaref = [0:lpb-1]'*ati;
-    % finally...
     kt=(ka.*ks)./(ka-ks);
+    % doppler centroid and doppler rate are range-dependent.
+    etaref = lpb * ati/2 + fnc(1) / kt(1) - fnc ./ kt; % looks funny but its just because of the minus sign
 
-    % phi phase
-    realphi=-pi*kt.*(eta-etaref).^2;
-    realdemod=-2*pi.*kt.*(eta);
-    realphi = realphi;% + realdemod;
-    % Check if azimuth offsets were provided
-    % INTERFEROMETRIC PROCESSING OF SLC SENTINEL-1 TOPS DATA
-    % Raphael Grandin, ESA Fringe 2015
-    % https://proceedings.esa.int/files/116.pdf
-    if nargin > 4
-        % adjust for azimuth misregistration
-        etalagPoly = polyfit(linspace(-1,1,size(azOff,1)),ati.*azOff(:,1),1);
-        etalagPolyR = polyfit(linspace(-1,1,size(azOff,2)),ati.*azOff(1,:),1);
-        etalagPoly(end)=0;
-        etalagPolyR(end)=0;
-        
-        etalag = polyval(etalagPoly,linspace(-1,1,lpb)');
-        etalagR = polyval(etalagPoly,linspace(-1,1,spb));
-        etalag = etalag + etalagR;
-%         datestr(swathInfo.startTime.daysSinceZero, 'yyyy-mm-dd')
-%         etastart = (swathInfo.burst(1).startTime - ...
-%             swathInfo.burst(burstIndex).startTime).* 86400 / ati
-%         round(etastart)
-%         aat
-%         etastart = aat ./ ati - 254000
-%         round(etastart)
-%         etalag = etalag + round(etastart) .* ati;
-% %         etastart=-1
-% %         etalag = etalag + round(etastart).*ati;
-% %         lagPhase = 2*pi*kt.*(eta).*(etalag;
-% %         lagPhase = pi*kt.*(eta + etalag/2).*etalag;
-%         lagPhase = -2 .* pi.*kt .* ...
-%             eta .* etalag; % This works well now? I think maybe the combo of tao/t0 and removing the mean azOff??
-%         % There's still a bit of nonsense though
-        lagPhase = - pi.*kt .* ...
-            (2.*(eta-etaref) .* etalag);% - etalag.^2);
-%             ( etalag.^2 + 2 .* (eta-etaref) .* etalag );
-        
-%         lagPhase= -pi.*kt.*(eta - etalag - etaref).^2;
-%         
-%                 % adjust for azimuth misregistration
-%         eta0 = ati.*azOff(1,1);
-%         etalagPolyX = polyfit(1:size(azOff,1),ati.*azOff(:,1)-eta0,1);
-%         etalagPolyX(end)=0;
-%         etalagPolyY =polyfit(1:size(azOff,2),ati.*azOff(1,:)-eta0,1);
-%         etalagPolyX(end)=0;
-%         etalagX = polyval(etalagPolyX,1:lpb);
-%         etalagY = polyval(etalagPolyY,1:spb);
-%         etalag = etalagY + etalagX';
-%         lagPhase = 2*pi*kt.*eta.*etalag;% + 2*pi*(eta0-ati)*kt;
-    else
-        lagPhase = 0;
-    end
+    % from SubSwathInfo class
+    % kt is doppler rate, but only varies with range?
+    ta = ((0:lpb-1)')*ati;
+
+    realphi = -pi.*kt.*(ta-etaref).^2;
+    realdemod = -2*pi.*fnc.*(ta);
+    realphi = realphi + realdemod;
+
+    etalagPoly = polyfit(linspace(-1,1,size(azOff,1)),ati.*azOff(:,1),1);
+    etalagPolyR = polyfit(linspace(-1,1,size(azOff,2)),ati.*azOff(1,:),1);
+    etalagPoly(end)=0;
+    etalagPolyR(end)=0;
+
+    etalag = polyval(etalagPoly,linspace(-1,1,lpb)');
+    etalagR = polyval(etalagPolyR,linspace(-1,1,spb));
+    etalagR=0; % TODO ??????
+    etalag = etalag + etalagR;
+
+    lagPhase = - pi.*kt .* ...
+        (2.*(-eta-etaref) .* etalag) - etalag.^2;
+    
