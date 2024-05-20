@@ -1,4 +1,5 @@
 % if ~exist('oi','var')
+%
     J=0;
 
     [~,startDirectory,~]=fileparts(pwd);
