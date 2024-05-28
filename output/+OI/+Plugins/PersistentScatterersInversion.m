@@ -89,14 +89,23 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
                 return
             end
 
+            ts = baselinesObject.timeSeries(1, :);
+            ts = ts - ts(:,1);
+            tsp = ts .* PHASE_TO_M_PER_A;
+            % tsp = tsp - tsp(:,1);
+
+            k = baselinesObject.k(:)';
+
             % Load the block SAR data
             blockData = engine.load(blockObj);
             if isempty(blockData)
                 return
             end
-
             
             sz = size(blockData);
+            mask0s = @(A) OI.Functions.mask0s(A);
+            r2d = @(x) reshape(x, sz(1:2));
+
             blockData = reshape(blockData, [], sz(3));
             
             mu = mean(abs(blockData),2);
@@ -127,16 +136,20 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             blockData = blockData .* conj(displacement);
 
             % estimate height error
-            [~, q] = OI.Functions.invert_height(blockData, baselinesObject.k(:)');
+            [~, q] = OI.Functions.invert_height(blockData, k);
 
             % remove height error, add low pass back on
             blockData = displacement .* blockData .* exp(1i .* q .* baselinesObject.k(:)');
             blockData = normz(blockData);
 
             % estimate v
-            [Cv, v] = OI.Functions.invert_velocity(blockData, baselinesObject.timeSeries(1, :) .* PHASE_TO_M_PER_A, 0.1, 101);
+            [Cv, v] = OI.Functions.invert_velocity(blockData, tsp, 0.1, 101);
+            % update residual
+            blockData = blockData .* exp( 1i * ( v .* tsp ));
+            
             % v is backwards for some reason
             v = -v;
+            % POSITIVE (RED) IS SUBSIDENCE
             
             % Save the PSI outputs
             C0 = reshape(Cv, sz(1:2));
@@ -146,30 +159,29 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             engine.save(resultObj_v, v0);
             engine.save(resultObj_q, q0);
 
+            % update residual
+            blockData = blockData .* exp( - 1i * ( v .* tsp ));
+
+
             % Threshold for writing SHP
             MASK = Cv > .4 & as(:) > 1.75;
 
-            % So disp - exp(1i v) is the residual
-            res = displacement(MASK, :) .* conj(displacement(MASK, round(mean(size(displacement, 2)))));
-            res = res .* conj(normz(mean(res)));
+            % Estimate residual deformation
+            nld = movmean(blockData(MASK,:), 21, 2);
+            nld = nld .* conj(mean(nld,2));
 
-            % Remove v and unwrap
-            res = res .* exp(-1i .* baselinesObject.timeSeries(1, :) .* PHASE_TO_M_PER_A .* v(MASK));
-            res = res .* conj(normz(mean(res, 2)));
-            res = res .* conj(normz(mean(res)));
-            res = movmean(res,20,2);
-            uwres = unwrap(angle(res)')';
-            uwres = uwres - uwres(:, 1);
-            uwres = uwres .* (0.055 ./ (4 * pi));
-            ts = baselinesObject.timeSeries(1, :)-baselinesObject.timeSeries(1, 1);
-            uwres = uwres + ts .* PHASE_TO_M_PER_A .* v(MASK) .* (0.055 ./ (4 * pi)) ;
+            % unwrap
+            unld = unwrap(angle(nld),[],2);
 
+            % add vel back on
+            real_displacement_m = unld * 0.055 / ( 4 * pi ) + v(MASK,:) .* ts / 365;
+            
             datestrCells = cell(length(baselinesObject.timeSeries), 1);
             for ii = 1:length(baselinesObject.timeSeries)
                 datestrCells{ii} = datestr(baselinesObject.timeSeries(1, ii), 'YYYYmmDD');
             end
 
-            % // free some mem
+            % free some mem
             blockData = [];
             apsInterpolation = [];
             displacement = [];
@@ -180,14 +192,13 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             res = [];
 
             % Write preview KMLs
-            mask0s = @(A) OI.Functions.mask0s(A);
             if baselinesObject.azimuthVector(3) > 0 % ascending
                 OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
-                    blockInfo, fliplr(flipud(Cv)), 'Coherence', '1');
+                    blockInfo, flipud(r2d(Cv)), 'Coherence', '1');
                 OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
-                    blockInfo, fliplr(flipud(v .* mask0s(MASK))), 'Velocity', '1');
+                    blockInfo, flipud(r2d(v .* mask0s(MASK))), 'Velocity', '1');
                 OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
-                    blockInfo, fliplr(flipud(q .* mask0s(MASK))), 'HeightError', '1');
+                    blockInfo, flipud(r2d(q .* mask0s(MASK))), 'HeightError', '1');
             else % descending
                 OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
                     blockInfo, fliplr(Cv), 'Coherence', '1');
@@ -201,7 +212,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
                 shpName, ...
                 bg.lat(MASK), ...
                 bg.lon(MASK), ...
-                -uwres, ... % displacements 2d Array
+                -real_displacement_m, ... % displacements 2d Array
                 datestrCells, ... % datestr(timeSeries(1),'YYYYMMDD')
                 q(MASK), ...
                 -v(MASK), ...

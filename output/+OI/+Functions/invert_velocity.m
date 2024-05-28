@@ -37,9 +37,22 @@ if sz(1) < 20e3 % vectorise where possible if mem allows
     end
     [C, vi] = max(abs(CPer),[],2);
 else
-    for jj=1:sz(1)
-    [C(jj), vi(jj)]=max(abs(sum((data(jj,:).*periodogram),2)));
+    % for jj=1:sz(1)
+    % [C(jj), vi(jj)]=max(abs(sum((data(jj,:).*periodogram),2)));
+    % end
+
+    % vectorise / use matrix multiplication (quicker)
+    CHUNK_SIZE = 1e4;
+    startInd = 1:CHUNK_SIZE:sz(1)-1;
+    endInd = [startInd(2:end) sz(1)];
+    pT = periodogram.';
+    for chunk = 1:numel(startInd)
+        ind = startInd(chunk):endInd(chunk);
+        CPer = data(ind,:)*pT;
+        [C(ind), vi(ind)] = max(abs(CPer),[],2);
     end
+
+
 end
 
 % Convert from index to rate

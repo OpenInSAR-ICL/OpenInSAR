@@ -136,22 +136,26 @@ methods
 
             kdt = KDTreeSearcher([dx dy]);
             K = 500;
-            KNN = zeros(K,ngY,ngX);
+            KNN = zeros(ngY,K,ngX);
             KNND = KNN;
-            for iY=ngY:-1:1
+            % for iY=ngY:-1:1
+            for iX = ngX:-1:1
                 iatic=tic;
-                for iX = ngX:-1:1
+                % for iX = ngX:-1:1
 
-                    tY = yGrid(iY,iX);
-                    tX = xGrid(iY,iX);
-                    [KNN(:,iY,iX), KNND(:,iY,iX)] =  knnsearch(kdt, [tX, tY], 'k', K);
-                end
+                    tY = yGrid(:,iX);
+                    tX = xGrid(:,iX);
+                    [KNN(:,:,iX), KNND(:,:,iX)] = knnsearch(kdt, [tX, tY], 'k', K);
+                % end
                 iatoc=toc(iatic);
-                if mod(iY,10) == 1
-                    fprintf(1,'%f sec remaining\n',iatoc.*(iY-1));
+                % if mod(iY,10) == 1
+                if iX == ngX-1 || mod(iX,10) == 1
+                    % fprintf(1,'%f sec remaining\n',iatoc.*(iY-1));
+                    fprintf(1,'%f sec remaining\n',iatoc.*(iX-1));
                 end
             end
-        
+            KNN = permute(KNN, [1,3,2]);
+            KNND = permute(KNND, [1,3,2]);
             AEG=[];
             for iY=ngY:-1:1
             for iX = ngX:-1:1
@@ -186,8 +190,10 @@ methods
         phi1 = phi.*exp(1i.*kFactors.*q).*exp(1i.*tsp.*v).*conj(phi(masi,:)).*conj(AE);
         apsModel.virtualMasterImage_working = mean(phi1,2);
         phi1 = normz(phi1.*conj(apsModel.virtualMasterImage_working));
-        phi1 = phi1.*AE;
+        phi1 = normz(phi1.*AE);
 
+
+        % fit elevation dependent aps
         eRamp = [];
         for ii = size(phi1,2):-1:1
             cost = @(x) -abs(exp(1i*x.*pscLLE(:,3)') * phi1(:,ii));
@@ -221,10 +227,10 @@ methods
 % 
 %                     a=tt.*phi1;
 %                 else
-                    dd = KNND(:,ia,ir);
-                    tt = (1-sill).*exp(-dd./decay);
+                    dd = KNND(ia,ir,:);
+                    tt = (1-sill).*exp(-dd(:)./decay);
                     tt = tt ./ sum(tt);
-                    a=tt.*phi1(KNN(:,ia,ir),:);
+                    a=tt.*phi1(KNN(ia,ir,:),:);
 %                 end
                 acm = a'*a;
                 acm=acm./acm(1);

@@ -51,9 +51,22 @@ qi=qi+1;
 
 % Find the best models
 if size(KFr,1)==1
-    for jj=validInds
-    [C(jj), qi(jj)]=max(abs(sum(data(jj,:).*periodogram,2)));
+    
+    % for jj=validInds
+    % [C(jj), qi(jj)]=max(abs(sum(data(jj,:).*periodogram,2)));
+    % end
+
+    % vectorise / use matrix multiplication (quicker)
+    CHUNK_SIZE = 1e4;
+    startInd = 1:CHUNK_SIZE:sz(1)-1;
+    endInd = [startInd(2:end) sz(1)];
+    pT = periodogram.';
+    for chunk = 1:numel(startInd)
+        ind = startInd(chunk):endInd(chunk);
+        CPer = data(ind,:)*pT;
+        [C(ind), qi(ind)] = max(abs(CPer),[],2);
     end
+    
 else
     for jj=validInds
     [C(jj), qi(jj)]=max(abs(sum(data(jj,:).*exp(1i.*KFr(jj,:).*linq),2)));
