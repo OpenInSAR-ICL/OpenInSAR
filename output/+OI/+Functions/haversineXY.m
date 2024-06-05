@@ -1,4 +1,5 @@
 function [northSouthDist, eastWestDist] = haversineXY(latLonA, latLonB, radius)
+% !TODO make north/south more intuitive, add references.
 % Calculate the approximate distance along the north/south and east/west 
 % directions between points given in lat lon coordinates, in meters. 
 % Assumes a spherical earth of 6371000 radius. 
@@ -24,6 +25,8 @@ end
 if szA(1) ~= szB(1)
     if szB(1) == 1
         latLonB = ones(szA(1), 1) * latLonB;
+    elseif szA(1) == 1
+        latLonA = ones(szB(1), 1) * latLonA;
     else
         error('Argument size mismatch, %i vs %i.',szA(1),szB(1))
     end

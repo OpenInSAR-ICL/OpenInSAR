@@ -1,6 +1,6 @@
 classdef ApsModelSummary < OI.Data.DataObj
     properties
-        generator = 'ApsKriging2'
+        generator = 'ApsKriging3'
         id = 'ApsModelSummary'
     end % properties
 

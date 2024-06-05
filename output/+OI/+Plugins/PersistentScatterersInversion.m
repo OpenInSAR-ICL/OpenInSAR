@@ -65,12 +65,13 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             end
 
             % load APS
-            apsModel =engine.load( OI.Data.ApsModel2().configure('STACK',this.STACK) );
+            apsModel =engine.load( OI.Data.ApsModel3().configure('STACK',this.STACK) );
             if isempty(apsModel)
                 return
             end
             
-            aps = apsModel.interpolate( bg.lat(:), bg.lon(:), bg.ele(:) );
+            [dy, dx]=OI.Functions.haversineXY([bg.lat(:) bg.lon(:)],apsModel.referenceLLE);
+            aps = apsModel.interpolate( dy, dx, bg.ele(:), 1 );
 
             % Load block info
             stackBlocks = blockMap.stacks(this.STACK);
@@ -175,6 +176,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
 
             % add vel back on
             real_displacement_m = unld * 0.055 / ( 4 * pi ) + v(MASK,:) .* ts / 365;
+            real_displacement_m = real_displacement_m - real_displacement_m(:,1); % start at 0.
             
             datestrCells = cell(length(baselinesObject.timeSeries), 1);
             for ii = 1:length(baselinesObject.timeSeries)
