@@ -21,6 +21,8 @@
 
     % load the project object
     projObj = oi.engine.load( OI.Data.ProjectDefinition() );
+    projObj.setup_project_directories();
+    
     oi.engine = DistributedEngine();
     oi.engine.connect( projObj );
 
@@ -58,7 +60,7 @@
         thingToDoList = { OI.Data.PsiSummary() };
     elseif strcmpi(projObj.PROCESSING_SCHEME,'TS')
         thingToDoList = { OI.Data.TransientScatterers_Summary() };
-    elseif strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFFS')
+    elseif strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFFS') || strcmpi(projObj.PROCESSING_SCHEME,'GEOTIFF')
         thingToDoList = { OI.Data.GeocodingSummary(), OI.Data.CoregistrationSummary(), OI.Data.GeotiffSummary()};
     elseif strcmpi(projObj.PROCESSING_SCHEME,'EDF')
         thingToDoList = { OI.Data.GeotiffSummary(), OI.Data.PsiSummary() };
