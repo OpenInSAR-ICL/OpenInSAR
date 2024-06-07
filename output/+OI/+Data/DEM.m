@@ -138,7 +138,10 @@ classdef DEM < OI.Data.DataObj
                 error('Invalid file extension: %s', ext);
             end
 
-            % pull out the lat/lon
+            % pull out the lat/lon from the name
+            if iscell(name) % in R2024a, issue? 
+                name = name{1};
+            end 
             latSign = -2 * strcmp(name(1), 'S') + 1;
             lonSign = -2 * strcmp(name(4), 'W') + 1;
             lat = str2double(name(2:3)) * latSign;

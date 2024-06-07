@@ -13,7 +13,6 @@ function tilepaths = get_srtm_tiles(minLat, maxLat, minLon, maxLon, directory, u
 
     % SRTM1_TILE_SZ = [3601,3601]; % SRTM1 tile size
     
-
     %SRTM is in integer lat/lon squares
     latIntegers = floor(minLat):floor(maxLat);
     lonIntegers = floor(minLon):floor(maxLon);
@@ -50,75 +49,62 @@ function tilepaths = get_srtm_tiles(minLat, maxLat, minLon, maxLon, directory, u
         tilepaths{n} = fullfile(directory, tilenames{n});
     end % for each tile
 
-    % Check if the file already exists
-    needsDownload = zeros(n,1);
-    needsUnzip = zeros(n,1);
+    % Define status arrays for array of tiles
+    [fileExists, zipExists, needsUnzip, needsDownload, downloadFailed] = ...
+        deal(zeros(n,1) == 42);
     
     for n = 1:numel(tilepaths)
-        fileExists = exist(tilepaths{n},'file');
-        zipExists = exist([tilepaths{n},'.zip'],'file');
+        fileExists(n) = exist(tilepaths{n},'file') > 0;
+        zipExists(n) = exist([tilepaths{n},'.zip'],'file') > 0;
         
-        needsDownload(n) = ~zipExists && ~fileExists;
-        needsUnzip(n) = needsDownload(n) || (zipExists && ~fileExists);
+        needsDownload(n) = ~zipExists(n) && ~fileExists(n);
+        needsUnzip(n) = needsDownload(n) || (zipExists(n) && ~fileExists(n));
     end
 
     % download and unzip the file
+    needsDownload=needsDownload+1;
     for n = 1:numel(tilepaths)
         if needsDownload(n)
             remoteaddress = tileurls{n};
             localaddress = [tilepaths{n}, '.zip'];
-            % cURLCommand = sprintf('curl -u %s:%s -o %s %s',...
-            %     username,password,...
-            %     localaddress, ...
-            %     remoteaddress ...
-            % );
-            % [s,w] = system(cURLCommand);
-            if OI.OperatingSystem.isUnix
-                wgetCommand = sprintf( ...
-                    'wget -c -q -O %s --user=%s --password=%s %s --no-check-certificate', ...
-                    localaddress, username, password, remoteaddress);
-                [s,w] = system(wgetCommand);
-                
-                if s==6
-                    error( [ 'USERNAME/PASSWORD ERROR ' ...
-                            ' URL:\n%s\nUSERNAME: %s' ], ...
-                            NASA_URL, ...
-                            username );
-                end
-
-                if s
-                    warning('Error code %d',s);
-                    disp(w);
-
-                end
-
-            elseif OI.OperatingSystem.isWindows
-                % Create an HTTP options object with basic authentication
-                options = weboptions( ...
-                    'Username', username, 'Password', password);
-                try % Download the file
-%                     webwrite(localaddress, ... %???
-                    demBinary = webread(remoteaddress, options); %, options);
+            try
+                if OI.OperatingSystem.isUnix
+                    wgetCommand = sprintf( ...
+                        'wget -c -q -O %s --user=%s --password=%s %s --no-check-certificate', ...
+                        localaddress, username, password, remoteaddress);
+                    [s,w] = system(wgetCommand);
+                    
+                    if s==6
+                        error( [ 'USERNAME/PASSWORD ERROR ' ...
+                                ' URL:\n%s\nUSERNAME: %s' ], ...
+                                NASA_URL, ...
+                                username );
+                    elseif s % not sure how we branch here, throw a warning
+                        warning('Error code %d',s);
+                        disp(w);
+                    end
+                elseif OI.OperatingSystem.isWindows
+                    % Create an HTTP options object with basic authentication
+                    options = weboptions( ...
+                        'Username', username, 'Password', password);
+                    demBinary = webread(remoteaddress, options);
                     fid = fopen(localaddress,'w');
                     sc = fwrite(fid, demBinary, 'uint8');
                     fclose(fid);
-                catch
-                    warning('Failed to download SRTM tile %s from %s .', ...
-                        localaddress, remoteaddress);
                 end
-            end
-            
-            
-
-            
-            % Skip unzip if error and no file - will assume it's sea.
-            if ~exist(localaddress,'file')
-                needsUnzip(n) = 0;
-                warning('Skipping extraction of %s',localaddress)
+                % Regardless of OS, we need a file...
+                if ~exist(localaddress,'file')
+                    needsUnzip(n) = false;
+                    error('No file available for %s',localaddress)
+                end
+            catch ERR
+                warning('Failed to download SRTM tile %s from %s .', ...
+                    localaddress, remoteaddress);
+                downloadFailed(n) = true;
             end
         end % if needsDownload
 
-        if needsUnzip(n)
+        if needsUnzip(n) && ~downloadFailed(n)
             inputPath = [tilepaths{n}, '.zip'];
             if OI.OperatingSystem.isUnix
                 unzipCommand = sprintf('unzip -DD -o %s -d %s', ...
@@ -140,9 +126,24 @@ function tilepaths = get_srtm_tiles(minLat, maxLat, minLon, maxLon, directory, u
             else
                 % delete the zip
                 delete([tilepaths{n}, '.zip']);
+                fileExists(n) = true;
             end
-        end % if needsUnzip
+        end % if needsUnzip and not downloadFailed
+
     end % for each tile
+    % !TODO
+    % The really quick & dirty solution to sea/404 is just return the filepath to
+    % a file we already have... its not being used anyway as no coherence
+    % in sea. If we start looking at wind turbines thats obviously a
+    % problem.
+    if any(fileExists)
+        hack = find(fileExists,1);
+        for n = reshape(find(downloadFailed),1,[])
+            copyfile(tilepaths{hack}, tilepaths{n});
+        end
+    else
+        error('failed to find any srtm files')
+    end
 end
 
 %#ok<*TNOW1> - Octave compatibility

@@ -66,7 +66,7 @@ classdef GetDEM < OI.Plugins.PluginBase
             %         fullfile(previewDir, [tileName,'.kml']), ...
             %         tileData);
             % end
-            if any(strcmpi(varargin{1},'overwrite'))
+            if numel(varargin) && any(strcmpi(varargin{1},'overwrite'))
                 this.outputs{1}.overwrite=1;
             end
             engine.save( this.outputs{1} );
