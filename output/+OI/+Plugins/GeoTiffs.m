@@ -10,7 +10,7 @@ properties
     AOI = []
     SIZE = [] % [x y] pixels
     MAPPING_AVAILABLE = false;
-    TYPE = {'VV', 'VH', 'VV_COHERENCE', 'VH_COHERENCE'}
+    TYPE = {'VV', 'VH', 'VV_COHERENCE', 'VH_COHERENCE', 'VV_PHASE', 'VH_PHASE'}
 end
 
 methods
@@ -21,6 +21,8 @@ methods
 
 
     function this = run(this, engine, varargin)
+        has = @(string, substring) OI.Compatibility.contains(string, substring);
+
         stacks = engine.load( OI.Data.Stacks() );
         coregDone = engine.load(this.inputs{1});
         projObj = engine.load( OI.Data.ProjectDefinition() );
@@ -200,7 +202,7 @@ methods
                     data = data.*exp(1i.*resampledRamp');
                     data = log(abs(data));
 %                     data = avfilt(log(abs(data))');
-                elseif strcmpi(productType, 'VV_COHERENCE') || strcmpi(productType, 'VH_COHERENCE')
+                elseif has(productType, '_COHERENCE') || has(productType, '_PHASE')
                     geoTiffObj.TYPE = productType;
                     % Load the raw data
                     data1 = engine.load( OI.Data.CoregisteredSegment().configure( ...
@@ -222,8 +224,12 @@ methods
                     if isempty(data1) || isempty(data2)
                         return
                     end
-                    
-                    data = abs(avfilt(data1.*conj(data2))./avfilt(sqrt(abs(data1).^2.*abs(data2).^2)));
+                    ifg = (avfilt(data1.*conj(data2))./avfilt(sqrt(abs(data1).^2.*abs(data2).^2)));
+                    if has(productType,'_PHASE')
+                        data = angle(ifg);
+                    elseif has(productType,'_COHERENCE')
+                        data = abs(ifg);        
+                    end
                 end
 
                 betterSamples(:) = mapping.distance(:) < currentDistance(:);
