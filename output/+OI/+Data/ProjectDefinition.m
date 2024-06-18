@@ -162,6 +162,11 @@ methods (Static)
 
         % get special paths like ROOT, HERE, HOME
         this = this.get_relative_paths();
+        
+        % Throw friendly error if fn missing
+        if ~exist( filename, 'file' )
+            error('Project File %s not found.',filename)
+        end
 
         % read in file
         fId = fopen( filename, 'r' );
