@@ -41,6 +41,7 @@ function this = run( this, engine, varargin )
     result.STACK = num2str(this.trackIndex);
     result.SEGMENT_INDEX = num2str(this.segmentIndex);
     result = result.identify( engine );
+    result.overwrite = this.isOverwriting;
 
     if ~this.isOverwriting && ...
             exist([result.filepath '.' result.fileextension],'file')
@@ -72,16 +73,17 @@ function this = run( this, engine, varargin )
     end
     
     tOrbit = orbit.interpolate( repmat(lineTimes,spb,1) );
-        satXYZ = [ ...
-                tOrbit.x(:), ...
-                tOrbit.y(:), ...
-                tOrbit.z(:) ...
-            ];
-        satV = [ ...
-                tOrbit.vx(:), ...
-                tOrbit.vy(:), ...
-                tOrbit.vz(:) ...
-            ];
+    satXYZ = [ ...
+            tOrbit.x(:), ...
+            tOrbit.y(:), ...
+            tOrbit.z(:) ...
+        ];
+    satV = [ ...
+            tOrbit.vx(:), ...
+            tOrbit.vy(:), ...
+            tOrbit.vz(:) ...
+        ];
+    tOrbit = []; % clear mem
 
     % define this variable because matlab pollutes the namespace...
     elevation = 'a variable not a function'; %#ok<NASGU>
@@ -191,7 +193,7 @@ function this = run( this, engine, varargin )
             assert( sum(isnan(elevation)) == 0 ) 
         end % doppler loop
         engine.ui.log('info','Doppler loop took %f seconds\n',toc(dopStartTime));
-
+        azError = []; rgError = []; % memory
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %   RANGE ZERO CROSSINGS
@@ -199,8 +201,8 @@ function this = run( this, engine, varargin )
         % find the zero range error by triangulating the zero-crossing
         % update lat lon to their best life
         %             maybe update the error to lat lon ones too
-        lastLat = lat;
-        lastLon = lon;
+%         lastLat = lat;
+%         lastLon = lon;
         lastRgError = rgUpd( xyz );
         % the error functions need to be updated with the new zero doppler
         % polynomials
@@ -226,10 +228,12 @@ function this = run( this, engine, varargin )
         % greater range
 
         % progressively reduce range until we get a positive error
-        lowRangeLat = lastLat;
-        lowRangeLon = lastLon;
-        highRangeLat = lastLat;
-        highRangeLon = lastLon;
+        lowRangeLat = lat;
+        lowRangeLon = lon;
+        highRangeLat = lat;
+        highRangeLon = lon;
+        lat = []; lon = []; % memory
+        
         origRgError = lastRgError;
         tooFar = (lastRgError<0);
         fTF = find(tooFar);
@@ -296,7 +300,8 @@ function this = run( this, engine, varargin )
         rzcIter = 1;
         
         % range zero crossing bisection iterations
-        while rzcIter < 10
+        RZC_ITER_LIMIT = 10;
+        while rzcIter < RZC_ITER_LIMIT
             rzcIter = rzcIter + 1;
 
             proportionalShift = errorWindow(:,1) ./ ...
@@ -351,7 +356,7 @@ function this = run( this, engine, varargin )
             engine.ui.log('debug','Mean range error: %.3f\n',mean(abs(rgError)));
 
             % Set the geocoding to the best result so far.
-            if all(isOkay)
+            if all(isOkay) || rzcIter == RZC_ITER_LIMIT
                 engine.ui.log('debug','Range error is now within tolerance\n');
                 % choose the lowest error
                 lowerBoundIsLowerError = ...
