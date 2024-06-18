@@ -198,6 +198,14 @@ methods
             this.outputs{1}.stack(stackCount) = stack;
         end
         engine.save( this.outputs{1} );
+        this.isFinished = true;
+        
+        % add optional summary
+        stacksFilepath = this.outputs{1}.resolve_filename(engine).filepath;
+        summaryFilepath = ...
+            [fileparts(stacksFilepath) filesep 'Stack_Summary.txt'];
+        OI.Data.TextFile(summaryFilepath).write(this.outputs{1}.printf);
+        
 
     end % function run
 

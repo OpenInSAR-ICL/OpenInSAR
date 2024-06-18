@@ -35,6 +35,30 @@ classdef Stacks < OI.Data.DataObj
             [info.linesPerBurst, info.samplesPerBurst, ~, ~] = ...
                 OI.Plugins.Geocoding.get_parameters( info.swathInfo );
         end
+        
+        function summary = printf(self)
+            N = numel(self.stack);
+            summaryCell = cell(N,1);
+            for ii=1:N
+                
+                stack = self.stack(ii);
+                swaths = unique(stack.segments.swath);
+                str = sprintf('Stack %i - %s, Orbit Number %i', ...
+                    ii, ...
+                    stack.reference.safeMeta.pass, ...
+                    stack.reference.safeMeta.RON ...
+                );
+                for swathInd = swaths(:)'
+                    str = sprintf('%s, Swath %i - Incidence Angle %.2f', ...
+                        str, ...
+                        swathInd, ...
+                        stack.reference.safeMeta.swath(swathInd).incidenceAngle ...
+                    ); %#ok<*PROP>
+                end
+                summaryCell{ii} = sprintf('%s\n',str);
+            end
+            summary = [summaryCell{:}];
+        end
 
     end % methods
 
