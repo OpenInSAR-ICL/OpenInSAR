@@ -262,7 +262,13 @@ classdef Blocking < OI.Plugins.PluginBase
                 ubi = stackBlockMap.usefulBlockIndices(:)';
                 segments = unique([stackBlockMap.blocks(ubi).segmentIndex]);
                 segments(segments == 0) = [];
-
+                
+                % if no useful blocks, continue
+                if isempty(ubi)
+                    continue % to next stack, if any
+                end
+                
+                % check for existing files
                 binDirStruct = dir(OI.Plugins.Blocking.get_binary_dir(projObj));
                 if ~isempty(binDirStruct)
                     binDirContents = {binDirStruct.name};
@@ -283,7 +289,9 @@ classdef Blocking < OI.Plugins.PluginBase
                 polCode.('HV') = 3;
                 polCode.('HH') = 4;
 
+                %% Queue a job to split each segment (burst)
                 for seg = segments
+                    %% ADD SOME CHECK FOR EMPTY HERE
                     % Get the safe
                     safeIndex = stack.reference.segments.safe(seg);
                     safe = cat.safes{safeIndex};
@@ -316,7 +324,7 @@ classdef Blocking < OI.Plugins.PluginBase
                     continue % to next stack
                 end
 
-                % QUEUE A JOB FOR EACH BLOCK
+                %% Queue a job for each Block in the Stack
                 for blockInd = ubi
                     % get segment index 
                     
