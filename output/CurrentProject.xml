@@ -19,7 +19,7 @@ systems, even when using unix-style forward slashes for path seperation.
 -->
 <current_project>
     <!-- Path of the '.oi' project file relative to this file, CurrentProject.xml -->
-    <relative_path>../../../projects/insardatastore/ephemeral/$USERNAME/CurrentProject.oi</relative_path>
+    <relative_path>../../../ephemeral/CurrentProject.oi</relative_path>
     <!-- If for some reason you cannot use a relative path, you can use a platform-dependant
     absolute path -->
     <!-- <windows_path>.\path\relative\to\here</windows_path> -->
