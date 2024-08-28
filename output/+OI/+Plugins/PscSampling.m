@@ -48,6 +48,11 @@ methods
 
         for stackInd = 1:numel(blockMap.stacks)
             this.STACK = stackInd;
+            
+            if isempty(blockMap.stacks(stackInd).usefulBlockIndices)
+                continue  % no useful data for this stack
+            end
+            
             % check if we've consolidated this stack already
             target = this.generate_target().identify( engine );
             if ~target.exists()
@@ -79,7 +84,7 @@ methods
 
         
         %% Parameters
-        stabilityThreshold = 3;
+        stabilityThreshold = 2.5;
 
         % Create the output object
         pscSample = this.generate_target();
@@ -90,6 +95,7 @@ methods
         blockMap = engine.load( OI.Data.BlockMap() );
         stackMap = blockMap.stacks( this.STACK );
         nDays = numel(stacks.stack(this.STACK).visits);
+        nValidDays = sum(all(stacks.stack(this.STACK).correspondence ~= 0));
         nBlocks = numel(stackMap.usefulBlocks);
         stack = stacks.stack(stackInd);
         
@@ -131,12 +137,14 @@ methods
         
             psPhaseObject = OI.Data.BlockResult( blockObj, 'InitialPsPhase' );
             psPhaseObject = engine.load( psPhaseObject );
-        
+            
             if isempty(psPhaseObject)
                 warning('missing data for %i %i!',iiBlock, blockIndex);
                 continue
             end
             
+            seg = psPhaseObject.blockInfo.segmentIndex;
+            validDays = stacks.stack(this.STACK).correspondence(seg,:) ~= 0;
             blockGeocode = engine.load( ...
                 OI.Data.BlockGeocodedCoordinates().configure( ...
                 'STACK', this.STACK, ...
@@ -167,7 +175,7 @@ methods
             pscLLE(index, 2)=blockGeocode.lon(candidateInds(mask));
             pscLLE(index, 3)=blockGeocode.ele(candidateInds(mask));
             
-            phi(index,:) = psPhaseObject.candidatePhase(mask,:);
+            phi(index,validDays) = psPhaseObject.candidatePhase(mask,:);
             pscAz(index) = psPhaseObject.candidateAz(mask);
             pscRg(index) = psPhaseObject.candidateRg(mask);
             pscBlock(index) = blockIndex;
@@ -184,7 +192,7 @@ methods
             
             if doExtras && ~isempty(psPhaseObject.referencePhase)
                 pscBlocks(iiBlock) = blockIndex;
-                pscRef(iiBlock,:) = psPhaseObject.referencePhase;
+                pscRef(iiBlock,validDays) = psPhaseObject.referencePhase;
             end
             
             timePerBlock(iiBlock) = toc(bTic);
