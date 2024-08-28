@@ -39,7 +39,7 @@ methods
             % Make a backup in home directory
             homeDir = OI.OperatingSystem.get_usr_dir();
             [~, projectName, ext] = fileparts(this.projectPath);
-
+            fid = 0;
             try % to set the actual project name
                 if strcmpi(projectName, 'CurrentProject') && strcmpi(ext,'.xml')
                     % open the project file and get the project name
@@ -72,6 +72,9 @@ methods
                 end
             catch ERR
                 ERR
+            end
+            if fid
+                fclose(fid);
             end
 
             backupDir = fullfile(homeDir, 'OpenInSAR_projects');
