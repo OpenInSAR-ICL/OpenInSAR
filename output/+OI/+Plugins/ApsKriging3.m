@@ -69,7 +69,7 @@ methods
         nD = size(phi,2);
         nSamples = size(phi,1);
         [~, masi]=max(pscSample.sampleStability); % reference point
-        clearvars pscSample
+%         clearvars pscSample
         
 
         %% INITIAL CONFIG
@@ -145,53 +145,67 @@ methods
         % s2i = @(az,rg) (rg-1)*ngY+az;
         e1i = @(x) exp(1i.*x);
         avfilt = @(x) imfilter(x, fspecial('average', [3,3]));
-        % mask0s = @(A) OI.Functions.mask0s(A);
-
-
+        mask0s = @(A) OI.Functions.mask0s(A);
+        dm2 = @(x) x.*conj(mean(x,2));
+        
         %% ESTIMATE APS GRID
         velocity = zeros(nSamples,1);
         coherence = abs(mean(phiTraining,2));
         phiTraining = phiTraining .* conj(phiTraining(:, referenceVisit));
-
+        
+        validDays = sum(abs(phiTraining))>=(size(phiTraining,1)*0.9);
+        nValidDays = sum(validDays);
+        phiTraining = phiTraining(:, validDays);
+        tsp = tsp(validDays);
+        
         fprintf('%s - Starting aps estimation - Raw coherence: %f\n', datestr(now), mean(coherence))
         for iter = 1:MAX_ITER
             fprintf(1,'%s - Iter %i\n', datestr(now),iter)
             phiFiltered = phiTraining .* e1i(velocity.*tsp);
-            phiFiltered = phiFiltered .* conj(phiFiltered(:, referenceVisit)); %#ok<FNDSB>
+            phiFiltered = phiFiltered .* conj(phiFiltered(:, referenceVisit));
 
             filteredInterferograms = OI.Functions.filter_with_knn_distance(phiFiltered,KNN,KNND,sill,decay);
+            unwrappedHipassInterferograms = OI.Functions.unwrap_lsq(xGrid, yGrid, reshape(filteredInterferograms, [], nValidDays), @(P) movmean(P, 31, 2));
 
-            filteredInterferogramCoherence = abs(sum(normz(filteredInterferograms),3))./nD;
-            [~, bestGridPoint]=max(filteredInterferogramCoherence(:));
-
-            unwrappedHipassInterferograms = OI.Functions.unwrap_lsq(xGrid, yGrid, reshape(filteredInterferograms, [], nD), @(P) movmean(P, 31, 2));
-            % unwrappedHipassInterferograms = unwrappedHipassInterferograms - unwrappedHipassInterferograms(bestGridPoint,:);
-
-            % fit initial velocity ramp and mean
-            for jj=nG:-1:1
-                pf = polyfit(ts,unwrappedHipassInterferograms(jj,:),1);
-                referenceApsGrid(jj) = pf(2);
-                apsVelocity(jj) = pf(1);
-            end
-    
             % interpolate
-            for ii=nD:-1:1
+            for ii=nValidDays:-1:1
                 apsAtPsc(:,ii) = interp2(xGrid,yGrid,avfilt(reshape(unwrappedHipassInterferograms(:,ii),szG)),dx,dy);
             end
-            referenceAps = interp2(xGrid,yGrid,reshape(referenceApsGrid,szG),dx,dy);
-    
-            % rereference to the ref point, and remove mean 
-            apsAtPsc = apsAtPsc-apsAtPsc(masi,:)-referenceAps;
-    
+            
+            % rereference to the ref point
+            apsAtPsc = apsAtPsc-apsAtPsc(masi,:);
+            
             phiNoAps = phiTraining .* exp(-1i.*apsAtPsc);
             phiNoAps = phiNoAps.*conj(phiNoAps(masi,:));
+            vm = mean(phiNoAps,2);
+            phiNoAps = normz(phiNoAps.*conj(vm));
+            [cq, q] = OI.Functions.invert_height(normz(phiNoAps.*conj(movmean(phiNoAps,31,2))), kFactors, 501,101);
+            phiNoAps = phiNoAps .*exp(-1i.*q.*kFactors);
+            
+            % filter again to remove low pass errors from unwrapping
+            [o2, og2]=OI.Plugins.ApsKriging3.unwrapping_filter(phiNoAps, xGrid, yGrid, KNN, KNND, sill, decay, dx, dy, @(p) movmean(p,31,2));
+            uhp2 = unwrappedHipassInterferograms + reshape(og2,[],nD);
 
+            % interpolate AGAIN
+            for ii=nValidDays:-1:1
+                apsAtPsc(:,ii) = interp2(xGrid,yGrid,avfilt(reshape(uhp2(:,ii),szG)),dx,dy);
+            end    
+            % rereference to the ref point
+            apsAtPsc = apsAtPsc-apsAtPsc(masi,:);
+            phiNoAps = phiTraining .* exp(-1i.*apsAtPsc);
+            phiNoAps = phiNoAps.*conj(phiNoAps(masi,:));
+            % remove any mean constant offset / residual
+            constantOffset = normz(mean(phiNoAps.*conj(movmean(phiNoAps,31,2))));
+            phiNoAps = phiNoAps .* conj(constantOffset);
+            % add it back onto the aps estimate
+            uhp2 = uhp2 + angle(constantOffset);
+            
             [coherenceIteration, velocityIteration] = OI.Functions.invert_velocity(normz(phiNoAps), tsp, 0.2, 101);
             fprintf('%s - Iter %i - Mean coherence: %f\n', datestr(now()), iter, mean(coherenceIteration))
             if mean(coherenceIteration) > mean(coherence)
                 velocity = velocityIteration;
                 coherence = coherenceIteration;
-                bestAps = unwrappedHipassInterferograms;
+                bestAps = uhp2;
             else
                 break
             end
@@ -200,38 +214,29 @@ methods
 
         % apsGrid should have the reference point phase removed before
         % assignment
-        apsModel.apsGrid = reshape(bestAps,ngY,ngX,nD);
-
-        % % fit q
-        % [cq, q] = OI.Functions.invert_height( ...
-        %     normz(whateteteteteteevever), ...
-        %     kFactors, ...
-        %     600, ...
-        %     200 ...
-        % );
-        % disp('cq')
-        % mean(cq)
-        % 
-        % % fit elevation dependent aps
-        % eRamp = [];
-        % for ii = size(phi1,2):-1:1
-        %     cost = @(x) -abs(exp(1i*x.*pscLLE(:,3)') * phi1(:,ii));
-        %     eRamp(ii) = fminsearch(cost,0);
-        % end
-        % apsModel.elevationToPhase = eRamp;
-        
+        apsModel.apsGrid = reshape(bestAps,ngY,ngX,nValidDays);
 
         %% FINALISE
+        apsModel.referencePointPhase = apsModel.referencePointPhase(validDays);
         engine.save(apsModel)
         this.isFinished=true;
     end % estimate
 
     function this = queue_jobs(this, engine)
-
+        blockMap = engine.load( OI.Data.BlockMap() );
         stacks = engine.load( OI.Data.Stacks );
+        
+        if isempty(blockMap) || isempty(stacks)
+            return
+        end
+        
         allDone = true;
         
         for ii=1:numel(stacks.stack)
+            if isempty(blockMap.stacks(ii).usefulBlockIndices)
+                continue  % no useful data for this stack
+            end
+            
             apsModel = OI.Data.ApsModel2().configure( ...
                 'STACK', ii ...
             );
@@ -253,4 +258,36 @@ methods
 
 end % methods
 
+methods (Static = true)
+    function [outputPhase, uwFilteredGrid] = unwrapping_filter(inputPhase, xGrid, yGrid, KNN, KNND, sill, decay, dx, dy, filterFunc)
+        % Determine the number of valid days
+        nValidDays = size(inputPhase, 2);
+
+        % Get the size of the grid
+        szG = size(xGrid);
+
+        % Apply KNN-based filtering to the input phase
+        filteredGrid = OI.Functions.filter_with_knn_distance(inputPhase, KNN, KNND, sill, decay);
+
+        % Unwrap the filtered grid without low-pass filtering
+        uwFilteredGrid = OI.Functions.unwrap_lsq(xGrid, yGrid, reshape(filteredGrid, [], nValidDays), filterFunc);
+        uwFilteredGrid = reshape(uwFilteredGrid, szG(1), szG(2), []);
+
+        % Initialize the output phase
+        outputPhase = zeros(size(inputPhase,1), nValidDays);
+
+        % Interpolate the unwrapped grid
+        for ii = nValidDays:-1:1
+            outputPhase(:, ii) = interp2(xGrid, yGrid, uwFilteredGrid(:, :, ii), dx, dy);
+        end
+        
+        % The unwrapping method will be off by a constant
+        constantOffset = mean(inputPhase .* exp(-1i.*outputPhase));
+        % this should be added to uwGrid
+        % uwFilteredGrid += constant
+        outputPhase = outputPhase + angle(constantOffset);
+        
+    end
+
+end % static methods
 end % classdef
