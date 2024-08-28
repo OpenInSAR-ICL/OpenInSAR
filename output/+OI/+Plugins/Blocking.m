@@ -49,7 +49,7 @@ classdef Blocking < OI.Plugins.PluginBase
 
         end
 
-        function this = finalise_block(this, engine, cat, ~, blockMap, projObj)
+        function this = finalise_block(this, engine, cat, stacks, blockMap, projObj)
 
             assert(~isempty(this.BLOCK), 'No block specified');
             assert(~isempty(this.SEGMENT), 'No segment specified');
@@ -88,15 +88,15 @@ classdef Blocking < OI.Plugins.PluginBase
             if ~isfield(blockInfo, 'indexInStack')
                 overallIndex = blockInfo.index;
                 blockInfo.indexInStack = ...
-                    find(arrayfun(@(x) x.index == overallIndex, ...
+                   find(arrayfun(@(x) x.index == overallIndex, ...
                     blockMap.stacks(this.STACK).blocks));
             end
 
-            safeInd = cat.catalogueIndexByTrack(1, this.STACK);
-            direction = cat.safes{safeInd}.direction; % ascending or desc
-
+%             safeInd = cat.catalogueIndexByTrack(1, this.STACK);
+%             direction = cat.safes{safeInd}.direction; % ascending or desc
+            direction = stacks.stack(this.STACK).reference.safeMeta.pass;
             % Save a preview of the block
-            OI.Plugins.Blocking.preview_block(projObj, blockInfo, blockData, this.POLARISATION, direction);
+            OI.Plugins.Blocking.preview_block(projObj, blockInfo, blockData, this.POLARISATION, direction); 
             
         end
 
@@ -410,7 +410,7 @@ classdef Blocking < OI.Plugins.PluginBase
             offset = bytesPerDouble * doublesPerComplex * samplesPerBlock * (visitIndex - 1);
         end
 
-        function previewKmlPath = preview_block(projObj, blockInfo, blockData, POL, ~)
+        function previewKmlPath = preview_block(projObj, blockInfo, blockData, POL, direction)
             % get the block extent
             sz = blockInfo.size;
             sz(3) = size(blockData,3);
@@ -443,8 +443,15 @@ classdef Blocking < OI.Plugins.PluginBase
             else % copol
                 cLims = [3 5.5];
             end
+            
+            % rotate Ascending data
+            if strcmpi(direction(1),'A')
+                amp = flipud(fliplr(amp));
+            end
+            
             blockExtent.save_kml_with_image( ...
                 previewKmlPath, fliplr(amp), cLims);
+            previewKmlPath
         end
 
     end % methods (Static = true)
