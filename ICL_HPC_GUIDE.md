@@ -40,13 +40,13 @@ This is a guide for using the 'old style' Matlab scripts on Imperial HPC
 
 #### 4. Edit the OpenInSAR configuration to fit your area
   Start by copying an example 'Project File' to a new file called 'CurrentProject.oi'.
-  Copy this file to ephemeral storage, as the data will be generated relative to the location of this Project File
+  Copy this file to your personal ephemeral storage, as the data will be generated relative to the location of this Project File
   
   Assuming we are in this repository:
   
   > cp output/+OI/Examples/ExampleProject_template.oi ~/../projects/insardatastore/ephemeral/YOUR_COLLEGE_USERNAME/CurrentProject.oi
   >
-  > nano ~/../projects/insardatastore/ephemeral/YOUR_COLLEGE_USERNAME/CurrentProject.oi
+  > nano ~/../ephemeral/CurrentProject.oi
   
   If you call the file anything other than 'CurrentProject.oi' or if you move it to somewhere other than the above, you will have to also edit 'output/CurrentProject.xml' in order to update the location to reflect your Project File location.
 
