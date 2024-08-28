@@ -203,7 +203,7 @@ methods
         % add optional summary
         stacksFilepath = this.outputs{1}.resolve_filename(engine).filepath;
         summaryFilepath = ...
-            [fileparts(stacksFilepath) filesep 'Stack_Summary.txt'];
+            [fileparts(stacksFilepath) filesep 'Stack_Summary'];
         OI.Data.TextFile(summaryFilepath).write(this.outputs{1}.printf);
         
 
