@@ -137,7 +137,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             blockData = blockData .* conj(displacement);
 
             % estimate height error
-            [~, q] = OI.Functions.invert_height(blockData, k);
+            [~, q] = OI.Functions.invert_height(blockData, k,120,121);
 
             % remove height error, add low pass back on
             blockData = displacement .* blockData .* exp(1i .* q .* baselinesObject.k(:)');
@@ -194,6 +194,8 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             res = [];
 
             % Write preview KMLs
+%             stacks = engine.load( OI.Data.Stacks() );
+%             direction = stacks.stack(this.STACK).reference.safeMeta.pass;
             if baselinesObject.azimuthVector(3) > 0 % ascending
                 OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
                     blockInfo, flipud(r2d(Cv)), 'Coherence', '1');
@@ -203,11 +205,11 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
                     blockInfo, flipud(r2d(q .* mask0s(MASK))), 'HeightError', '1');
             else % descending
                 OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
-                    blockInfo, fliplr(Cv), 'Coherence', '1');
+                    blockInfo, fliplr(r2d(Cv)), 'Coherence', '1');
                 OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
-                    blockInfo, fliplr(v .* mask0s(MASK)), 'Velocity', '1');
+                    blockInfo, fliplr(r2d(v .* mask0s(MASK))), 'Velocity', '1');
                 OI.Plugins.BlockPsiAnalysis.preview_block(projObj, ...
-                    blockInfo, fliplr(q .* mask0s(MASK)), 'HeightError', '1');
+                    blockInfo, fliplr(r2d(q .* mask0s(MASK))), 'HeightError', '1');
             end
 
             OI.Functions.ps_shapefile( ...
