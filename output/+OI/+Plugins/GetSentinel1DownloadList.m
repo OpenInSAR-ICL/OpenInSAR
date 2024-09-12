@@ -18,6 +18,22 @@ methods
         
         % parse the json, extract the downloadUrl property from each entry
         resultStruct = jsondecode(asfResults);
+        
+        % Only keep entries that match a track we have requested
+        projectDefinition = engine.load( OI.Data.ProjectDefinition() );
+        tracksConfig = projectDefinition.TRACKS;
+        validTrackMask = false(size(resultStruct));
+        if ~isempty(tracksConfig)
+            tracks = str2num(tracksConfig); %#ok<ST2NM> might not be scalar
+            for track = tracks(:)'
+                for ii = 1:length(resultStruct)
+                    validTrackMask(ii) = validTrackMask(ii) || strcmp(resultStruct(ii).track, num2str(track));
+                end% for
+            end% for
+            resultStruct = resultStruct(validTrackMask);
+        else
+            validTrackMask = true(size(resultStruct)); %#ok<NASGU> for debug
+        end% if
 
         parsedText = '';
         for i = 1:length(resultStruct)
@@ -25,6 +41,7 @@ methods
             % add line to text file
             parsedText = [parsedText downloadUrl '\n'];  %#ok<AGROW> - this is a small file, so it's ok
         end% for
+        this.outputs{1}.overwrite = this.isOverwriting; % copy overwrite setting
         engine.save( this.outputs{1}, parsedText );
     end% run
 
