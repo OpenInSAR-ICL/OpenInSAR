@@ -60,10 +60,16 @@ methods
 
         % Phase sample over the stack
         pscSampleObj = OI.Data.PscSample().configure('METHOD','PscSampling_4GBmax','BLOCK','ALL','STACK', this.STACK, 'POLARISATION','VV');
-        pscSample = engine.load( pscSampleObj );        
-        if isempty(pscSample)
-            return
+        try  % loading the file while it's being written will fail
+            pscSample = engine.load( pscSampleObj );  
+            if isempty(pscSample)
+                return
+            end
+        catch
+            pause(10) % wait a bit to avoid thrashing
+            return;
         end
+        
         pscLLE = pscSample.sampleLLE;
         phi = pscSample.samplePhase;
         nD = size(phi,2);
