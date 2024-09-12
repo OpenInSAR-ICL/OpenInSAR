@@ -44,6 +44,11 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             resultObj_C = OI.Data.BlockResult(blockObj, 'PSI_coherence').identify(engine);
             resultObj_v = OI.Data.BlockResult(blockObj, 'PSI_velocity').identify(engine);
             resultObj_q = OI.Data.BlockResult(blockObj, 'PSI_heightError').identify(engine);
+            
+            % set overwrite
+            resultObj_C.overwrite = this.isOverwriting;
+            resultObj_v.overwrite = this.isOverwriting;
+            resultObj_q.overwrite = this.isOverwriting;
 
             % Generate the shp name
             shpName = OI.Functions.generate_shapefile_name(this, projObj);
@@ -72,7 +77,8 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             
             [dy, dx]=OI.Functions.haversineXY([bg.lat(:) bg.lon(:)],apsModel.referenceLLE);
             aps = apsModel.interpolate( dy, dx, bg.ele(:), 1 );
-
+            aps(isnan(aps)) = 1;  % remove out of bounds nans, set to 0 phase
+            
             % Load block info
             stackBlocks = blockMap.stacks(this.STACK);
             blockInfo = stackBlocks.blocks(this.BLOCK);
@@ -106,6 +112,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             sz = size(blockData);
             mask0s = @(A) OI.Functions.mask0s(A);
             r2d = @(x) reshape(x, sz(1:2));
+            dm2 = @(x) x.*conj(mean(x,2));
 
             blockData = reshape(blockData, [], sz(3));
             
@@ -140,11 +147,17 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             [~, q] = OI.Functions.invert_height(blockData, k,120,121);
 
             % remove height error, add low pass back on
-            blockData = displacement .* blockData .* exp(1i .* q .* baselinesObject.k(:)');
+            blockData = blockData .* exp(1i .* q .* baselinesObject.k(:)');
+            
+            % before we add any low pass back on, remove any constants
+            % (aps)
+            m = normz(mean(dm2(blockData)));
+            blockData = blockData .* conj(m);
+            blockData = blockData .* displacement;
             blockData = normz(blockData);
 
             % estimate v
-            [Cv, v] = OI.Functions.invert_velocity(blockData, tsp, 0.1, 101);
+            [Cv, v] = OI.Functions.invert_velocity(blockData, tsp, 0.05, 101);
             % update residual
             blockData = blockData .* exp( 1i * ( v .* tsp ));
             
@@ -161,7 +174,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             engine.save(resultObj_q, q0);
 
             % update residual
-            blockData = blockData .* exp( - 1i * ( v .* tsp ));
+%             blockData = blockData .* exp( - 1i * ( v .* tsp ));
 
 
             % Threshold for writing SHP
@@ -175,7 +188,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             unld = unwrap(angle(nld),[],2);
 
             % add vel back on
-            real_displacement_m = unld * 0.055 / ( 4 * pi ) + v(MASK,:) .* ts / 365;
+            real_displacement_m = unld * 0.055 / ( 4 * pi ) - v(MASK,:) .* ts / 365;
             real_displacement_m = real_displacement_m - real_displacement_m(:,1); % start at 0.
             
             datestrCells = cell(length(baselinesObject.timeSeries), 1);
