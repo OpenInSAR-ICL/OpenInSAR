@@ -694,7 +694,7 @@ function buffer_shpwrite(varargin)
         % Validate dbfspec and S and ensure consistency.
         dbfspec = validateDbfSpec(dbfspec, S);
     else
-        dbfspec = makedbfspec(S);
+        dbfspec = OI.Functions.makedbfspec_faster(S);
     end
     
     %--------------------------------------------------------------------------
