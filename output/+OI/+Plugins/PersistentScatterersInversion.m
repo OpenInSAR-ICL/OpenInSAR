@@ -138,6 +138,11 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
 
             blockData = normz( blockData .* conj( aps ) );
             
+            % Remove residual low pass offset/ambiguity from aps model
+            m = normz(mean(dm2(blockData)));
+            blockData = blockData .* conj(m);
+            % TODO THE ABOVE SHOULD BE DONE IN APS, WHERE IS ERROR INTRODUCED?
+ 
             % remove low pass
             displacement = movmean(blockData, 11, 2);
             displacement = normz(displacement);
