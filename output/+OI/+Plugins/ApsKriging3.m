@@ -224,6 +224,30 @@ methods
 
         %% FINALISE
         apsModel.referencePointPhase = apsModel.referencePointPhase(validDays);
+
+        % any residual phase is error in reference point
+    
+        improvement = 1;
+        previousScore = 0;
+        while improvement > 0.01
+            apsAtPsc = apsModel.interpolate(dy, dx, pscLLE(:,3), true);
+            res1 = phi .* conj(apsAtPsc);
+            res2 = normz(mean(normz(dm2(res1))));
+            apsModel.referencePointPhase = apsModel.referencePointPhase .* res2;
+            currentScore = abs(mean(normz(res2)));
+            improvement =  currentScore - previousScore;
+            previousScore = currentScore;
+            fprintf(1,'Virtual reference - coherence %.3f - %f\n',currentScore,improvement)
+        end
+
+        fprintf(1,'Velocity flattening\n')
+        [coherenceIteration, velocityIteration] = OI.Functions.invert_velocity(normz(res1.*conj(res2)), tsp, 0.05, 101);
+        params=[dy, dx, ones(numel(dx),1)]\velocityIteration;
+        gridVel = (params(3)+(yGrid)*params(1)+(xGrid)*params(2));
+        apsModel.apsGrid = apsModel.apsGrid - ...
+            reshape(gridVel,size(xGrid)) .* ...
+            reshape(4*pi*apsModel.referenceTimeSeries/(365*0.055),1,1,[]);
+        fprintf(1,'Done, score %.3f\n',mean(coherenceIteration))
         engine.save(apsModel)
         this.isFinished=true;
     end % estimate
