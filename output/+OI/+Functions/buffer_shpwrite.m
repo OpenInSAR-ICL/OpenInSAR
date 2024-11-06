@@ -440,11 +440,22 @@ function buffer_shpwrite(varargin)
     
     numberOfFeatures = length(S(:));
     if isstruct(S)
+        % Preallocate buffer
         todo=int32([]);
+        example_raw = struct2cell(S(1));
+        example_data = example_raw(geostructFieldIndex);
+        example_line = sprintf(fmt,example_data{:,1});
+        line_length = numel(example_line);
+        todo(numberOfFeatures * line_length) = int32(0);
+    
+        cursorStarts = 1 + line_length * (0:numberOfFeatures-1);
+        cursorEnd = line_length * (1:numberOfFeatures);
+
         for k = 1:numberOfFeatures
             allFields = struct2cell(S(k));
             values = allFields(geostructFieldIndex);
-            todo=dbfWriteTableRecord(fid, values, fmt, nanmask,todo);
+            % todo=dbfWriteTableRecord(fid, values, fmt, nanmask,todo);
+            todo(cursorStarts(k):cursorEnd(k)) = sprintf(fmt,values{:,1});
         end
         
         %WRITE EVERYTHING AT ONCE
