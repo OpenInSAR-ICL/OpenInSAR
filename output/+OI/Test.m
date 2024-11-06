@@ -230,7 +230,6 @@ classdef Test
             for ii = 1:numel(testList)
                 testFile = testList(ii);
                 valid(ii) = OI.Test.valid_test_file( testFile );
-                ii = ii + 1;
             end
             testList(~valid) = [];
 
