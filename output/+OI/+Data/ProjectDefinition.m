@@ -88,6 +88,7 @@ properties
     pathVars = {'HERE','HOME','ROOT','WORK','INPUT_DATA_DIR','OUTPUT_DATA_DIR','ORBITS_DIR'}
 
     SECRETS_FILEPATH = '$HOME$/.OpenInSAR/secrets.txt'
+    USE_SECRETS = true;
 end
 
 methods
@@ -194,10 +195,18 @@ methods (Static)
         this = this.format_properties(optionsFromFile);
         propertyKeys = properties( this );
 
+        is_booly_string_true = @(x) any(strcmpi(x,{'true','yes','y','1'}));
+        is_booly_string_false = @(x) any(strcmpi(x,{'false','no','n','0'}));
+        is_booly_string = @(x) ischar(x) && (is_booly_string_true(x) || is_booly_string_false(x));
+
         % string interpolation of the properties
         for i = 1:length(propertyKeys)
             if OI.Compatibility.is_string( this.(propertyKeys{i}) )
                 this.(propertyKeys{i}) = this.string_interpolation( this.(propertyKeys{i}) );
+                if is_booly_string(this.(propertyKeys{i}))
+                    bstr = this.(propertyKeys{i});
+                    this.(propertyKeys{i}) = is_booly_string_true(bstr);
+                end
             end
         end
 
