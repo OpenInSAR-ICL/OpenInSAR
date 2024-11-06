@@ -139,8 +139,8 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             blockData = normz( blockData .* conj( aps ) );
             
             % Remove residual low pass offset/ambiguity from aps model
-            m = normz(mean(dm2(blockData)));
-            blockData = blockData .* conj(m);
+            % m = normz(mean(dm2(blockData)));
+            % blockData = blockData .* conj(m);
             % TODO THE ABOVE SHOULD BE DONE IN APS, WHERE IS ERROR INTRODUCED?
  
             % remove low pass
@@ -193,7 +193,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
             unld = unwrap(angle(nld),[],2);
 
             % add vel back on
-            real_displacement_m = unld * 0.055 / ( 4 * pi ) - v(MASK,:) .* ts / 365;
+            real_displacement_m = -unld * 0.055 / ( 4 * pi ) - v(MASK) .* ts / 365;
             real_displacement_m = real_displacement_m - real_displacement_m(:,1); % start at 0.
             
             datestrCells = cell(length(baselinesObject.timeSeries), 1);
@@ -234,7 +234,7 @@ classdef PersistentScatterersInversion < OI.Plugins.PluginBase
                 shpName, ...
                 bg.lat(MASK), ...
                 bg.lon(MASK), ...
-                -real_displacement_m, ... % displacements 2d Array
+                real_displacement_m, ... % displacements 2d Array
                 datestrCells, ... % datestr(timeSeries(1),'YYYYMMDD')
                 q(MASK), ...
                 -v(MASK), ...
