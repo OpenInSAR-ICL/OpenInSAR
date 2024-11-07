@@ -89,6 +89,8 @@ properties
 
     SECRETS_FILEPATH = '$HOME$/.OpenInSAR/secrets.txt'
     USE_SECRETS = true;
+
+    ROOT_URL = 'https://ai2c.co.uk/api/'
 end
 
 methods
