@@ -19,11 +19,8 @@ This is a guide for using the 'old style' Matlab scripts on Imperial HPC
   > 
   > cd my_openinsar
   > 
-<<<<<<< HEAD
-  > git clone https://github.com/OpenInSAR-ICL/OpenInSAR.git .
-=======
   > git clone -b dev https://github.com/OpenInSAR-ICL/OpenInSAR.git .
->>>>>>> 25b18e9 (Update ICL_HPC_GUIDE.md)
+
   
   Note the . at the end. If you leave off the '.', then it will clone to a directory called OpenInSAR.
   
@@ -52,11 +49,8 @@ This is a guide for using the 'old style' Matlab scripts on Imperial HPC
 
 #### 4. Edit the OpenInSAR configuration to fit your area
   Start by copying an example 'Project File' to a new file called 'CurrentProject.oi'.
-<<<<<<< HEAD
-  Copy this file to your personal ephemeral storage, as the data will be generated relative to the location of this Project File
-=======
+
   Copy this file to YOUR PERSONAL ephemeral storage, as the data will be generated relative to the location of this Project File
->>>>>>> 25b18e9 (Update ICL_HPC_GUIDE.md)
   
   Assuming we are in this repository:
   
@@ -112,7 +106,9 @@ Which will launch 99 workers by default. They will look for '~/../ephemeral/Curr
 
   Once the workers are running, a folder will be created here:
   
-  > ~/../ephemeral/YOUR_COLLEGE_USERNAME/WHATEVER_YOU_CALLED_THE_PROJECT/postings/
+  > ~/../ephemeral/MY_PROJECT/postings/
+
+  Assuming you called the project 'MY_PROJECT'.
   
   One of the workers is 'interactive' in that we can write Matlab commands in 'interactive_input.txt' and the results will be written in 'interactive_output.txt'.
   Hence we can nominate the worker to be the leader by simply writing 'leader' in the 'interactive_input.txt' file
@@ -139,11 +135,12 @@ Which will launch 99 workers by default. They will look for '~/../ephemeral/Curr
 ---
 
 #### 7.C [OPTION C] Launch an interactive session
+  You can run interactive sessions on the HPC. You have to start on the login-a node.
   > qsub interactive.pbs
   
   Wait for it to load, then start Matlab
   
-  > cd LOCATION_OF_THIS_REPOSITORY
+  > cd my_openinsar
   > 
   > ./output/ICL_HPC/leader.sh
   
@@ -154,5 +151,5 @@ Which will launch 99 workers by default. They will look for '~/../ephemeral/Curr
 #### 8 Let me know any issues
   Note that there is an issue with files not updating on the Research Data Store which we can't do anything about, so this 'old' approach is very buggy.
   Results should be generated in 
-  > ~/../ephemeral/YOUR_COLLEGE_USERNAME/
+  > ~/../ephemeral/MY_PROJECT/
 
