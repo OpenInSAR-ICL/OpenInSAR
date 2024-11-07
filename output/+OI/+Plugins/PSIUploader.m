@@ -249,10 +249,11 @@ classdef PSIUploader < OI.Plugins.PluginBase
 
             BATCH = 1000;
             ROOT_URL = projObj.ROOT_URL;
-            authorised_request = OI.Functions.get_authorised_request(ROOT_URL, 'stew', '4040');
+            
             datasetId = OI.Functions.get_dateset_id(engine,ROOT_URL,this.STACK,this.BLOCK);
-            datasetIdStr = num2str(datasetId);
-
+            % datasetIdStr = num2str(datasetId);
+        
+            authorised_request = OI.Functions.get_authorised_request(ROOT_URL, 'stew', '4040');
             startTime=tic;
             % POST data in batches
             for batch_start = 1:BATCH:nPoints
@@ -262,7 +263,7 @@ classdef PSIUploader < OI.Plugins.PluginBase
             
                 % Create a batch of points
                 for ii = batch_end:-1:batch_start
-                    S(ii - batch_start + 1) = make_point(datasetIdStr, lat(ii), lon(ii), real_displacement_m(ii,:), Css(ii), vss(ii), qss(ii));
+                    S(ii - batch_start + 1) = make_point(datasetId, lat(ii), lon(ii), real_displacement_m(ii,:), Css(ii), vss(ii), qss(ii));
                 end
             
                 % Send the batch in the request
