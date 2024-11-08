@@ -40,3 +40,7 @@ OpenInSAR*.o*
 *.shx
 *.dbf
 *.gpkg
+
+# Executable for running github actions locally
+act
+act.exe
