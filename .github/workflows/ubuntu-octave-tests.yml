@@ -2,6 +2,9 @@ name: Run Octave tests
 
 on:
     workflow_dispatch:
+    push:
+        branches:
+            - dev-octave-actions
 
 jobs:
   run-octave:
