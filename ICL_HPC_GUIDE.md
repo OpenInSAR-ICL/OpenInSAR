@@ -66,8 +66,10 @@ This is a guide for using the 'old style' Matlab scripts on Imperial HPC
 
 As we are probably running more than one processing project, it's convenient to create a script to launch the HPC workers.
 
-> cd ~
-> nano ~/LAUNCH
+```
+cd ~
+nano ~/LAUNCH
+```
 
 Copy and paste this:
 ```
