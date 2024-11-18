@@ -98,62 +98,19 @@ Which will launch 99 workers by default. They will look for '~/../ephemeral/Curr
   If there are issues getting workers starting, you can check the [HPC status](https://status.rcs.imperial.ac.uk/) in terms of queue times and maintainance (requires VPN connection).
   
   Workers will log their status and recieve jobs in their corresponding W#.worker file (where # is the worker index [1..99]) in the 'postings' subdirectory in the Project directory.
-  
-  > cat W2.worker
-  > 
-  > \# should say something like 'READY', or 'Running Job X'
-
+  ```
+  cd postings
+  cat W2.worker
+  \# should say something like 'READY', or 'Running Job X'
+  ```
 ---
 
-#### 7. Start a leader
-  This should be automatic, but if not we need to tell one worker to manage the others.
+If everything is running well, we should have results in a couple of hours!
 
-  Once the workers are running, a folder will be created here:
-  
-  > ~/../ephemeral/MY_PROJECT/postings/
-
-  Assuming you called the project 'MY_PROJECT'.
-  
-  One of the workers is 'interactive' in that we can write Matlab commands in 'interactive_input.txt' and the results will be written in 'interactive_output.txt'.
-  Hence we can nominate the worker to be the leader by simply writing 'leader' in the 'interactive_input.txt' file
-  
-  > echo "leader" > interactive_input.txt
-  
-  When a command has been receieved from the interactive_input.txt file, the file will be cleared by the worker/leader.
-  You can now see what the leader is doing via:
-  
-  > cat interactive_output.txt
-
----
-
-#### 7.B [OPTION B] Launch Matlab on your own machine.
-  This requires access to the RDS.
-  In Matlab:
-  
-  > addpath('ICL_HPC')
-  >
-  > leader
-  
-  Make sure ICL_HPC/leader.m is loading the correct .oi file, and that ICL_LEADER/worker.m is too.
-
----
-
-#### 7.C [OPTION C] Launch an interactive session
-  You can run interactive sessions on the HPC. You have to start on the login-a node.
-  > qsub interactive.pbs
-  
-  Wait for it to load, then start Matlab
-  
-  > cd my_openinsar
-  > 
-  > ./output/ICL_HPC/leader.sh
-  
-  I think the HPC is having trouble with interactive sessions at the moment.
-
----
-
-#### 8 Let me know any issues
+#### Let me know any issues!
   Note that there is an issue with files not updating on the Research Data Store which we can't do anything about, so this 'old' approach is very buggy.
   Results should be generated in 
   > ~/../ephemeral/MY_PROJECT/
+ 
+
 
