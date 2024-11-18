@@ -70,9 +70,11 @@ As we are probably running more than one processing project, it's convenient to 
 > nano ~/LAUNCH
 
 Copy and paste this:
-> thisPath=$(realpath $(dirname $0))
-> callingPath=$(realpath $PWD)
-> bash ~/my_openinsar/output/ICL_HPC/LAUNCHER.sh $1
+```
+thisPath=$(realpath $(dirname $0))
+callingPath=$(realpath $PWD)
+bash ~/my_openinsar/output/ICL_HPC/LAUNCHER.sh $1
+```
 
 Note that '~/my_openinsar/' should be edited if you named your software folder something else or moved it.
 
