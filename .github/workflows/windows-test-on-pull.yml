@@ -1,10 +1,7 @@
 name: Windows CI
 
 on:
-  pull_request:
-    branches:
-      - test
-      - main
+  workflow_dispatch:
       
 jobs:
   build_and_test_win_latest:
