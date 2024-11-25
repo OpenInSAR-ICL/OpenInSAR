@@ -110,6 +110,7 @@ methods
             mean_coherence = @(phase2d) mean(abs(sum(normz(phase2d),2)))./size(phase2d,2);
             blockData = reshape(blockData,[],sz(3));
             blockData = normz(blockData);
+            blockData(isnan(blockData) | isinf(blockData)) = 1;  % TODO, replace with more robust checks and masks for zero amplitude
 
             
             % Candidate Stuff

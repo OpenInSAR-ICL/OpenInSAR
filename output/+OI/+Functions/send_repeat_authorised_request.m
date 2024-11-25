@@ -1,4 +1,4 @@
-function response = send_authorised_request(ROOT_URL, username, password, endpoint, data, endpointExpectsArray)
+function response = send_repeat_authorised_request(request, ROOT_URL, endpoint, data, endpointExpectsArray)
 % EXAMPLE:
 % myData = {struct( ...
 % 'dataset', 2, ...
@@ -11,15 +11,11 @@ function response = send_authorised_request(ROOT_URL, username, password, endpoi
 % OI.Functions.send_authorised_request('https://localhost/api/','myUsername','myPassword','psi-info-upload/',myData)
 
 URL = [ROOT_URL, endpoint];
-request = OI.Functions.get_authorised_request(ROOT_URL, username, password);
 
-if nargin<=5 
-    endpointExpectsArray = true;
-end
-if endpointExpectsArray
-    request.Body = matlab.net.http.MessageBody({data});
+if numel(data)>1
+request.Body = matlab.net.http.MessageBody(data);
 else
-    request.Body = matlab.net.http.MessageBody(data);
+    request.Body = matlab.net.http.MessageBody({data});
 end
 response = request.send(URL,matlab.net.http.HTTPOptions('CertificateFilename',''));
 
