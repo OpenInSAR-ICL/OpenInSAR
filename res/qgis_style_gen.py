@@ -98,7 +98,6 @@ def generate_range_element(example, index, min_val, max_val):
 def create_matplotlib_color_gradient_scale(limit):
     import matplotlib.pyplot as plt
     import numpy as np
-    import colorsys
     from matplotlib.colors import LinearSegmentedColormap
     from matplotlib.cm import ScalarMappable
     # Generate color values
@@ -120,6 +119,7 @@ def create_matplotlib_color_gradient_scale(limit):
     # Add horizontal colorbar
     cbar = fig.colorbar(sm, orientation='vertical', ax=ax, shrink=1)
     cbar.set_label('Displacement rate (mm)')
+    label_artist = cbar.ax.yaxis.label
     tick_values = np.linspace(0, 1, 5)
     tick_labels = np.linspace(-limit*1000, limit*1000, 5)
     cbar.set_ticks(tick_values)
@@ -127,7 +127,7 @@ def create_matplotlib_color_gradient_scale(limit):
     ax.remove()
     fig.savefig(f'res/qgis_colorbar_{limit*1000}mm_horizontal.png', dpi=300, bbox_inches='tight')
 
-    fig.savefig(f'res/qgis_colorbar_{limit}_vertical.png', dpi=300, bbox_inches='tight')
+    fig.savefig(f'res/qgis_colorbar_{limit}_vertical.png', dpi=300, bbox_inches='tight', bbox_extra_artists=[label_artist])
 
     # Add vertical colorbar
     fig, ax = plt.subplots(figsize=(20, 10))  # Adjust the figsize to make the colorbar larger
@@ -152,11 +152,23 @@ def create_matplotlib_color_gradient_scale(limit):
     ax.remove()
     fig.savefig(f'res/qgis_colorbar_{limit*1000}mm_horizontal.png', dpi=300, bbox_inches='tight')
 
-
+def generate_title(options_dict: dict[str, int | float | str]) -> str:
+    to_string = lambda x: str(x) if isinstance(x, (int, float)) else x
+    path = "res/"
+    title = "psi_style_"
+    extension = ".qml"
+    for key, value in options_dict.items():
+        title += f"{key}_{to_string(value)}_"
+    # remove the last underscore
+    title = title[:-1] if title[-1] == '_' else title
+    return path + title + extension
     
 
 if __name__ == "__main__":
     one_sided_limit = 0.005
+    OPTIONS = {}
+    OPTIONS['one_sided_limit'] = one_sided_limit
+
     number_of_elements = 10
     step = 2 * one_sided_limit / (number_of_elements)
     limits = []
@@ -169,8 +181,10 @@ if __name__ == "__main__":
     limits = [(round(min_val, 4), round(max_val, 4)) for min_val, max_val in limits]
 
 
-    # add an offset to the limits
-    offset = 0.0006
+    # add an optional offset to the limits if non-zero mean (default 0)
+    offset = 0
+    if offset != 0:
+        OPTIONS['offset'] = offset
     limits = [(min_val + offset, max_val + offset) for min_val, max_val in limits]
 
     # set the first limit to -inf ish and the last limit to inf ish
@@ -181,7 +195,7 @@ if __name__ == "__main__":
     print(limits)
         
     # Load the XML file
-    tree = ET.parse('res/qgis_symbology2.qml')
+    tree = ET.parse('res/default_psi_style.qml')
     root = tree.getroot()
 
     # Find the "ranges" element, in the "renderer-v2" element
@@ -211,15 +225,15 @@ if __name__ == "__main__":
 
     # Now we need to also update the color ramp
     colorramp = renderer.find('colorramp')
-    options = colorramp.find('Option')
+    colorramp_options = colorramp.find('Option')
     # find the color1 option
-    color1_option = options.find('Option[@name="color1"]')
+    color1_option = colorramp_options.find('Option[@name="color1"]')
     color1_option.set('value', generate_color(0, number_of_elements))
-    color2_option = options.find('Option[@name="color2"]')
+    color2_option = colorramp_options.find('Option[@name="color2"]')
     color2_option.set('value', generate_color(number_of_elements - 1, number_of_elements))
 
     # now do the stops
-    stops = options.find('Option[@name="stops"]')
+    stops = colorramp_options.find('Option[@name="stops"]')
     stops_value = ""
     for i in range(number_of_elements):
         if i == 0 or i == number_of_elements-1:
@@ -236,7 +250,7 @@ if __name__ == "__main__":
     stops.set('value', stops_value)
 
     # Save the XML file
-    tree.write(f'res/qgis_style_{one_sided_limit}o.qml')
+    tree.write(generate_title(OPTIONS))
 
     # Create a matplotlib color gradient scale
     create_matplotlib_color_gradient_scale(one_sided_limit)
