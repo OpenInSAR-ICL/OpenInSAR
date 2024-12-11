@@ -33,7 +33,7 @@ classdef GetDEM < OI.Plugins.PluginBase
 
             % directory to save
             workPath = engine.database.fetch('workingDirectory');
-            demDir = fullfile(workPath, 'DEM');
+            demDir = engine.database.fetch('DEM_DATA_DIRECTORY');
             uName = engine.database.fetch('NasaUsername');
             pWord = engine.database.fetch('NasaPassword');
 

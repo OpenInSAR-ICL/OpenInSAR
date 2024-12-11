@@ -38,10 +38,11 @@ classdef Database < handle
             if ~isprop(projObj,'SECRETS_FILEPATH')
                 error('No secrets fp in project definition')
             end
-            
-            if exist( projObj.SECRETS_FILEPATH, 'file' )
+            secretsFilepath = projObj.string_interpolation(projObj.SECRETS_FILEPATH);
+
+            if exist(secretsFilepath, 'file' )
                 
-                secrets = fileread( projObj.SECRETS_FILEPATH );
+                secrets = fileread( secretsFilepath );
                 secrets = strsplit( secrets, sprintf('\n') ); %#ok<SPRINTFN>
                 
                 secrets = secrets(~cellfun(@isempty,secrets)); % Ignore empty lines.
@@ -59,13 +60,13 @@ classdef Database < handle
                 end
             else
                 if projObj.USE_SECRETS
-                    projObj.SECRETS_FILEPATH
-                    error('I expected to find a ''secrets'' file containing login data for various services at this location:\n %s \n ...but it was not found',projObj.SECRETS_FILEPATH);
+                    secretsFilepath
+                    error('I expected to find a ''secrets'' file containing login data for various services at this location:\n %s\n(or) %s \n ...but it was not found',projObj.SECRETS_FILEPATH, secretsFilepath);
                 end
             end
 
             % preview the aoi
-            aoiPreviewFilepath = fullfile( projObj.OUTPUT_DATA_DIR, 'aoi.kml' );
+            aoiPreviewFilepath = fullfile( projObj.string_interpolation(projObj.OUTPUT_DATA_DIR), 'aoi.kml' );
             if ~exist( aoiPreviewFilepath, 'file')
                 projObj.AOI.preview_kml( aoiPreviewFilepath );
             end

@@ -145,10 +145,12 @@ methods
     function jobs = create_job(obj, engine)
         engine.ui.log('trace', 'create_job method called on obj %s\n', obj.id);
         engine.ui.log('debug', 'Creating job to produce %s\n', strrep(obj.filepath, '\', '\\' ) );
+        projObj = engine.load( OI.Data.ProjectDefinition());
+
         if isprop(obj,'id')
-            jobs = {OI.Job('name',obj.generator,'arguments',{'DesiredOutput',obj.id})};
+            jobs = {OI.Job('name',obj.generator,'arguments',{'DesiredOutput',obj.id},'project',projObj.PROJECT_NAME)};
         else
-            jobs = {OI.Job('name',obj.generator)};
+            jobs = {OI.Job('name',obj.generator,'project',projObj.PROJECT_NAME)};
         end
     end
 
@@ -363,11 +365,15 @@ methods
         % update otherwise
         vars = regexp(str, var_regex, 'match');
 
-        for v = vars
-            var = v{1};
+        while ~isempty(vars)
+            var = vars{1};
             vName = var(2:end-1); % remove the $ signs
-
             value = engine.database.fetch_parameter(vName);
+
+            % find any new vars in the expansion
+            newVars = regexp(value, var_regex, 'match');
+            vars = [vars, newVars(~ismember(newVars, vars))]; % add new vars, retaining order
+
             % if isempty(value)
             %     warning('this is silly, make sure you put the param in the database rather than relying on reflection')
             %     % try to parameterise the variable
@@ -386,6 +392,7 @@ methods
             end
 
             str = strrep(str, var, value);
+            vars = vars(2:end); % remove the expanded variable from the set
         end
     end
 

@@ -46,5 +46,6 @@ end%properties
         function isOct = is_octave()
             isOct = exist('OCTAVE_VERSION','builtin')>0;
         end
+
     end
 end

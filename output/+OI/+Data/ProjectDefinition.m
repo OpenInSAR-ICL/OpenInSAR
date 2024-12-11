@@ -81,13 +81,15 @@ properties
     HERE
     HOME
     ROOT
-    WORK
-    INPUT_DATA_DIR
-    OUTPUT_DATA_DIR
-    ORBITS_DIR = '$WORK$/Orbits/'
-    pathVars = {'HERE','HOME','ROOT','WORK','INPUT_DATA_DIR','OUTPUT_DATA_DIR','ORBITS_DIR'}
+    DATA_DIRECTORY
+    WORK = '$DATA_DIRECTORY$/$PROJECT_NAME$'
+    INPUT_DATA_DIR = '$DATA_DIRECTORY$/InputData'
+    DEM_DATA_DIRECTORY = '$DATA_DIRECTORY$/DEM'
+    OUTPUT_DATA_DIR = '$DATA_DIRECTORY$/$PROJECT_NAME$'
+    ORBITS_DIR = '$WORK$/Orbits'
+    pathVars = {'HERE','HOME','ROOT','WORK','DATA_DIRECTORY','INPUT_DATA_DIR','OUTPUT_DATA_DIR','ORBITS_DIR','PROJECT_NAME'}
 
-    SECRETS_FILEPATH = '$HOME$/.OpenInSAR/secrets.txt'
+    SECRETS_FILEPATH = '$HOME$/secrets.txt'
     USE_SECRETS = true;
 
     ROOT_URL = 'https://ai2c.co.uk/api/'
@@ -96,8 +98,17 @@ end
 methods
 
     function this = ProjectDefinition( filename )
+        this.HOME = OI.OperatingSystem.get_usr_dir();
         if nargin > 0
-            this = OI.Data.ProjectDefinition.load_from_file( filename );
+            if ischar(filename) && exist(filename,'file')
+                this = OI.Data.ProjectDefinition.load_from_file( filename );
+            else
+                try
+                    this = filename;
+                catch
+                    error("Expected constructor agument to be a project filepath or a project object")
+                end
+            end
             % set up project directories
             this = this.setup_project_directories();
         end
@@ -147,12 +158,16 @@ methods
         end % for
     end
 
+    function this = default_directory_structure(this, data_directory)
+        this.DATA_DIRECTORY = data_directory;
+    end
+
     function this = setup_project_directories( this )
         % set up project directories
-        OI.Functions.mkdirs( this.WORK );
-        OI.Functions.mkdirs( this.OUTPUT_DATA_DIR );
-        OI.Functions.mkdirs( this.INPUT_DATA_DIR );
-        OI.Functions.mkdirs( this.ORBITS_DIR );
+        % OI.Functions.mkdirs( this.WORK );
+        % OI.Functions.mkdirs( this.OUTPUT_DATA_DIR );
+        % OI.Functions.mkdirs( this.INPUT_DATA_DIR );
+        % OI.Functions.mkdirs( this.ORBITS_DIR );
     end
 
 end% methods

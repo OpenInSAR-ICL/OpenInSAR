@@ -43,7 +43,12 @@ methods
         % We need to create a load of jobs with each of the URLs
         if isempty(this.URL)
             engine.ui.log('info', 'Creating jobs for downloading Sentinel1 data\n');
-            jobs = this.outputs{1}.create_array_job( engine );
+
+            dlList = engine.load( OI.Data.Sentinel1DownloadList() );
+            if isempty(dlList)
+                return % pass back to engine to generate list
+            end
+            jobs = this.outputs{1}.create_array_job( engine, dlList );
             engine.ui.log('info', 'Created %d jobs for downloading Sentinel1 data\n', length(jobs));
             for ii=1:numel(jobs)
                 jobs{ii}.target = '1';

@@ -45,7 +45,11 @@ methods
     function load_project(this, project_filepath)
         % Load a project from the database via the project filepath
         status = this.database.load_project(project_filepath);
-        this.ui.log('info', 'Loaded project %s\n', strrep(project_filepath,'\','\\'));
+        if isa(project_filepath,'OI.Data.ProjectDefinition')
+            this.ui.log('info', 'Loaded project %s\n', project_filepath.PROJECT_NAME);
+        else
+            this.ui.log('info', 'Loaded project %s\n', strrep(project_filepath,'\','\\'));
+        end
         this.ui.log('debug', '%s\n', status);
         % clear the queue
         this.queue.clear();
@@ -333,12 +337,12 @@ methods
             % Add any outstanding jobs to the queue
             for jobInd = 1:length(outstandingJobs)
                 this.ui.log('debug', 'Adding job %s to queue\n', outstandingJobs{jobInd}.to_string());
-                this.queue.add_job( outstandingJobs{jobInd} );
+                this.queue.add_job( outstandingJobs{jobInd}, 1 );
             end
             % try to create the intended job
             this.ui.log('debug', 'Trying to create job for %s\n', dataObj.id')
             job = dataObj.create_job(this);
-            this.queue.add_job( job{1} );
+            this.queue.add_job( job{1}, 1 );
             return
         end
 

@@ -4,6 +4,7 @@ properties
     name = 'EmptyJob';
     target = '';
     arguments = {};
+    project = '';
 end
 
 properties (SetAccess = private, GetAccess = private)
@@ -47,10 +48,12 @@ methods
                 end
                 obj.(varargin{i}) = varargin{i+1};
             end
-        else 
-
         end
 
+        % New jobs must have the project set
+        if isempty(obj.project)
+            error('Job:Job','Job must have a project set');
+        end
     end
 
     function keysAsCsv = get_arg_keys( this )
@@ -73,10 +76,12 @@ methods
         % split the string into name, target, and arguments
         [jobName,jobStr] = strtok(jobStr,',');
         [jobTarget,jobStr] = strtok(jobStr,',');
-        
+        [jobProject,jobStr] = strtok(jobStr,',');
+
         % remove the quotes
         jobName = jobName(2:end-1);
         jobTarget = jobTarget(2:end-1);
+        jobProject = jobProject(2:end-1);
         % remove the braces
         jobStr = jobStr(3:end-1);
         jobArguments = strsplit(jobStr,',');
@@ -96,6 +101,7 @@ methods
         % set the properties
         this.name = jobName;
         this.target = jobTarget;
+        this.project = jobProject;
         this.arguments = jobArguments;
     end
 
@@ -112,11 +118,12 @@ methods
         % set the properties
         this.name = jobStruct.name;
         this.target = jobStruct.target;
+        this.project = jobStruct.project;
         this.arguments = jobStruct.arguments;
     end
 
     function jobStr = to_string(this)
-        jobStr = sprintf('Job(''%s'',''%s'',{',this.name,this.target);
+        jobStr = sprintf('Job(''%s'',''%s'',''%s'',{',this.name,this.target,this.project);
         for i = 1:length(this.arguments)
             % append empty args as ''
             if isempty(this.arguments{i})

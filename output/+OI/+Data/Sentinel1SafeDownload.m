@@ -15,16 +15,15 @@ methods
         this.fileextension = '';
     end%ctor
 
-    function jobs = create_array_job( this, engine )
+    function jobs = create_array_job( this, engine, dlList )
         jobs = {};  
 
         projObj = engine.load( OI.Data.ProjectDefinition() );
-        dlList = engine.load( OI.Data.Sentinel1DownloadList() );
         
         % This should be in plugin.
         % return if no list
         if isempty(projObj) || isempty( dlList )
-            jobs = {OI.Job( OI.Data.Sentinel1DownloadList().generator)};
+            % jobs = {OI.Job('name', OI.Data.Sentinel1DownloadList().generator, 'project', projObj.PROJECT_NAME)};
             return;
         end
 
@@ -72,7 +71,7 @@ methods
 
             % create jobs
             for i = 1:numel( dlLines )
-                job = this.create_job_from_url( dlLines{i} );
+                job = this.create_job_from_url( projObj, dlLines{i} );
                 job.target = '1';
                 % check if the file already exists
                 inputDataPath = projObj.INPUT_DATA_DIR;
@@ -99,7 +98,7 @@ methods
         jobs = create_array_job( this, engine );
     end%create_job
 
-    function job = create_job_from_url(obj, url)
+    function job = create_job_from_url(obj, projObj, url)
         % get filename from URL 
         % https://datapool.asf.alaska.edu/SLC/SA/S1A_IW_SLC__1SDV_20230325T175029_20230325T175056_047804_05BE4F_59A4.zip\n
         filename = strsplit( url, '/' );
@@ -107,7 +106,7 @@ methods
         % remove \n
         filename = strrep(filename,'\n','');
         
-        job = OI.Job('name',obj.generator,'arguments',{'DesiredOutput',obj.id,'filename',filename,'URL',url});
+        job = OI.Job('name',obj.generator,'project',projObj.PROJECT_NAME,'arguments',{'DesiredOutput',obj.id,'filename',filename,'URL',url});
     end
 
 end%methods

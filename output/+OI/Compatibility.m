@@ -87,6 +87,22 @@ methods (Static = true)
         end
     end
 
+    function encodedText = base64encode( text )
+        if OI.Compatibility.isOctave
+            encodedText = base64encode(text);
+        else
+            encodedText = matlab.net.base64encode(text);
+        end
+    end
+
+    function decodedText = base64decode( text )
+        if OI.Compatibility.isOctave
+            decodedText = base64decode(text);
+        else
+            decodedText = matlab.net.base64decode(text);
+        end
+    end
+
     function TF = contains(X1,X2)
         if OI.Compatibility.isOctave
             if iscell(X1)

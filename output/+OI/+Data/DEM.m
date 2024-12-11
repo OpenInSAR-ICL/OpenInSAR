@@ -17,7 +17,7 @@ classdef DEM < OI.Data.DataObj
     methods
         function this = DEM(varargin)
             this.hasFile = true;
-            this.filepath = '$workingDirectory$/DEM';
+            this.filepath = '$DEM_DATA_DIRECTORY$/DEM';
         end
 
         function this = add_tile(this, tileFilepath)
