@@ -8,11 +8,13 @@ classdef BaseClient
         userId = '';
         jobId = '';
         assignmentId = '';
+        isWindows = false;
     end
     methods
         
         function self = BaseClient(root_url)
             self.root_url = root_url;
+            self.isWindows = OI.OperatingSystem.isWindows();
         end
 
         function self = register(self, machine_id)
@@ -29,11 +31,19 @@ classdef BaseClient
                     error('Could not get hostname');
                 end
                 machine_id = [self.username '_' strip(hostname)];
+                J = getenv('PBS_ARRAY_INDEX');
+                if isempty(J)
+                    randInds = randi(26,1,5);
+                    chars=['A':'Z'];
+                    J=chars(randInds);
+                    J=J(:)';
+                end
+                machine_id = [machine_id '_' J];
             end
             vers = 'Octave1.0';
             workerUrl = [self.root_url 'workers/'];
             curlString = [
-                'curl -k -sS -X POST ' workerUrl, ...
+                'env -u LD_LIBRARY_PATH curl -k -sS -X POST ' workerUrl, ...
                 ' -H "Cookie: csrftoken=' self.csrfToken, ';', ...
                 ' sessionid=' self.sessionId '"', ...
                 ' -H "X-CSRFToken: ' self.csrfToken '"', ...
@@ -43,6 +53,7 @@ classdef BaseClient
             ];
 
             disp(curlString);
+            if self.isWindows;curlString=strrep(curlString,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlString);
             if status
                 error(response)
@@ -67,13 +78,15 @@ classdef BaseClient
             if ~isempty(options)
                 options = [options ' '];
             end
-            [status, response] = system(['curl ' options self.root_url url]);
+            curlString = ['env -u LD_LIBRARY_PATH curl ' options self.root_url url];
+            if self.isWindows;curlString=strrep(curlString,'env -u LD_LIBRARY_PATH ','');end
+            [status, response] = system(curlString);
         end
 
         function self = get_csrf_for_login(self)
-            [status, response] = self.curl_request('csrf/', '-k -sS -c -');
+            [status, response] = self.curl_request('csrf/', '-L -k -sS -c -');
             if status
-                error(status)
+                error(response)
             end
             lines = strsplit(response,'#');
             self.csrfToken = jsondecode(lines{1}).csrfToken;
@@ -93,7 +106,7 @@ classdef BaseClient
         function [self, status, result] = login(self, username, password)
             self = get_csrf_for_login(self);
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X POST %s -H "Content-Type: application/json" ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -L -sS -X POST %s -H "Content-Type: application/json" ', ...
                 '-H "Cookie: sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
@@ -102,6 +115,7 @@ classdef BaseClient
                 [self.root_url 'login/'], self.sessionId, self.csrfToken, [self.root_url 'login/'], username, password);
 
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, result] = system(curlCommand);
 
             % Display the response
@@ -110,9 +124,10 @@ classdef BaseClient
             % get the username from the json response
             lines=strsplit(result,'#');
             jsonRaw = lines{1};
-            json = jsondecode(jsonRaw);
+             json = jsondecode(jsonRaw);
             self.username = json.username;
             self.userId = json.id;
+
 
             % get the session id
             fields=strsplit(lines{end},'\t');
@@ -125,12 +140,13 @@ classdef BaseClient
 
         function projects = list_projects(self)
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X GET %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X GET %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 ], ...
                 [self.root_url 'projects/'], self.csrfToken, self.sessionId);
 
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, projects] = system(curlCommand);
 
             % Display the response
@@ -140,12 +156,13 @@ classdef BaseClient
 
         function projects = list_jobs(self)
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X GET %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X GET %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 ], ...
                 [self.root_url 'jobs/'], self.csrfToken, self.sessionId);
 
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, projects] = system(curlCommand);
 
             % Display the response
@@ -154,23 +171,24 @@ classdef BaseClient
         end
 
         function aoiList = list_aois(self)
-            curlCommand = sprintf(['curl -k -sS -X GET %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X GET %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 ], ...
                 [self.root_url 'sites/'], self.csrfToken, self.sessionId);
-
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
             aoiList = jsondecode(response);
         end
 
         function assignments = list_assignments(self)
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X GET %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X GET %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 ], ...
                 [self.root_url 'assignments/'], self.csrfToken, self.sessionId);
 
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, assignments] = system(curlCommand);
 
             % Display the response
@@ -180,12 +198,13 @@ classdef BaseClient
 
         function projectTemplates = list_templates(self)
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X GET %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X GET %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 ], ...
                 [self.root_url 'projecttemplates/'], self.csrfToken, self.sessionId);
 
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
 
             % Display the response
@@ -195,12 +214,13 @@ classdef BaseClient
 
         function workers = list_workers(self)
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X GET %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X GET %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 ], ...
                 [self.root_url 'workers/'], self.csrfToken, self.sessionId);
 
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
 
             % Display the response
@@ -237,7 +257,7 @@ classdef BaseClient
             payloadJson = jsonencode(payload);
             payloadJson = strrep(payloadJson,'"','\"');
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X POST %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X POST %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
@@ -247,13 +267,14 @@ classdef BaseClient
 
             disp(curlCommand)
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
             disp(response);
         end
 
         function self = post_assignment(self, job)
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X POST %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X POST %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
@@ -264,6 +285,7 @@ classdef BaseClient
 
             disp(curlCommand)
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
 
             % Display the response
@@ -281,7 +303,7 @@ classdef BaseClient
 
             % Patch the assignment entry to reflect that the job has started
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X PATCH %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X PATCH %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
@@ -292,6 +314,7 @@ classdef BaseClient
 
             disp(curlCommand)
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
         end
 
@@ -307,7 +330,7 @@ classdef BaseClient
 
             % Patch the assignment entry to reflect that the job has finished
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X PATCH %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X PATCH %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
@@ -317,13 +340,14 @@ classdef BaseClient
                 self.csrfToken, self.sessionId, self.csrfToken, [self.root_url],payload);
             disp(curlCommand)
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
         end
 
         function job_failed(msg)
             % patch the result to reflect that the job has failed
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X PATCH %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X PATCH %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
@@ -333,6 +357,7 @@ classdef BaseClient
                 self.csrfToken, self.sessionId, self.csrfToken, [self.root_url 'assignments/' self.assignmentId], msg);
             disp(curlCommand)
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
         end
 
@@ -410,7 +435,7 @@ classdef BaseClient
 
         function delete_worker(self,worker_id)
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X DELETE %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X DELETE %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
@@ -418,6 +443,7 @@ classdef BaseClient
                 [self.root_url 'workers/' num2str(worker_id) '/'], self.csrfToken, self.sessionId, self.csrfToken, [self.root_url 'workers/']);
 
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
 
             % Display the response
@@ -426,7 +452,7 @@ classdef BaseClient
 
         function delete_assignment(self, assignment_id)
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X DELETE %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X DELETE %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
@@ -434,6 +460,7 @@ classdef BaseClient
                 [self.root_url 'assignments/' num2str(assignment_id) '/'], self.csrfToken, self.sessionId, self.csrfToken, [self.root_url 'assignments/']);
 
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
 
             % Display the response
@@ -442,7 +469,7 @@ classdef BaseClient
 
         function delete_job(self, jobId) 
             % Construct curl command
-            curlCommand = sprintf(['curl -k -sS -X DELETE %s ', ...
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X DELETE %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
@@ -450,6 +477,7 @@ classdef BaseClient
                 [self.root_url 'jobs/' num2str(jobId) '/'], self.csrfToken, self.sessionId, self.csrfToken, [self.root_url 'jobs/']);
 
             % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
 
             % Display the response

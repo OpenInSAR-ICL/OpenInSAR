@@ -55,6 +55,9 @@ function datasetId = get_dateset_id(engine, ROOT_URL, stack, block)
             break
         end
     end
+    if isempty(thisProject)
+        error("PROJECT NOT FOUND")
+    end
 
     sd = datestr(t0(1),'yyyy-mm-dd');
     ed = datestr(t0(end),'yyyy-mm-dd');

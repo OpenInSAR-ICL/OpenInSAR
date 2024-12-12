@@ -51,6 +51,13 @@ classdef Leader
                     self.engine.load(productClass);
                 end
                 while self.engine.queue.length > 0
+                    canaryFile = fullfile(self.data_directory,'canary');
+                    if exist(canaryFile,'file')
+                        restoredefaultpath
+                        addpath('ICL_HPC')
+                        delete(canaryFile)
+                        error('canary')
+                    end
                     nextJob = self.engine.queue.next_job();
                     if ~isempty(nextJob.target)
                         self.worker_pool = self.update_worker_pool();
@@ -113,11 +120,12 @@ classdef Leader
                     end
 
                     % remove the job and the assignment
-                    self.client.delete_job(assignmentObj.job);
-                    self.client.delete_assignment(assignmentObj.id);
+                    self.client.delete_job(assignment.job);
+                    self.client.delete_assignment(assignment.id);
+%                   self.client.delete_job(assignment.job);
 
                     % find the worker in the worker pool
-                    worker = workers([workers.id] == assignmentObj.worker);
+                    worker = workers([workers.id] == assignment.worker);
                     % add the worker back to the worker pool
                     self.worker_pool = [self.worker_pool, worker];
                 end

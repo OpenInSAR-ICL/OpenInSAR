@@ -3,19 +3,22 @@ classdef Worker
     properties
         client = [];
         engine = [];
+        data_directory = '';
     end
 
     methods
 
-        function self = Worker(host, username, password)
-            if nargin == 3
+        function self = Worker(host, username, password, data_directory)
+            if nargin == 4
                 self.client = OI.BaseClient(host);
                 self.client = self.client.login(username, password);
                 self.client = self.client.register();
+                self.data_directory = data_directory;
             else 
                 api_host = getenv('OI_API_HOST');
                 username = getenv('OI_USERNAME');
                 password = getenv('OI_PASSWORD');
+                self.data_directory = getenv('data_directory')
                 if isempty(api_host) || isempty(username) || isempty(password)
                     error('Worker:Worker', ...
                     ['API host, username, and password must be set', ...
@@ -39,9 +42,10 @@ classdef Worker
         end % run
 
         function [self, job] = get_assignment(self)
-            [self, job] = self.get_job();
+            
             % check if the job is assigned to this worker
             while true
+                [self, job] = self.get_job();
                 assignments = self.client.list_assignments();
                 matchAssignment = ...
                     arrayfun(@(x) x.worker == self.client.worker_id && x.job == job.id, assignments);
@@ -62,7 +66,7 @@ classdef Worker
             while true
                 [self, job] = self.get_assignment();
                 projectData = self.client.get_project_by_id(job.project);
-                projectData.DATA_DIRECTORY = '.';
+                projectData.DATA_DIRECTORY = self.data_directory;
                 self.engine.load_project(projectData);
                 self.client = self.client.job_started(job);
                 disp(['Running job: ' job.name]);

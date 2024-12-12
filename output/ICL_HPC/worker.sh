@@ -32,7 +32,7 @@ echo "Num workers: $nJ"
 # start matlab
 echo "the time is: $(date), starting Matlab"
 pwd
-matlab -nodesktop -nosplash -noFigureWindows -r "disp('Matlab is in:'); pwd; J=$J; nJ=$nJ; addpath('ICL_HPC'); worker;"
+matlab -nodesktop -nosplash -noFigureWindows -r "disp('Matlab is in:'); pwd; J=$J; nJ=$nJ; addpath('ICL_HPC'); newWorker;"
 cd ..
 echo "Matlab finished execution at: $(date)\n"
 echo "End of shell script."

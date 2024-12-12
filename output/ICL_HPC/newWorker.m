@@ -1,0 +1,290 @@
+
+[~,startDirectory] = fileparts(pwd);
+if strcmpi(startDirectory,'ICL_HPC')
+    cd('..')
+end
+addpath('ICL_HPC')
+
+tidir = '~/manman/'
+OI.Functions.mkdirs(tidir)
+
+terminalInputLocation = fullfile(tidir,sprintf('interactive_input%i.txt',J));
+terminalOutputLocation = fullfile(tidir,sprintf('interactive_output%i.txt',J));
+
+% make the input file empty
+fid = fopen(terminalInputLocation,'w');
+fwrite(fid,'');
+fclose(fid);
+
+diary(terminalOutputLocation)
+% start the terminal output
+diary on
+
+% get number of available cores
+nCpuEnvVar = getenv('nCpus');
+if ~isempty(nCpuEnvVar)
+    nCpu = str2num(nCpuEnvVar); %#ok<ST2NM>
+else
+	
+    nCpu = 4; % Pure guess
+end
+% Set the number of threads to use
+maxNumCompThreads(nCpu);
+
+if ~isnumeric(J)
+    J = str2num(J); %#ok<ST2NM>
+end
+disp(J)
+
+try
+	if J == 1
+		oi = OI.Leader('https://ai2c.co.uk/api/','stew','4040','~/../ephemeral/');
+		oi.run();
+	else
+		oi = OI.Worker('https://ai2c.co.uk/api/','stew','4040','~/../ephemeral/');
+		oi.run();
+	end
+catch ERR
+	disp(ERR)
+	errStruct = OI.Functions.obj2struct(ERR);
+	disp(OI.Functions.struct2xml(errStruct).to_string())
+
+
+	% main loop
+	while true
+		% read the contents of the input file, eval, then wipe
+		inputCommands = fileread(terminalInputLocation);
+
+		if ~isempty(inputCommands)
+			% make the input file empty
+			fid = fopen(terminalInputLocation,'w');
+			fwrite(fid,'');
+			fclose(fid);
+
+			fprintf(1,'Received input:\n%s\n',inputCommands)
+
+			try
+				eval(inputCommands)
+			catch ERR
+				disp(ERR)
+				errStruct = OI.Functions.obj2struct(ERR);
+				disp(OI.Functions.struct2xml(errStruct).to_string())
+			end
+		end
+		% 
+		timeToWait = 10;
+		tStep = 10;
+		while timeToWait > 0
+			fprintf(1,'%s - waiting %i seconds...\n', datetime("now"), timeToWait);
+			pause(tStep)
+			timeToWait = timeToWait - tStep;
+		end
+	end
+
+end
+	
+% % project file:
+% % resolve the real path to the project file
+% fp = OI.ProjectLink().projectPath;
+% oi = OpenInSAR('-log','trace','-project',fp);
+% projObj = oi.engine.load( OI.Data.ProjectDefinition() );
+% postings = Postings(projObj);
+
+% % If the worker is #1, have it run as an interactive terminal session
+% % We can then use it as a debugging tool or leader
+% if J==1
+    % fp = OI.ProjectLink().projectPath;
+    % oi = OpenInSAR('-log','trace','-project',fp);
+
+    % terminalInputLocation = fullfile(postings.postingPath,'interactive_input.txt');
+    % terminalOutputLocation = fullfile(postings.postingPath,'interactive_output.txt');
+
+    % % write the input file.
+    % % If its empty or not there (default / first time startup), write the default startup command
+    % % This is janky, but is a simple way for the file to maintain control of us
+    % DEFAULT_COMMAND = 'leader'
+    % if ~exist(terminalInputLocation,'file')
+        % OI.Functions.mkdirs(fileparts(terminalInputLocation))
+        % fid = fopen(terminalInputLocation,'w');
+        % fwrite(fid, DEFAULT_COMMAND);
+        % fclose(fid);
+    % else
+        % % read the content
+        % inputCommands =  fileread(terminalInputLocation);
+        % if isempty(inputCommands)
+            % fid = fopen(terminalInputLocation,'w');
+            % fwrite(fid, DEFAULT_COMMAND);
+            % fclose(fid);
+        % end
+    % end
+
+    % % start the terminal output
+    % diary(terminalOutputLocation)
+    % diary on
+
+    % % main loop
+    % while true
+        % % read the contents of the input file, eval, then wipe
+        % inputCommands = fileread(terminalInputLocation);
+
+        % if ~isempty(inputCommands)
+            % % make the input file empty
+            % fid = fopen(terminalInputLocation,'w');
+            % fwrite(fid,'');
+            % fclose(fid);
+
+            % fprintf(1,'Received input:\n%s\n',inputCommands)
+
+            % try
+                % eval(inputCommands)
+            % catch ERR
+                % disp(ERR)
+                % errStruct = OI.Functions.obj2struct(ERR);
+                % disp(OI.Functions.struct2xml(errStruct).to_string())
+            % end
+        % end
+        % % 
+        % timeToWait = 10;
+        % tStep = 10;
+        % while timeToWait > 0
+            % fprintf(1,'%s - waiting %i seconds...\n', datetime("now"), timeToWait);
+            % pause(tStep)
+            % timeToWait = timeToWait - tStep;
+        % end
+    % end
+% end
+
+
+
+% firstWait = true; % make the first wait shorter
+% % main loop
+% while true
+    % postings = postings.report_ready(J);
+    % jobstr = '';
+    % while isempty(jobstr)
+        % postings = postings.check_jobs(J);
+        % jobstr = postings.jobline;
+        % if ~isempty(jobstr)
+            % disp(jobstr)
+            % firstWait = true;
+            % postings.report_recieved(J);
+            % break
+        % else
+            
+            % postings = postings.report_ready(J);
+            % if firstWait
+                % fprintf(1,'%s - waiting...', datetime("now"));
+                % pause(10)
+                % firstWait = false;
+            % else
+                % pause(30)
+            % end
+        % end
+    % end
+
+    % % Check if jobstr is 'reset'
+    % if strcmpi(jobstr,'reset')
+        % disp('resetting')
+        % clearvars -except J
+        % restoredefaultpath
+        % addpath('ICL_HPC')
+        % worker
+        % return
+    % end
+
+    % % clear any info asside from JOB
+    % jobCell=strsplit(jobstr,'JOB=');
+    % jobstr = jobCell{end};
+    % % convert to JOB object
+    % JOB = OI.Job(jobstr);
+    % % TODO check valid?
+    % oi.engine.queue.add_job(JOB)
+    % while ~oi.engine.queue.is_empty()
+        % postings.report_running(J);
+        % dbSize = numel(oi.engine.database.data);
+        
+        % try
+            % oi.engine.run_next_job();
+        % catch ERR
+            % try
+                % disp(ERR)
+                % oi.engine.ui.log( OI.Compatibility.CompatibleError(ERR) )
+                % errStruct = OI.Functions.obj2struct(ERR);
+                % disp(OI.Functions.struct2xml(errStruct).to_string())
+
+                % % write the error to a file
+                % ds = strrep(strrep(datestr(now),':',''),' ','_'); %#ok<DATST,TNOW1>
+                % fid = fopen(fullfile(postings.postingPath,['error' num2str(J) ds '.txt']),'w');
+                % fwrite(fid, OI.Functions.struct2xml(errStruct).to_string());
+                % fclose(fid);
+
+                % % report the error
+                % postings.report_error(J, ...
+                    % OI.Functions.struct2xml(errStruct).to_string())
+                % clearvars -except J
+                % restoredefaultpath
+                % addpath('ICL_HPC')
+                % worker
+            % catch ERR2
+                % warning('cant handle error at all, restarting')
+                % disp(ERR2)
+                % clearvars -except J
+                % restoredefaultpath
+                % addpath('ICL_HPC')
+                % worker
+                % return
+            % end
+        % end
+
+        % if oi.engine.plugin.isFinished
+            % answer = '';
+            % if dbSize < numel(oi.engine.database.data)
+                % lastEntry = oi.engine.database.data{end};
+                % if (isa(lastEntry,'OI.Data.DataObj') && ~lastEntry.hasFile) ...
+                        % || isstruct(lastEntry)
+                    % % convert the database additions to xml
+                    % resultAsStruct = OI.Functions.obj2struct( lastEntry );
+                    % resultAsXmlString = OI.Functions.struct2xml( resultAsStruct ).to_string();
+                    % answer = resultAsXmlString;
+                % end
+            % end
+            % postings.report_done(J, answer);
+        % elseif ~oi.engine.queue.is_empty()
+            % errjobstr = oi.engine.queue.jobArray{1}.to_string();
+            % postings.report_error(J, [errjobstr ' _ I didnt finish my job, probably as Im missing an input.' ...
+            % 'I can mess things up if I start trying to create my input as something is probs already doing so.'])
+            % %!!! need to clear job and wait for next one here.
+            % %! currently its re-runing old job which is the opposite of what we want.
+            % oi.engine.queue.clear
+            % postings = postings.report_ready(J);
+            % break
+        % end
+
+        % postings = postings.check_jobs(J);
+        % jobstr = postings.jobline;
+        % % Check if jobstr is 'reset'
+        % if strcmpi(jobstr,'reset')
+            % disp('resetting')
+            % clearvars -except J
+            % restoredefaultpath
+            % addpath('ICL_HPC')
+            % worker
+            % return
+        % end
+        
+        % if ~oi.engine.queue.is_empty()
+            % errjobstr = oi.engine.queue.jobArray{1}.to_string();
+            % postings.report_error(J, [errjobstr ' _ Im not done , probably as Im missing an input.' ...
+            % 'I can mess things up if I start trying to create my input as something is probs already doing so.'])
+            % oi.engine.queue.clear
+            % postings = postings.report_ready(J);
+            % break
+        % end
+        
+    % end
+    % answer = '';
+    % % if ~isempty(oi.engine.plugin.outputs)
+    % %     answer = OI.Functions.struct2xml( OI.Functions.obj2struct( oi.engine.plugin.outputs{1} ) );
+    % % end
+    % % postings.report_done(J, answer);
+% end
