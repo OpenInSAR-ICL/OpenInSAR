@@ -243,12 +243,23 @@ classdef Leader
         end
 
         function stop_if_canary_file_present(self)
+            if ~OI.OperatingSystem.isUnix
+                return
+            end
             canaryFile = fullfile(self.data_directory,'canary');
+            resetFile = fullfile(self.data_directory,'canaryr');
+
             if exist(canaryFile,'file')
                 restoredefaultpath
                 addpath('ICL_HPC')
-                delete(canaryFile)
+%                 delete(canaryFile)
                 error('canary')
+            end
+            if exist(resetFile,'file')
+                restoredefaultpath
+                addpath('ICL_HPC')
+                delete(resetFile)
+                error('canary reset')
             end
         end
 
