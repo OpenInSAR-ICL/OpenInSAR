@@ -52,7 +52,7 @@ classdef BaseClient
                 sprintf(' -d "{\\\"machine_id\\\":\\\"%s\\\", \\\"processing_software_version\\\":\\\"%s\\\", \\\"user\\\":\\\"%s\\\"}"', machine_id, vers, num2str(self.userId)) ...
             ];
 
-            disp(curlString);
+            % disp(curlString);
             if self.isWindows;curlString=strrep(curlString,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlString);
             if status
@@ -119,7 +119,7 @@ classdef BaseClient
             [status, result] = system(curlCommand);
 
             % Display the response
-            disp(result);
+            % disp(result);
 
             % get the username from the json response
             lines=strsplit(result,'#');
@@ -133,7 +133,7 @@ classdef BaseClient
             fields=strsplit(lines{end},'\t');
             self.sessionId = strip(fields{end});
             
-            disp(result);
+            % disp(result);
             self = self.get_logged_in_csrf(self.sessionId);
 
         end
@@ -147,14 +147,13 @@ classdef BaseClient
 
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
-            [status, projects] = system(curlCommand);
+            [status, projectsResponse] = system(curlCommand);
 
             % Display the response
-            disp(projects);
-            projects = jsondecode(projects);
+            projects = jsondecode(projectsResponse);
         end
 
-        function projects = list_jobs(self)
+        function jobs = list_jobs(self)
             % Construct curl command
             curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X GET %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
@@ -163,11 +162,10 @@ classdef BaseClient
 
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
-            [status, projects] = system(curlCommand);
+            [status, jobsResponse] = system(curlCommand);
 
             % Display the response
-            disp(projects);
-            projects = jsondecode(projects)
+            jobs = jsondecode(jobsResponse);
         end
 
         function aoiList = list_aois(self)
@@ -189,11 +187,10 @@ classdef BaseClient
 
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
-            [status, assignments] = system(curlCommand);
+            [status, assignmentsResponse] = system(curlCommand);
 
             % Display the response
-            disp(assignments);
-            assignments = jsondecode(assignments)
+            assignments = jsondecode(assignmentsResponse);
         end
 
         function projectTemplates = list_templates(self)
@@ -208,7 +205,7 @@ classdef BaseClient
             [status, response] = system(curlCommand);
 
             % Display the response
-            disp(response);
+            % disp(response);
             projectTemplates = jsondecode(response);
         end
 
@@ -265,11 +262,11 @@ classdef BaseClient
                 '-d "%s"'], ... 
                 [self.root_url 'jobs/'], self.csrfToken, self.sessionId, self.csrfToken, [self.root_url 'jobs/'], payloadJson);
 
-            disp(curlCommand)
+            % disp(curlCommand)
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
-            disp(response);
+            % disp(response);
         end
 
         function self = post_assignment(self, job)
@@ -283,13 +280,13 @@ classdef BaseClient
                 ', \\\"assigned\\\":\\\"1\\\"}"'], ...
                 [self.root_url 'assignments/'], self.csrfToken, self.sessionId, self.csrfToken, [self.root_url 'assignments/'], self.worker_id, job.id);
 
-            disp(curlCommand)
+            % disp(curlCommand)
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
 
             % Display the response
-            disp(response);
+            % disp(response);
             % check for 'must make a unique set' error
             if contains(response, 'must make a unique set')
                 error('Assignment already exists');
@@ -312,7 +309,7 @@ classdef BaseClient
                 [self.root_url 'assignments/' num2str(self.assignmentId) '/'], ...
                 self.csrfToken, self.sessionId, self.csrfToken, self.root_url);
 
-            disp(curlCommand)
+            % disp(curlCommand)
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
@@ -338,14 +335,15 @@ classdef BaseClient
                 '-d \"%s\"'], ...
                 [self.root_url 'assignments/' num2str(self.assignmentId) '/'], ...
                 self.csrfToken, self.sessionId, self.csrfToken, [self.root_url],payload);
-            disp(curlCommand)
+            % disp(curlCommand)
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
         end
 
-        function job_failed(msg)
+        function job_failed(self, msg)
             % patch the result to reflect that the job has failed
+            msg = OI.Compatibility.base64encode(msg);
             % Construct curl command
             curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X PATCH %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
@@ -355,7 +353,7 @@ classdef BaseClient
                 '-d "{\\\"status\\\":\\\"failed\\\",\\\"result\\\":\\\"%s\\\"}"'], ...
                 [self.root_url 'assignments/' num2str(self.assignmentId) '/'], ...
                 self.csrfToken, self.sessionId, self.csrfToken, [self.root_url 'assignments/' self.assignmentId], msg);
-            disp(curlCommand)
+            % disp(curlCommand)
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
@@ -447,7 +445,7 @@ classdef BaseClient
             [status, response] = system(curlCommand);
 
             % Display the response
-            disp(response);
+            % disp(response);
         end
 
         function delete_assignment(self, assignment_id)
@@ -464,7 +462,7 @@ classdef BaseClient
             [status, response] = system(curlCommand);
 
             % Display the response
-            disp(response);
+            % disp(response);
         end
 
         function delete_job(self, jobId) 
@@ -481,7 +479,7 @@ classdef BaseClient
             [status, response] = system(curlCommand);
 
             % Display the response
-            disp(response);
+            % disp(response);
         end
     end
 

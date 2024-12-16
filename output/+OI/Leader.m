@@ -3,11 +3,18 @@ classdef Leader
         client = [];
         engine = [];
         data_directory = '';
-        worker_pool = [];
+
+        projects = [];
+        projectActive = [];
+        projectEngineCopies = {};
+        projectIndex = []; % will become a map in ctor
+
     end % properties
 
     methods
         function self = Leader(host, username, password, data_directory)
+
+            self = self.clear_project_copies();
             if nargin == 4
                 self.client = OI.BaseClient(host);
                 self.client = self.client.login(username, password);
@@ -17,7 +24,8 @@ classdef Leader
                 username = getenv('OI_USERNAME');
                 password = getenv('OI_PASSWORD');
                 self.data_directory = getenv('OI_DATA_DIRECTORY');
-                if isempty(api_host) || isempty(username) || isempty(password) || isempty(self.data_directory)
+                if ( isempty(api_host) || isempty(username) || ...
+                    isempty(password) || isempty(self.data_directory) )
                     error('Worker:Worker', ...
                         ['API host, username, password, data directory must be set', ...
                         ' by either arguments or environment variables']);
@@ -28,70 +36,319 @@ classdef Leader
             self.engine = OI.Engine();
         end % Worker
 
+        function self = clear_project_copies(self)
+            self.projectEngineCopies = {};
+            self.projectIndex = ...
+                containers.Map('KeyType','char','ValueType','double');
+        end
+
         function run(self)
             while true
-                self.process_projects();
+                self = self.process_projects();
+                fprintf(1,'It appears that there is no more work. Waiting for 1 min.\n')
+                for ii=1:60
+                    pause(1)
+                end
             end
         end % run
 
 
-        function process_projects(self)
-            projects = self.client.list_projects();
+        function self = process_projects(self)
+            self.projects = self.client.list_projects();
+            self = self.prioritise_projects();
 
-            projects = self.prioritise_projects(projects);
-            for proj = projects(:)'
-
-                projObj = self.client.parse_project(proj);
-                projObj.DATA_DIRECTORY = self.data_directory;
-                self.engine.load_project(projObj);
-                targetProductList = self.get_target_product(proj);
-                targetProductList = strsplit(targetProductList,{' ',',',';'});
-                for product = targetProductList(:)''
-                    productClass = OI.Data.(product{1});
-                    self.engine.load(productClass);
+            if isempty(self.projects)
+                fprintf('No projects to process\n');
+                return
+            end
+            if self.projectActive(1) == 0
+                fprintf('No active projects to process\n');
+                return
+            end
+            
+            for ii = 1:numel(self.projects)
+                if ~self.projectActive(ii)
+                    fprintf(1,'Skipping project %s as it appears to be finished or inactive.\n',self.projects(ii).name)
+                    continue
                 end
-                while self.engine.queue.length > 0
-                    canaryFile = fullfile(self.data_directory,'canary');
-                    if exist(canaryFile,'file')
-                        restoredefaultpath
-                        addpath('ICL_HPC')
-                        delete(canaryFile)
-                        error('canary')
-                    end
-                    nextJob = self.engine.queue.next_job();
-                    if ~isempty(nextJob.target)
-                        self.worker_pool = self.update_worker_pool();
-                        if isempty(self.worker_pool)
-                            disp('No workers')
-                            pause(10)
-                            continue
-                        end
-                        while ~isempty(self.worker_pool) && ~isempty(nextJob) && ~isempty(nextJob.target)
-                            % pop a worker
-                            worker = self.worker_pool(1);
-                            self.worker_pool = self.worker_pool(2:end);
-                            % assign job to worker
-                            self.client.post_job(proj.id, nextJob, worker);
-                            % check the next job
-                            nextJob = self.engine.queue.next_job();
-                        end
-                    else
-                        self.engine.run_next_job();
-                    end
+                % load in jobs for the first project
+                self = self.switch_to_project(self.projects(ii));
+                if self.engine.queue.length()
+                    self = self.process_step(self.projects(ii));
+                else
+                    fprintf(1,'No more jobs for project %s.\n',self.engine.database.fetch('PROJECT_NAME'))
+                    self.projectActive(ii) = 0;
+                    % patch the remote project to '0 priority?'
                 end
             end
+
         end % process_projects
 
-        function sortedProjects = prioritise_projects(self, projects)
+        function self = process_step(self, projJson)
+            % loop through all jobs for this project queue
+            while self.engine.queue.length > 0
+                fprintf(1,'Loop start qlength %d\n',self.engine.queue.length)
+                self.stop_if_canary_file_present();
+
+                % % Get an update from the server
+                % assignments = self.client.list_assignments();
+                % jobs = self.client.list_jobs();
+                % self.workerPool = self.client.list_workers();
+
+                % [finishedJobs, ongoingJobs, errorJobs] = ...
+                %     self.categorise_jobs(jobs, assignments);
+
+                % % update our database with the results
+                % self.engine = self.handle_results(finishedJobs);
+                % % 
+                % self.workerPool = self.handle_errors(errorJobs);
+                % self = self.handle_ongoing(ongoingJobs);
+                [self, status] = self.get_system_status();
+                if ~isempty(status.categorisedJobs.errored)
+                    self.engine = self.handle_error_jobs(status.categorisedJobs.errored);
+                end
+                if ~isempty(status.categorisedJobs.finished)
+                    self = self.handle_finished_jobs(status.assignments, status.categorisedJobs.finished);
+                    fprintf(1,'Qlength %d\n',self.engine.queue.length)
+                end
+
+                eligibleWorkers = status.eligibleWorkers;
+                nEligibleWorkers = numel(eligibleWorkers);
+
+                nextJob = self.engine.queue.next_job();
+                % distributable jobs have the target property set
+                if ~isempty(nextJob.target)
+                    tWait = 1;
+
+                    if nEligibleWorkers == 0
+                        fprintf('No workers available, waiting %d seconds\n', tWait);
+                        % no workers available, wait for a worker to become available
+                        pause(tWait);
+                        continue
+                    end
+                    % job is distributable, assign to a worker
+                    while ~isempty(eligibleWorkers) && ~isempty(nextJob) && ~isempty(nextJob.target)
+                        [worker, eligibleWorkers] = ...
+                            self.pop_worker(eligibleWorkers);
+                        self.client.post_job(projJson.id, nextJob, worker);
+                        nEligibleWorkers = nEligibleWorkers - 1;
+                        nextJob = self.engine.queue.next_job();
+                    end
+
+                    %% Debugging statements
+                    fprintf('There are %d eligible workers remaining\n', nEligibleWorkers);
+                    if isempty(nextJob)
+                        fprintf('No more jobs to distribute\n');
+                        break;
+                    end
+                    if nEligibleWorkers == 0
+                        fprintf('No more eligible workers, waiting');
+                        pause(tWait)
+                    end
+                    if isempty(nextJob.target)
+                        fprintf('Next job is not distributable\n');
+                    end
+                else
+                    % job is not distributable, run it locally
+                    self.engine.run_next_job();
+                end               
+
+                %% TODO somehow in the few preceding lines we need to identify
+                % the case where: We have lots of workers and no useful work.
+                % Currently the engine will hang waiting for the few remaining
+                % workers to finish their jobs. We need to temporarily move on
+                % to the next project in the prioritised list.
+                % Heres an idea: when a job-creation occurs locally, we track
+                % the id of the job-creation job and the created jobs. If the
+                % created jobs are outstanding then we mark the job-creator as
+                % 'waiting for results'. If there are no jobs in the queue that
+                % aren't waiting or distributed then we move on to the next
+                % project.
+            end
+        end % process_step
+
+        function [self, status] = get_system_status(self)
+            status = struct( ...
+                'assignments', [], 'jobs', [], 'workerPool', [], ...
+                'allWorkers', [], 'categorisedJobs', [], 'eligibleWorkers', []);
+                
+            % Get an update from the server
+            status.assignments = self.client.list_assignments();
+            status.jobs = self.client.list_jobs();
+            status.workerPool = self.client.list_workers();
+            status.allWorkers = status.workerPool;
+
+            status.categorisedJobs = ...
+                self.categorise_jobs(status.jobs, status.assignments);
+            
+            % any workers assigned to an ongoing job are not eligible
+            if ( ~isempty(status.categorisedJobs.ongoing) && ...
+                ~isempty(status.categorisedJobs.assigned) )
+                assignedWorkers = [status.categorisedJobs.assigned.worker];
+                isEligible = ~ismember([status.workerPool.id], assignedWorkers);
+                status.eligibleWorkers = status.workerPool(isEligible);
+            else
+                status.eligibleWorkers = status.workerPool;
+            end
+
+        end
+
+
+        function jobCats = categorise_jobs(self, jobs, assignments)
+            jobCats = struct( ...
+                'finished', [], 'ongoing', [], 'errored', [], ...
+                'unassigned', [], 'assigned', [], 'dangling', []);
+            if isempty(jobs)
+                return
+            end
+
+            % Finished jobs have 'completed' set
+            isComplete = arrayfun(@(x) x.completed, assignments);
+            completedAssignments = assignments(isComplete);
+            if ~isempty(completedAssignments)
+                jobCats.finished = jobs(arrayfun(@(x) any([x.id] == [completedAssignments.job]), jobs));
+            end
+
+            % Error jobs are those that have status 'error'
+            isError = arrayfun(@(x) strcmpi(x.status, 'error') || strcmpi(x.status, 'failed'), assignments);
+            errorAssignments = assignments(isError);
+            if ~isempty(errorAssignments)
+                jobCats.errored = jobs(arrayfun(@(x) any([x.id] == [errorAssignments.job]), jobs));
+            end
+
+            % Ongoing jobs are those that are not complete or errored
+            jobCats.ongoing = jobs;
+            if ~isempty(jobCats.errored)
+                jobCats.ongoing = jobCats.ongoing(~ismember([jobCats.ongoing.id], [jobCats.errored.id]));
+            end
+            if ~isempty(jobCats.finished)
+                jobCats.ongoing = jobCats.ongoing(~ismember([jobCats.ongoing.id], [jobCats.finished.id]));
+            end
+
+
+            % Unassigned jobs have no worker assigned
+            if ~isempty(assignments)
+                jobCats.assigned = jobs(ismember([jobs.id], [assignments.job]));
+                jobCats.unassigned = jobCats.ongoing(~ismember([jobCats.ongoing.id], [jobCats.assigned.id]));
+            end
+            
+            % Dangling jobs have been assigned by the leader but are not present
+            % in the list of assignments
+            jobCats.dangling = jobs;
+            if ~isempty(jobCats.assigned)
+                jobCats.dangling = jobCats.dangling(~ismember([jobCats.dangling.id], [jobCats.assigned.id]));
+            end
+
+
+        end
+
+        function stop_if_canary_file_present(self)
+            canaryFile = fullfile(self.data_directory,'canary');
+            if exist(canaryFile,'file')
+                restoredefaultpath
+                addpath('ICL_HPC')
+                delete(canaryFile)
+                error('canary')
+            end
+        end
+
+        function self = handle_finished_jobs(self, assignments, finishedJobs)
+            for fj = finishedJobs(:)'
+                jId = fj.id;
+                % find the assignment
+                assignment = assignments([assignments.job] == jId);
+                % check for a result
+                if ~isempty(assignment.result)
+                    self.handle_result(assignment.result);
+                end
+
+                % remove the job from the server
+                self.client.delete_job(fj.id);
+                % remove the job from the queue
+                oiJob = self.client.json2job(fj);
+                oiJob.project = self.engine.database.fetch('PROJECT_NAME');
+                self.engine.queue.remove_job(oiJob);
+            end
+        end
+
+
+
+        function self = handle_error_jobs(self, errorJobs)
+            error('not implemented');
+        end
+
+        function self = load_project_from_json(self, projectJson)
+            oiProj = self.client.parse_project(projectJson);
+            oiProj.DATA_DIRECTORY = self.data_directory;
+            self.engine.load_project(oiProj);
+        end
+
+        function self = add_targets_to_queue(self, projJson)
+            targetProductList = self.get_target_product(projJson);
+            targetProductList = strsplit(targetProductList,{' ',',',';'});
+            targetProductList = {'TestDataObjSummary'}
+            for product = targetProductList(:)''
+                productClass = OI.Data.(product{1});
+                self.engine.load(productClass);
+            end
+        end
+
+
+            % % check if the project is already loaded
+            % if isKey(self.projectIndex, projectJson.id) 
+            %     idx = self.projectIndex(projectJson.id);
+            %     notLoaded = isempty(self.projectEngineCopies{idx});
+            %     % if it is, switch to it
+            %     self.engine = self.projectEngineCopies(...
+            %         self.projectIndex(projectJson.id));
+            % else
+            %     % if it isn't, load it
+            %     self = self.load_project_from_json(projectJson);
+            %     % seed the initial queue
+            %     self = self.add_targets_to_queue(projectJson);
+            % end
+
+        function self = switch_to_project(self, projectJson)
+            loaded = false;
+            idx = 0;
+
+            % check if the project is already loaded ...
+            if isKey(self.projectIndex, projectJson.name)
+                idx = self.projectIndex(projectJson.name);
+                loaded = ~isempty(self.projectEngineCopies{idx});
+            end
+
+            if ~loaded
+                % ... if not, load it
+                self = self.load_project_from_json(projectJson);
+                self = self.add_targets_to_queue(projectJson);
+                self.projectEngineCopies{idx} = self.engine;
+            else
+                % ... if it is, switch to it
+                self.engine = self.projectEngineCopies{idx};
+            end
+        end
+
+        function self = prioritise_projects(self, projects)
             % sort by priority property
-            priorities = arrayfun(@(x) x.priority, projects);
+            priorities = arrayfun(@(x) x.priority, self.projects);
             [~,idx] = sort(priorities,'descend');
-            sortedProjects = projects(idx);
+            sortedProjects = self.projects(idx);
             INACTIVE_STATUSES = {'inactive','completed','failed'};
             inactive = arrayfun(@(x) ...
                 any(strcmpi(x.status,INACTIVE_STATUSES) ...
                 ), sortedProjects);
             sortedProjects = sortedProjects(~inactive);
+
+            self.projects = sortedProjects;
+
+            % create a map of project id to index in the projects array
+            self.projectIndex = containers.Map('KeyType','char','ValueType','uint32');
+            for i = 1:numel(sortedProjects)
+                self.projectIndex(sortedProjects(i).name) = i;
+                self.projectActive(i) = sortedProjects(i).priority;
+                self.projectEngineCopies{i} = [];
+            end
         end
 
         function targetProduct = get_target_product(self, projectJson)
@@ -155,6 +412,12 @@ classdef Leader
 
     end % methods
 
+    methods (Static = true)
+        function [worker, workerPool] = pop_worker(workerPool)
+            worker = workerPool(1);
+            workerPool = workerPool(2:end);
+        end
+    end % methods
 
 
 end % classdef

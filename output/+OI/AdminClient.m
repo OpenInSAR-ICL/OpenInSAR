@@ -39,6 +39,12 @@ classdef AdminClient
                 self.base_client.delete_job(job.id);
             end
         end
+
+        function reset(self)
+            self.delete_all_workers();
+            self.delete_all_assignments();
+            self.delete_all_jobs();
+        end
     end
 end
 
