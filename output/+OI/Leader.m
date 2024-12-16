@@ -126,14 +126,49 @@ classdef Leader
                         pause(tWait);
                         continue
                     end
-                    % job is distributable, assign to a worker
-                    while ~isempty(eligibleWorkers) && ~isempty(nextJob) && ~isempty(nextJob.target)
+                    jobArray = self.engine.queue.jobArray;
+                    fprintf('There are %d jobs in the queue\n', numel(jobArray));
+                    % pull out distributable jobs
+                    distributableJobs = jobArray(cellfun(@(x) ~isempty(x.target), jobArray));
+                    ongoingJobStrings = cell(numel(status.categorisedJobs.ongoing),1);
+                    for ii=1:numel(status.categorisedJobs.ongoing)
+                        oiJob = self.client.json2job(status.categorisedJobs.ongoing(ii));
+                        ongoingJobStrings{ii} = oiJob.to_string();
+                    end
+                    
+                    
+                    for ii=1:numel(distributableJobs)
+                        if isempty(eligibleWorkers)
+                            break
+                        end
+
+                        % check if job is already ongoing
+                        skipJob = false;
+                        for jj=1:numel(ongoingJobStrings)
+                            if strcmp(distributableJobs{ii}.to_string(), ongoingJobStrings{jj})
+                                skipJob = true;
+                                break
+                            end
+                        end
+                        if skipJob
+                            continue
+                        end
+
                         [worker, eligibleWorkers] = ...
                             self.pop_worker(eligibleWorkers);
-                        self.client.post_job(projJson.id, nextJob, worker);
+                        self.client.post_job(projJson.id, distributableJobs{ii}, worker);
                         nEligibleWorkers = nEligibleWorkers - 1;
-                        nextJob = self.engine.queue.next_job();
                     end
+                    nextJob = self.engine.queue.next_job();
+
+                    % % job is distributable, assign to a worker
+                    % while ~isempty(eligibleWorkers) && ~isempty(nextJob) && ~isempty(nextJob.target)
+                    %     [worker, eligibleWorkers] = ...
+                    %         self.pop_worker(eligibleWorkers);
+                    %     self.client.post_job(projJson.id, nextJob, worker);
+                    %     nEligibleWorkers = nEligibleWorkers - 1;
+                    %     nextJob = self.engine.queue.next_job();
+                    % end
 
                     %% Debugging statements
                     fprintf('There are %d eligible workers remaining\n', nEligibleWorkers);
@@ -420,6 +455,7 @@ classdef Leader
                 self.engine.database.add( dataObj, dataObj.name );
             end
         end
+        
 
     end % methods
 
