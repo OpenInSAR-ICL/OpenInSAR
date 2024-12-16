@@ -371,7 +371,7 @@ classdef Leader
         function self = add_targets_to_queue(self, projJson)
             targetProductList = self.get_target_product(projJson);
             targetProductList = strsplit(targetProductList,{' ',',',';'});
-            targetProductList = {'TestDataObjSummary'}
+            % targetProductList = {'TestDataObjSummary'}
             for product = targetProductList(:)''
                 productClass = OI.Data.(product{1});
                 self.engine.load(productClass);
