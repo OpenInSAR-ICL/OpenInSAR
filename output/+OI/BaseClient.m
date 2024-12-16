@@ -291,6 +291,7 @@ classdef BaseClient
             if contains(response, 'must make a unique set')
                 error('Assignment already exists');
             else
+                disp(response)
                 self.assignmentId = jsondecode(response).id;
             end
         end
