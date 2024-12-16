@@ -9,6 +9,7 @@ classdef Leader
         projectEngineCopies = {};
         projectIndex = []; % will become a map in ctor
 
+        WAIT_TIME = 0.1;
     end % properties
 
     methods
@@ -115,15 +116,21 @@ classdef Leader
                 eligibleWorkers = status.eligibleWorkers;
                 nEligibleWorkers = numel(eligibleWorkers);
 
+                if nEligibleWorkers
+                    % If we have workers available, while other jobs have been
+                    % assigned but not acknowledged (perhaps by old workers) we
+                    % should reassign the jobs and deregister the old workers.
+                    self.handle_dangling_jobs(status.categorisedJobs.dangling);
+                end
+
                 nextJob = self.engine.queue.next_job();
                 % distributable jobs have the target property set
                 if ~isempty(nextJob.target)
-                    tWait = 1;
 
                     if nEligibleWorkers == 0
-                        fprintf('No workers available, waiting %d seconds\n', tWait);
+                        fprintf('No workers available, waiting %d seconds\n', self.WAIT_TIME);
                         % no workers available, wait for a worker to become available
-                        pause(tWait);
+                        pause(self.WAIT_TIME);
                         continue
                     end
                     jobArray = self.engine.queue.jobArray;
@@ -177,8 +184,8 @@ classdef Leader
                         break;
                     end
                     if nEligibleWorkers == 0
-                        fprintf('No more eligible workers, waiting');
-                        pause(tWait)
+                        fprintf('No more eligible workers, waiting\n');
+                        pause(self.WAIT_TIME)
                     end
                     if isempty(nextJob.target)
                         fprintf('Next job is not distributable\n');
@@ -202,6 +209,35 @@ classdef Leader
             end
         end % process_step
 
+        function self = handle_dangling_jobs(self, danglingJobs)
+            currentTime = now();
+            daysToSeconds = 24*60*60;
+            for dj = danglingJobs(:)'
+                % check how long the job has been dangling
+                disp('Dangling job detected')
+                jobCreationTimeString = dj.created;
+                % example: '2024-12-16T21:12:05.228123Z'
+                % It's easier to drop the fractional seconds
+                jobCreateTimeString = jobCreationTimeString(1:19);
+                jobCreateTime = datenum(jobCreateTimeString,'yyyy-mm-ddTHH:MM:SS');
+                timeDiff = (currentTime - jobCreateTime)*daysToSeconds;
+                if timeDiff > 60
+                    % if it's been dangling for more than 60 seconds, reassign
+                    % the job and deregister the worker
+                    self.handle_dangling_job(dj);
+                end
+            end
+        end
+
+        function self = handle_dangling_job(self, danglingJob)
+            % find the worker
+            self.client.delete_worker(danglingJob.worker);
+            % reassign the job, for now we can just delete the job and
+            % let the engine decide if it needs to be requeued
+            self.client.delete_job(danglingJob.id);
+
+        end
+
         function [self, status] = get_system_status(self)
             status = struct( ...
                 'assignments', [], 'jobs', [], 'workerPool', [], ...
@@ -212,20 +248,22 @@ classdef Leader
             status.jobs = self.client.list_jobs();
             status.workerPool = self.client.list_workers();
             status.allWorkers = status.workerPool;
-
+            okToWork = status.workerPool;
+            
             status.categorisedJobs = ...
                 self.categorise_jobs(status.jobs, status.assignments);
-            
-            % any workers assigned to an ongoing job are not eligible
-            if ( ~isempty(status.categorisedJobs.ongoing) && ...
-                ~isempty(status.categorisedJobs.assigned) )
-                assignedWorkers = [status.categorisedJobs.assigned.worker];
-                isEligible = ~ismember([status.workerPool.id], assignedWorkers);
-                status.eligibleWorkers = status.workerPool(isEligible);
-            else
-                status.eligibleWorkers = status.workerPool;
-            end
 
+            % anything ongoing, assigned, dangling, is not an eligible worker
+            if ~isempty(status.categorisedJobs.ongoing)
+                okToWork = okToWork(~ismember([okToWork.id], [status.categorisedJobs.ongoing.worker]));
+            end
+            if ~isempty(status.categorisedJobs.assigned)
+                okToWork = okToWork(~ismember([okToWork.id], [status.categorisedJobs.assigned.worker]));
+            end
+            if ~isempty(status.categorisedJobs.dangling)
+                okToWork = okToWork(~ismember([okToWork.id], [status.categorisedJobs.dangling.worker]));
+            end
+            status.eligibleWorkers = okToWork;
         end
 
 
@@ -310,6 +348,7 @@ classdef Leader
 
                 % remove the job from the server
                 self.client.delete_job(fj.id);
+                % self.client.finish_job(fj.id);
                 % remove the job from the queue
                 oiJob = self.client.json2job(fj);
                 oiJob.project = self.engine.database.fetch('PROJECT_NAME');
@@ -455,7 +494,8 @@ classdef Leader
                 self.engine.database.add( dataObj, dataObj.name );
             end
         end
-        
+
+
 
     end % methods
 

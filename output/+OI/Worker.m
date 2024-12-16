@@ -4,7 +4,7 @@ classdef Worker
         client = [];
         engine = [];
         data_directory = '';
-        WAITTIME = 1;
+        WAIT_TIME = 0.1;
     end
 
     methods
@@ -37,7 +37,7 @@ classdef Worker
             job = self.client.find_job;
             while isempty(job)
                 disp('Waiting for job from server');
-                pause(self.WAITTIME)
+                pause(self.WAIT_TIME)
                 job = self.client.find_job;
             end
         end % run
@@ -53,7 +53,7 @@ classdef Worker
                 if any(matchAssignment)
                     self.client.assignmentId = assignments(matchAssignment).id;
                     disp('Waiting for server to ack assignment');
-                    pause(self.WAITTIME)
+                    pause(self.WAIT_TIME)
                 else
                     % post the assignment to acknowledge the job
                     self.client = self.client.post_assignment(job);
@@ -80,9 +80,12 @@ classdef Worker
                         result = self.format_result();
                     end
                     self.client.job_done(result);
+                    self.client.wait_for_cleanup(job.id, self.WAIT_TIME);
                 else
                     self.client.job_failed([self.engine.ui.m_output.messageHistory{:}]);
+                    self.client.wait_for_cleanup(job.id, self.WAIT_TIME);
                 end
+                
             end
         end % run
 

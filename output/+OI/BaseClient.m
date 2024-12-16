@@ -296,6 +296,36 @@ classdef BaseClient
             end
         end
 
+        function wait_for_cleanup(self, jobId, waitTime)
+            if nargin == 2
+                waitTime = 1;
+            end
+            
+            % wait for the manager to acknowledge that the worker has
+            % finished by deleting the job
+            curlCommand = sprintf([ ...
+                'curl -k -sS -X GET %s', ...
+                ' -H "Cookie: csrftoken=%s; sessionid=%s" ' ...
+                ], ...
+                [self.root_url 'jobs/' num2str(jobId) '/'], ...
+                self.csrfToken, ...
+                self.sessionId);
+
+            if ~self.isWindows;curlCommand=['env -u LD_LIBRARY_PATH ' curlCommand];end
+            response = '';
+            
+            while ~OI.Compatibility.contains(response,'No Job')
+                if ~isempty(response)
+                    pause(waitTime)
+                    waitTime = min(60, waitTime * 2);
+                end
+                [status, response] = system(curlCommand);
+                if status
+                    error(['curl error ' status ' :- ' response])
+                end
+            end
+        end
+
         function self = job_started(self, job)
             assert(~isempty(self.assignmentId),"No assignment to start")
 
@@ -319,7 +349,7 @@ classdef BaseClient
         function client = job_done(self, resultStr)
             assert(~isempty(self.assignmentId),"No assignment to finish")
 
-            payload = struct('status','done','completed','1')
+            payload = struct('status','done','completed','1');
             if ~isempty(resultStr)
                 payload.result = resultStr;
             end
