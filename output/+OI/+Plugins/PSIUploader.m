@@ -239,6 +239,15 @@ classdef PSIUploader < OI.Plugins.PluginBase
                 'velocity', v, ...
                 'height_error', q ...
             );
+
+            % Also remove any points outside the AOI using the MASK
+            N = projObj.AOI.northLimit;
+            E = projObj.AOI.eastLimit;
+            S = projObj.AOI.southLimit;
+            W = projObj.AOI.westLimit;
+            MASK = MASK & bg.lat > S & bg.lat < N & bg.lon > W & bg.lon < E;
+
+            % Filter the data with MASK
             Css = Cv(MASK);
             vss = v(MASK);
             qss = q(MASK);
