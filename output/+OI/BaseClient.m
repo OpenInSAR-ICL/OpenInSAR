@@ -234,7 +234,7 @@ classdef BaseClient
             jobs = self.list_jobs();
             try
                 matchJob = ...
-                    arrayfun(@(x) x.worker == self.worker_id, jobs);
+                    arrayfun(@(x) ~isempty(x.worker) && x.worker == self.worker_id, jobs);
                 if any(matchJob)
                     matchJob = find(matchJob,1);
                     myJob = jobs(matchJob);
@@ -597,6 +597,19 @@ classdef BaseClient
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
+        end
+
+        function nDeleted = delete_workers_older_than(self,minutes)
+            nDeleted = 0;
+            workers = self.list_workers();
+            for ii = 1:numel(workers)
+                minutesOld = (now()-datenum(workers(ii).created(1:23),'yyyy-mm-ddTHH:MM:SS.FFF'))*24*60;
+                if minutesOld > minutes
+                    self.delete_worker(workers(ii).id)
+                    nDeleted = nDeleted + 1;
+                end
+            end
+
         end
     end % methods
 
