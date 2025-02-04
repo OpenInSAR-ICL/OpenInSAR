@@ -28,7 +28,7 @@ methods
         end
 
         % get the input data directory
-        inputDir = project.INPUT_DATA_DIR;
+        inputDir = engine.resolve_path(project.INPUT_DATA_DIR);
 
         %Get data folder contents
         inputScenes=dir(inputDir);

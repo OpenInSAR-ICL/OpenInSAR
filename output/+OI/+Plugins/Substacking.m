@@ -267,7 +267,7 @@ for POLARIZATION = requestedPol
             'lon',blockLatLon(blockCornerInds,2) );
 
         % preview directory
-        previewDir = fullfile(projObj.WORK,'preview','amp');
+        previewDir = fullfile(engine.get_work_directory(),'preview','amp');
         previewKmlPath = fullfile( previewDir, [blockObj.id '.kml']);
         previewKmlPath = OI.Functions.abspath( previewKmlPath );
         OI.Functions.mkdirs( previewKmlPath );

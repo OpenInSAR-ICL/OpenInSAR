@@ -245,7 +245,7 @@ methods
 
         % Save the block map
         engine.save( blockMap );
-        blockMap.make_map_kml( fullfile(projObj.WORK,'preview') );
+        blockMap.make_map_kml( fullfile(engine.get_work_directory(),'preview') );
 
     end % run
 

@@ -108,7 +108,7 @@ function [lat, lon] = forward_geocode(...
                 OI.Functions.range_eq(xyzSat,xyzGround) - ...
                 (nearRange + rg * rgPixelSpacing) );
             % find the doppler of these coordinates
-            doppler = OI.Functions.doppler_eq(xyzSat,vSatUnit,xyzGround);
+            doppler = OI.Functions.doppler_eq(xyzSat,[orbit.vx(az) orbit.vy(az) orbit.vz(az)],xyzGround);
     
             % % find the rank of the doppler values in the same order
             % [~, sortedOrder] = sort(abs(doppler));
@@ -118,7 +118,7 @@ function [lat, lon] = forward_geocode(...
             % [~, sortedOrder] = sort(abs(rangeError));
             % [~, rangeRank] = sort(sortedOrder);
             
-            cost = rangeError+abs(doppler);
+            cost = rangeError+sqrt(abs(doppler));
             % set the cost to a large number if the point is behind the sat
             cost(distInU<0) = max(cost);
     
@@ -139,14 +139,14 @@ function [lat, lon] = forward_geocode(...
             else
                 % Otherwise refine the search area
                 % if range error is bigger than doppler error, narrow lon
-                if abs(rangeError(minCostIndex)) > abs(doppler(minCostIndex))
+%                 if abs(rangeError(minCostIndex)) > sqrt(abs(doppler(minCostIndex)))
                     searchLon = [lon(ii) - 5/(2^lonIters), lon(ii) + 5/(2^lonIters)];
                     lonIters = lonIters + 1;
                 % else narrow lat
-                else
+%                 else
                     searchLat = [lat(ii) - 5/(2^latIters), lat(ii) + 5/(2^latIters)];
                     latIters = latIters + 1;
-                end
+%                 end
                 % wrap the lon to -180 to 180
                 searchLon = mod(searchLon + 180, 360+1e-6) - 180;
                 % wrap the lat to -90 to 90

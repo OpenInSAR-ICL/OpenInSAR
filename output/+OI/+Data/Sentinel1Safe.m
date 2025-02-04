@@ -152,6 +152,10 @@ methods
                 if ~any(pathToFix == '$')
                     break
                 end
+                placeholderValue = projObj.(placeholderPath{1});
+                if isempty(placeholderValue)
+                    continue
+                end
                 pathToFix = ...
                     strrep(pathToFix, ...
                         ['$' placeholderPath{1} '$'], ...

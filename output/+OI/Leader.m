@@ -66,7 +66,7 @@ classdef Leader
                 fprintf('No active projects to process\n');
                 return
             end
-            
+
             for ii = 1:numel(self.projects)
                 if ~self.projectActive(ii)
                     fprintf(1,'Skipping project %s as it appears to be finished or inactive.\n',self.projects(ii).name)
@@ -88,8 +88,10 @@ classdef Leader
         function self = process_step(self, projJson)
             % loop through all jobs for this project queue
             while self.engine.queue.length > 0
-                fprintf(1,'Loop start qlength %d\n',self.engine.queue.length)
+%                fprintf(1,'Loop start qlength %d\n',self.engine.queue.length)
+                if isunix
                 self.stop_if_canary_file_present();
+                end
 
                 % % Get an update from the server
                 % assignments = self.client.list_assignments();
@@ -106,7 +108,7 @@ classdef Leader
                 % self = self.handle_ongoing(ongoingJobs);
                 [self, status] = self.get_system_status();
                 if ~isempty(status.categorisedJobs.errored)
-                    self.engine = self.handle_error_jobs(status.categorisedJobs.errored);
+                    self = self.handle_error_jobs(status.categorisedJobs.errored);
                 end
                 if ~isempty(status.categorisedJobs.finished)
                     self = self.handle_finished_jobs(status.assignments, status.categorisedJobs.finished);
@@ -128,7 +130,7 @@ classdef Leader
                 if ~isempty(nextJob.target)
 
                     if nEligibleWorkers == 0
-                        fprintf('No workers available, waiting %d seconds\n', self.WAIT_TIME);
+%                        fprintf('No workers available, waiting %d seconds\n', self.WAIT_TIME);
                         % no workers available, wait for a worker to become available
                         pause(self.WAIT_TIME);
                         continue
@@ -140,6 +142,7 @@ classdef Leader
                     ongoingJobStrings = cell(numel(status.categorisedJobs.ongoing),1);
                     for ii=1:numel(status.categorisedJobs.ongoing)
                         oiJob = self.client.json2job(status.categorisedJobs.ongoing(ii));
+                        oiJob.project = self.engine.database.fetch('PROJECT_NAME');
                         ongoingJobStrings{ii} = oiJob.to_string();
                     end
                     
@@ -155,6 +158,8 @@ classdef Leader
                             if strcmp(distributableJobs{ii}.to_string(), ongoingJobStrings{jj})
                                 skipJob = true;
                                 break
+                            else
+                                1;
                             end
                         end
                         if skipJob
@@ -326,13 +331,13 @@ classdef Leader
                 restoredefaultpath
                 addpath('ICL_HPC')
 %                 delete(canaryFile)
-                error('canary')
+                error('canary file at %s',canaryFile)
             end
             if exist(resetFile,'file')
                 restoredefaultpath
                 addpath('ICL_HPC')
                 delete(resetFile)
-                error('canary reset')
+                error('canary file reset at %s',canaryFile)
             end
         end
 
@@ -359,7 +364,18 @@ classdef Leader
 
 
         function self = handle_error_jobs(self, errorJobs)
-            error('not implemented');
+            for fj = errorJobs(:)'
+                % remove the job from the server
+                self.client.delete_job(fj.id);
+
+                % remove the job from the queue
+                oiJob = self.client.json2job(fj);
+                oiJob.project = self.engine.database.fetch('PROJECT_NAME');
+                self.engine.queue.remove_job(oiJob);
+                
+                % remove the worker
+                self.client.delete_worker(fj.worker);
+            end
         end
 
         function self = load_project_from_json(self, projectJson)
@@ -484,7 +500,7 @@ classdef Leader
 
         function handle_result(self, encodedResult)
             % decode from base64
-            result = OI.Compatibility.base64decode(encodedResult);
+            result = char(OI.Compatibility.base64decode(encodedResult));
             resultXmlParsed = OI.Data.XmlFile( result );
             resultAsStructFromXml = resultXmlParsed.to_struct();
             dataObj = OI.Functions.struct2obj( resultAsStructFromXml );

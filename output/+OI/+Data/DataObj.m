@@ -421,10 +421,26 @@ end
 methods (Static)
 
     function newString = replaceholder(oldString, projObj)
+        ddSz = numel(projObj.DATA_DIRECTORY);
+        osSz = numel(oldString);
+        if osSz>=ddSz && strcmpi(oldString(1:ddSz),projObj.DATA_DIRECTORY)
+            oldString = ['$DATA_DIRECTORY$' oldString(ddSz+1:end)];
+        end
         for placeholderPath=projObj.pathVars(:)'
+            placeholderValue = projObj.(placeholderPath{1});
+            if isempty(placeholderValue)
+                continue
+            end
+            if ~OI.Compatibility.is_stringy(placeholderValue)
+                error('Check this')
+            end
+            % replaceholder the placeholder
+%             while any(placeholderValue=='$')
+%                 placeholderValue = OI.Data.DataObj.replaceholder(placeholderValue,projObj);
+%             end
             newString = ...
                 strrep(oldString, ...
-                    projObj.(placeholderPath{1}), ...
+                    placeholderValue, ...
                     ['$' placeholderPath{1} '$']);
             if numel(newString) < numel(oldString)
                 break
@@ -437,10 +453,14 @@ methods (Static)
         if ~any(find(oldString=='$')), return; end
         
         for placeholderPath=projObj.pathVars(:)'
+            ph = projObj.(placeholderPath{1});
+            if ~OI.Compatibility.is_stringy(ph)
+                continue
+            end
             newString = ...
                 strrep(newString, ...
                     ['$' placeholderPath{1} '$'], ...
-                    projObj.(placeholderPath{1}));
+                    ph);
         end
     end
 

@@ -411,7 +411,16 @@ methods
             projObj = this.database.fetch('project');
 
             for ii=1:numel(data.safes)
-                data.safes{ii} = data.safes{ii}.deplaceholder(projObj);
+%                 data.safes{ii} = data.safes{ii}.deplaceholder(projObj);
+
+                data.safes{ii}.filepath = ...
+                    data.safes{ii}.string_interpolation(data.safes{ii}.filepath,this);
+                data.safes{ii}.orbitFile = ...
+                    data.safes{ii}.string_interpolation(data.safes{ii}.orbitFile,this);
+                for jj=1:numel(data.safes{ii}.strips)
+                    data.safes{ii}.strips{jj}.safePath = data.safes{ii}.filepath;
+                end
+                123;
             end
         end
 
@@ -464,6 +473,16 @@ methods
         this.database.add(dataObj);
         this.ui.log('trace', 'End of save. File %s exists: %d\n', strrep(dataObj.filepath,'\','\\'), dataObj.exists());
     end
+    
+    function resolvedPath = resolve_path(this, relativePath)
+        dObj = OI.Data.DataObj();
+        resolvedPath = dObj.string_interpolation(relativePath, this);
+    end
+    
+    function workDir = get_work_directory(this)
+        projObj = this.load( OI.Data.ProjectDefinition() );
+        workDir = OI.Data.DataObj.deplaceholder_string(projObj.WORK,projObj);
+    end
 end
 
 methods (Access = protected)
@@ -481,4 +500,4 @@ methods (Access = protected)
 
 end
 
-end
+end % classdef

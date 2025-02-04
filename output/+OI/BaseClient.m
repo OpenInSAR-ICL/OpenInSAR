@@ -150,7 +150,12 @@ classdef BaseClient
             [status, projectsResponse] = system(curlCommand);
 
             % Display the response
-            projects = jsondecode(projectsResponse);
+            try
+                projects = jsondecode(projectsResponse);
+            catch E
+                warning('response error %s - response was: %s', projectsResponse)
+                warning(E.identifier, '%s',E.message)
+            end
         end
 
         function jobs = list_jobs(self)
@@ -240,17 +245,22 @@ classdef BaseClient
         function post_job(self, projectId, job, worker)
             % Add a job to the api list, with a target worker
 
-            payload = struct('name',job.name,'project',num2str(projectId),'worker',num2str(worker.id));
-            if ~isempty(job.arguments)
-                strArgs = job.arguments;
-                for ii = 1:numel(job.arguments)
-                    if isnumeric(job.arguments{ii})
-                        strArgs{ii} = num2str(job.arguments{ii});
-                    end
-                end
-                payload.args=strjoin(strArgs,',');
-            end
+%             payload = struct('name',job.name,'project',num2str(projectId),'worker',num2str(worker.id));
+            payload = self.job2json(job); % let the converter handle args.
+            payload.worker = num2str(worker.id);
+            payload.project = num2str(projectId);
+%             if ~isempty(job.arguments)
+%                 strArgs = job.arguments;
+%                 for ii = 1:numel(job.arguments)
+%                     if isnumeric(job.arguments{ii})
+%                         strArgs{ii} = num2str(job.arguments{ii});
+%                     end
+%                 end
+%                 payload.args=strjoin(strArgs,',');
+%             end
 
+            payload.args = payload.arguments; %???
+            payload = rmfield(payload,'arguments');
             payloadJson = jsonencode(payload);
             payloadJson = strrep(payloadJson,'"','\"');
             % Construct curl command
@@ -297,6 +307,7 @@ classdef BaseClient
         end
 
         function wait_for_cleanup(self, jobId, waitTime)
+            TIME_OUT = 60 * 10; % seconds
             if nargin == 2
                 waitTime = 1;
             end
@@ -317,7 +328,11 @@ classdef BaseClient
             while ~OI.Compatibility.contains(response,'No Job')
                 if ~isempty(response)
                     pause(waitTime)
+                    TIME_OUT = TIME_OUT - waitTime;
                     waitTime = min(60, waitTime * 2);
+                end
+                if TIME_OUT < 0
+                    error('Server taking too long to clean up')
                 end
                 [status, response] = system(curlCommand);
                 if status
@@ -346,30 +361,51 @@ classdef BaseClient
             [status, response] = system(curlCommand);
         end
 
-        function client = job_done(self, resultStr)
+        function self = job_done(self, base64EncodedResultStr)
             assert(~isempty(self.assignmentId),"No assignment to finish")
 
             payload = struct('status','done','completed','1');
-            if ~isempty(resultStr)
-                payload.result = resultStr;
-            end
-            payload = jsonencode(payload);
-            payload = strrep(payload, '"', '\"');
+	    if ~isempty(base64EncodedResultStr)
+	            payload.result = base64EncodedResultStr;
+	    end
 
-            % Patch the assignment entry to reflect that the job has finished
-            % Construct curl command
+            % Write the payload to a temporary file
+            tempFile = tempname;  % Generate a unique temporary file name
+            fid = fopen(tempFile, 'w');  % Open the file for writing
+            if fid == -1
+                error('Unable to create temporary file for payload.');
+            end
+            fwrite(fid, jsonencode(payload));
+            fclose(fid);
+
+            % Construct curl command using the temporary file
             curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X PATCH %s ', ...
                 '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
                 '-H "X-CSRFToken: %s" ', ...
                 '-H "Referer: %s" ', ...  % Add the Referer header
                 '-H "Content-Type: application/json" ', ...
-                '-d \"%s\"'], ...
+                '-d @%s'], ...
                 [self.root_url 'assignments/' num2str(self.assignmentId) '/'], ...
-                self.csrfToken, self.sessionId, self.csrfToken, [self.root_url],payload);
-            % disp(curlCommand)
+                self.csrfToken, self.sessionId, self.csrfToken, [self.root_url], tempFile);
+
+            % Adjust for Windows systems
+            if self.isWindows
+                curlCommand = strrep(curlCommand, 'env -u LD_LIBRARY_PATH ', '');
+            end
+
             % Execute the command
-            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
+
+    	   disp(status); disp(response)
+
+            % Clean up the temporary file
+            delete(tempFile);
+
+            % Check status
+            if status ~= 0
+                error('Curl command failed: %s', response);
+            end
+
         end
 
         function job_failed(self, msg)
@@ -396,7 +432,21 @@ classdef BaseClient
                 warning('Input should be an OI.Job object')
                 return
             end
-            jsonJob = struct('name', oiJob.name, 'arguments', {oiJob.arguments}, 'project', oiJob.project, 'target', '1');
+            nArgs = numel(oiJob.arguments);
+            formattedArgs = oiJob.arguments;
+            for ii=1:nArgs
+                if ~OI.Compatibility.is_string(formattedArgs{ii});
+                    % get type
+%                     type = class(formattedArgs{ii});
+                    if isnumeric(formattedArgs{ii})
+                        formattedArgs{ii} = ['@double:' jsonencode(formattedArgs{ii})];
+                    else
+                        error('Conversion not implemented for non-numeric non-stringy arguments')
+                    end
+                end
+            end
+            formattedArgsString = strjoin(formattedArgs,',');
+            jsonJob = struct('name', oiJob.name, 'arguments', {formattedArgsString}, 'project', oiJob.project, 'target', '1');
         end
 
         function oiJob = json2job(self, json)
@@ -407,11 +457,19 @@ classdef BaseClient
             oiJob = OI.Job('name', json.name,'project',json.project);
             oiJob.target = '1';
             % oiJob.project = json.project;
-            if isfield(json, 'args')
+            if isfield(json, 'args') && ~isempty(json.args)
                 oiJob.arguments = strsplit(json.args,',');
             end
+            magicPhrase = '@double:';  % The prefix for numeric arguments
+            for ii = 1:numel(oiJob.arguments)
+                % If the argument starts with '@double:', decode it
+                if startsWith(oiJob.arguments{ii}, magicPhrase)
+                    % Remove the '@double:' prefix and decode the numeric array
+                    numericStr = oiJob.arguments{ii}(length(magicPhrase)+1:end);
+                    oiJob.arguments{ii} = jsondecode(numericStr);
+                end
+            end
         end
-
         function projObj = get_project_by_name(self, name)
             projects = self.list_projects();
             matchedProject = self.find_name_in_list(projects, name);

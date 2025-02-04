@@ -25,7 +25,6 @@ nCpuEnvVar = getenv('nCpus');
 if ~isempty(nCpuEnvVar)
     nCpu = str2num(nCpuEnvVar); %#ok<ST2NM>
 else
-	
     nCpu = 4; % Pure guess
 end
 % Set the number of threads to use
@@ -45,10 +44,13 @@ try
 		oi.run();
 	end
 catch ERR
+	try
 	disp(ERR)
 	errStruct = OI.Functions.obj2struct(ERR);
 	disp(OI.Functions.struct2xml(errStruct).to_string())
-
+	catch
+		ERR
+	end
 
 	% main loop
 	while true
@@ -67,6 +69,11 @@ catch ERR
 				eval(inputCommands)
 			catch ERR
 				disp(ERR)
+                if isprop(ERR,'stack')
+                    for ii=1:numel(ERR.stack)
+                        disp(ERR.stack(ii))
+                    end
+                end
 				errStruct = OI.Functions.obj2struct(ERR);
 				disp(OI.Functions.struct2xml(errStruct).to_string())
 			end

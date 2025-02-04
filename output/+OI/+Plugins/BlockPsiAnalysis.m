@@ -251,7 +251,7 @@ methods
         
         % Create a shapefile of the block
         blockName = sprintf('Stack_%i_block_%i',this.STACK,this.BLOCK);
-        blockFilePath = fullfile( projObj.WORK, 'shapefiles', this.id, blockName);
+        blockFilePath = fullfile( engine.get_work_directory(), 'shapefiles', this.id, blockName);
         
         
         previewShpCoherenceMask = (C>.5);
@@ -273,14 +273,16 @@ methods
                     blockMap.stacks( this.STACK ).blocks));
         end
 
+        previewDir = fullfile(engine.get_work_directory(),'preview','block');
+
         if baselinesObject.azimuthVector(3) > 0 % ascending
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(C), 'Coherence');
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(v .* mask0s(previewShpCoherenceMask)), 'Velocity');
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, flipud(q .* mask0s(previewShpCoherenceMask)), 'HeightError');
+            OI.Plugins.BlockPsiAnalysis.preview_block(previewDir, blockInfo, flipud(C), 'Coherence');
+            OI.Plugins.BlockPsiAnalysis.preview_block(previewDir, blockInfo, flipud(v .* mask0s(previewShpCoherenceMask)), 'Velocity');
+            OI.Plugins.BlockPsiAnalysis.preview_block(previewDir, blockInfo, flipud(q .* mask0s(previewShpCoherenceMask)), 'HeightError');
         else % descending
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(C), 'Coherence');
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(v .* mask0s(previewShpCoherenceMask)), 'Velocity');
-            OI.Plugins.BlockPsiAnalysis.preview_block(projObj, blockInfo, fliplr(q .* mask0s(previewShpCoherenceMask)), 'HeightError');
+            OI.Plugins.BlockPsiAnalysis.preview_block(previewDir, blockInfo, fliplr(C), 'Coherence');
+            OI.Plugins.BlockPsiAnalysis.preview_block(previewDir, blockInfo, fliplr(v .* mask0s(previewShpCoherenceMask)), 'Velocity');
+            OI.Plugins.BlockPsiAnalysis.preview_block(previewDir, blockInfo, fliplr(q .* mask0s(previewShpCoherenceMask)), 'HeightError');
         end
         
         % Get block lat/;pm
@@ -334,7 +336,7 @@ methods
 
                 % Create a shapefile of the block
                 blockName = sprintf('Stack_%i_block_%i.shp',stackIndex,blockIndex);
-                blockFilePath = fullfile( projObj.WORK, 'shapefiles', this.id, blockName);
+                blockFilePath = fullfile( engine.get_work_directory(), 'shapefiles', this.id, blockName);
 
                 % Check if the block is already done
                 priorObj = engine.database.find( resultObj );
@@ -370,7 +372,7 @@ end % methods
 
 
 methods (Static = true)
-    function previewKmlPath = preview_block(projObj, blockInfo, dataToPreview, dataCategory, idQualifier)
+    function previewKmlPath = preview_block(previewDir, blockInfo, dataToPreview, dataCategory, idQualifier)
         % get the block extent
         sz = blockInfo.size;
         dataToPreview = reshape(dataToPreview, sz(1), sz(2), []);
@@ -403,7 +405,8 @@ methods (Static = true)
         end
         
         % preview directory
-        previewDir = fullfile(projObj.WORK,'preview','block', dataCategory);
+%         previewDir = fullfile(engine.get_work_directory(),'preview','block', dataCategory);
+        previewDir = fullfile(previewDir, dataCategory);
         blockName = sprintf('%s_stack_%i_block_%i',dataCategory, blockInfo.stackIndex, blockInfo.indexInStack);
 
         previewKmlPath = fullfile( previewDir, [blockName '.kml']);
