@@ -79,7 +79,39 @@ classdef Leader
                 else
                     fprintf(1,'No more jobs for project %s.\n',self.engine.database.fetch('PROJECT_NAME'))
                     self.projectActive(ii) = 0;
+                    [self, sentListNo] = self.clean_up_old_data();
+                    self = self.switch_to_project(self.projects(ii));
+                    % flag that the project no longer has all files
+                    % downloaded
+                    % dlSummary = self.engine.database.fetch( OI.Data.Sentinel1DownloadSummary() );
+                    dlSummary = OI.Data.Sentinel1DownloadSummary().identify(self.engine);
+                    if isempty(dlSummary) || ~dlSummary.exists
+                        warning('We shouldnt be here, contact developer')
+                    else
+                        dlSummaryFn = [dlSummary.filepath '.' dlSummary.fileextension];
+                        delete(dlSummaryFn);
+                    end
+                    deletedBytes = 0;
+
+                    nRedundantFiles = numel(sentListNo);
+                    for fileInd = 1:nRedundantFiles
+                        fprintf(1,'Deleting file %i of %i\n',fileInd, nRedundantFiles)
+                        filename = sentListNo(fileInd).name;
+                        folderStr = sentListNo(fileInd).folder;
+                        if sentListNo(fileInd).isdir
+                            rmdir(fullfile(folderStr,filename),'s')
+                            deletedBytes = deletedBytes + 8e9;
+                        else
+                            delete(fullfile(folderStr,filename))
+                            deletedBytes = deletedBytes + sentListNo(fileInd).bytes;
+
+                        end
+                    end
+                    fprintf(1,'Deleted ~%i gigabytes\n',deletedBytes/1e9);
+
                     % patch the remote project to '0 priority?'
+                    self.client.set_project_active(self.projects(ii).id,0);
+
                 end
             end
 
@@ -403,15 +435,21 @@ classdef Leader
                 loaded = ~isempty(self.projectEngineCopies{idx});
             end
 
-            if ~loaded
+            % TODO for caching projects to work we would need a separate
+            % ctor for engines to be called with the parsed project json.
+            % Currently we have an engine on init (which is handle) so
+            % assigning this engine to the copies doesn't work
+            % if ~loaded
                 % ... if not, load it
                 self = self.load_project_from_json(projectJson);
+                % self.projectEngineCopies{idx} = ...
+                % self.load_project_from_json(projectJson);  !!
                 self = self.add_targets_to_queue(projectJson);
-                self.projectEngineCopies{idx} = self.engine;
-            else
-                % ... if it is, switch to it
-                self.engine = self.projectEngineCopies{idx};
-            end
+                % self.engine = self.projectEngineCopies{idx}; !!
+            % else
+            %     % ... if it is, switch to it
+            %     self.engine = self.projectEngineCopies{idx};
+            % end
         end
 
         function self = prioritise_projects(self, projects)
@@ -493,6 +531,74 @@ classdef Leader
             elseif isstruct(dataObj)
                 self.engine.database.add( dataObj, dataObj.name );
             end
+        end
+
+        function [self, filesNotNeeded, unneccessaryData] = clean_up_old_data(self)
+
+            % TODO this is a hardcoded hack...
+            inputDir = dir(fullfile(self.data_directory,'input'));
+            inputDir(1:2) = [];
+            % extract the SAFE names from the input data
+            nDownloadedFiles = numel(inputDir);
+            inputDirName = cell(nDownloadedFiles,1);
+            for ii=1:nDownloadedFiles
+                 [~,inputDirName{ii}]=fileparts(inputDir(ii).name);
+            end
+
+            activeProjectInds = find(self.projectActive);
+            % find which s1 files are required for active proejcts
+            s1List = {};
+            for projectInd = activeProjectInds
+                % s1ListProject = self.projectEngineCopies{projectInd}.load( OI.Data.Sentinel1DownloadList() );
+                self = self.switch_to_project(self.projects(projectInd));
+                s1ListProject = self.engine.load( OI.Data.Sentinel1DownloadList() );
+                while isempty(s1ListProject)
+                    % self.projectEngineCopies{projectInd}.run_next_job()
+                    % s1ListProject = self.projectEngineCopies{projectInd}.load( OI.Data.Sentinel1DownloadList() );
+                    self.engine.run_next_job()
+                    s1ListProject = self.engine.load( OI.Data.Sentinel1DownloadList() );
+                end
+                s1ListProject = strsplit(s1ListProject)';
+                s1ListProject(cellfun(@isempty, s1ListProject)) = [];
+
+                % extract just the SAFE name
+                sentListNamesProject = s1ListProject;
+                for ii=1:numel(s1ListProject)
+                    temp = strsplit(s1ListProject{ii},{'/','.'});
+                    sentListNamesProject{ii} = temp{end-1};
+                end
+
+                nFilesDownloadedForProject=0;
+                for ii=1:nDownloadedFiles
+                    [~,b]=fileparts(inputDir(ii).name);
+                    if ~isempty(find(strcmp(sentListNamesProject,b),1))
+                        nFilesDownloadedForProject=nFilesDownloadedForProject+1;
+                    end
+                end
+
+
+                fprintf(1,'%i files in project %s\n',numel(s1ListProject),self.projects(projectInd).name)
+                fprintf(1,'%i of %i downloaded files are for this project %s\n',nFilesDownloadedForProject,nDownloadedFiles,self.projects(projectInd).name)
+
+                fprintf(1,' ^ %s\n',self.engine.database.fetch('PROJECT_NAME'))
+                s1List = [s1List; s1ListProject];
+            end
+
+            s1List = unique(s1List);
+            sentListNames = s1List;
+            for ii=1:numel(s1List)
+                temp = strsplit(s1List{ii},{'/','.'});
+                sentListNames{ii} = temp{end-1};
+            end
+
+
+            % look for inactive or orphaned input data
+            unneccessaryData = false(numel(inputDirName),1);
+            for ii=1:numel(unneccessaryData)
+                unneccessaryData(ii) = isempty(find(strcmp(sentListNames,inputDirName{ii}),1)); 
+            end
+            filesNotNeeded = inputDir(unneccessaryData);
+
         end
 
 

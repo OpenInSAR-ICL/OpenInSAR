@@ -512,6 +512,24 @@ classdef BaseClient
             % Display the response
             % disp(response);
         end
+
+
+        function set_project_active(self, id, tf) 
+            % patch the result to reflect that the job has failed
+            % Construct curl command
+            curlCommand = sprintf(['env -u LD_LIBRARY_PATH curl -k -sS -X PATCH %s ', ...
+                '-H "Cookie: csrftoken=%s; sessionid=%s" ', ...
+                '-H "X-CSRFToken: %s" ', ...
+                '-H "Referer: %s" ', ...  % Add the Referer header
+                '-H "Content-Type: application/json" ', ...
+                '-d "{\\\"priority\\\":%i}"'], ...
+                [self.root_url 'projects/' num2str(id) '/'], ...
+                self.csrfToken, self.sessionId, self.csrfToken, [self.root_url 'projects/' num2str(id)], tf);
+            % disp(curlCommand)
+            % Execute the command
+            if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
+            [status, response] = system(curlCommand);
+        end
     end
 
 end
