@@ -112,6 +112,17 @@ methods
         [~,closest] = min(abs(times - this.datetime.datenum()));
         safe = cat.safes{closest};
 
+        % TEMP FIX
+        if nargin>1
+            safe.orbitFile = strrep(safe.orbitFile,'/rds/general/ephemeral/user/saa116/ephemeral',projObj.DATA_DIRECTORY)
+            safe.filepath = strrep(safe.filepath,'/rds/general/ephemeral/user/saa116/ephemeral',projObj.DATA_DIRECTORY)
+            for jj = 1:numel(safe.strips)
+                safe.strips{jj}.safePath = safe.filepath;
+            end
+            1;
+        end
+
+
         safe = safe.deplaceholder(projObj);
 
         metadataName = sprintf( ...
