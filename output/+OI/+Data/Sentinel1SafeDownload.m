@@ -76,7 +76,9 @@ methods
                 % check if the file already exists
                 inputDataPath = projObj.INPUT_DATA_DIR;
                 ffp = fullfile(inputDataPath,job.arguments{4});
-                safePath = strrep(ffp,'.zip','.SAFE');
+                relativeSafePath = strrep(ffp,'.zip','.SAFE');
+                safePath = OI.Data.DataObj().string_interpolation(...
+                        relativeSafePath, engine);
                 safeIsValid = OI.Data.Sentinel1Safe.check_valid( safePath );
                 
                 if safeIsValid

@@ -49,12 +49,14 @@ methods
         if (isempty(this.datetime) || isempty(this.platform))
             % check the orbit directory
             project = engine.load( OI.Data.ProjectDefinition() );
+            relativeOrbitDir = engine.database.fetch('ORBITS_DIR');
+            absoluteOrbitDir = engine.resolve_path(relativeOrbitDir);
             % make if not
             if ~exist(project.ORBITS_DIR, 'dir')
-                OI.Functions.mkdirs(project.ORBITS_DIR);
+                OI.Functions.mkdirs(absoluteOrbitDir);
             end
             % get the files
-            orbitFiles = dir(project.ORBITS_DIR);
+            orbitFiles = dir(absoluteOrbitDir);
             orbitFiles = orbitFiles(3:end);
 
             % get the catalogue
@@ -85,8 +87,14 @@ methods
                         'platform', targetPlatform);
                 else
                     % add the orbit file to the catalogue
-                    catalogue.safes{ii}.orbitFile = orbitFile;
                     % Make the orbit file cross-platform by specifying root
+                    orbitFileMaybeWindows = orbitFile;
+                    orbitFile = strrep(orbitFileMaybeWindows,'\','/');
+                    orbitDirMaybeWindows = absoluteOrbitDir;
+                    absoluteOrbitDir = strrep(orbitDirMaybeWindows,'\','/');
+                    orbitFile = strrep(orbitFile,absoluteOrbitDir,'$ORBITS_DIR$');
+                    
+                    catalogue.safes{ii}.orbitFile = orbitFile;
 
                 end
             end
@@ -110,6 +118,19 @@ methods
                 end
                     
                 catalogue = catalogue.make_filepaths_portable(project);
+
+                %TODO fix temp hardcode
+                for ii=1:numel(catalogue.safes)
+                    catalogue.safes{ii}.filepath = ...
+                        strrep(catalogue.safes{ii}.filepath, ...
+                        '/rds/general/ephemeral/user/saa116/ephemeral/input', ...
+                        project.INPUT_DATA_DIR);
+                    for jj = 1:numel(catalogue.safes{ii}.strips)
+                        catalogue.safes{ii}.strips{jj}.safePath = ...
+                            catalogue.safes{ii}.filepath;
+                    end
+                end
+                    
                 engine.save(catalogue,catalogue);
                 this.outputs{1} = OI.Data.OrbitSummary();
                 this.outputs{1}.configure('fileCount',numel(orbitFiles))

@@ -98,7 +98,8 @@ methods
         projObj = engine.load( OI.Data.ProjectDefinition() );
         
         % get the files
-        orbitDir = projObj.ORBITS_DIR;
+        relativeOrbitDir = projObj.ORBITS_DIR;
+        orbitDir = engine.resolve_path(relativeOrbitDir);
         orbitFiles = dir(orbitDir);
         orbitFiles = orbitFiles(3:end);
 

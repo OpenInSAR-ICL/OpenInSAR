@@ -111,7 +111,6 @@ methods
         % find best match, in case we're off by a few seconds
         [~,closest] = min(abs(times - this.datetime.datenum()));
         safe = cat.safes{closest};
-
         % TEMP FIX
         if nargin>1
             safe.orbitFile = strrep(safe.orbitFile,'/rds/general/ephemeral/user/saa116/ephemeral',projObj.DATA_DIRECTORY)
@@ -219,12 +218,23 @@ methods (Static)
         % get the annotation path
         annotationPath = safe.get_annotation_path( swathIndex );
         % get the annotation
+        
+        %% TODO TEMP FIX LOCAL
+        if ~isunix
+            annotationPath = strrep(annotationPath,'\rds\general\ephemeral\user\saa116\','R:\')
+            orbitFile = strrep(safe.orbitFile,'/rds/general/ephemeral/user/saa116/','R:\')
+           
+            A = OI.Data.XmlFile( annotationPath ).to_struct();
+            O = OI.Data.Orbit(orbitFile);
+
+        else
         A = OI.Data.XmlFile( annotationPath ).to_struct();
         
         % get the orbit file
         orbitFile = safe.orbitFile;
         % get the orbit
         O = OI.Data.Orbit(orbitFile);
+        end
 
         % Parse the metadata for useful values, see:
         % https://sentinel.esa.int/documents/247904/1653442/Guide-to-Sentinel-1-Geocoding.pdf

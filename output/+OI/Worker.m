@@ -40,7 +40,25 @@ classdef Worker
                 pause(self.WAIT_TIME)
                 job = self.client.find_job;
             end
+            disp('Job received:')
+            disp(job)
         end % run
+        
+        function projects = list_projects(self)
+            projects = self.client.list_projects();
+            listStr = '';
+            for ii = 1:numel(projects)
+                p = projects(ii);
+                listStr = [listStr num2str(p.id) '-' p.name '\n'];
+            end
+            fprintf(1,listStr)
+        end
+        
+        function self = load_project_by_id(self, pId)
+            projectData = self.client.get_project_by_id(pId);
+            projectData.DATA_DIRECTORY = self.data_directory;
+            self.engine.load_project(projectData);
+        end
 
         function [self, job] = get_assignment(self)
             
@@ -79,10 +97,14 @@ classdef Worker
                     if dbSize < numel(self.engine.database.data)
                         result = self.format_result();
                     end
+		    disp('worker should now comm job done')
                     self.client.job_done(result);
+		   disp('worker will now wait for cleanup')
                     self.client.wait_for_cleanup(job.id, self.WAIT_TIME);
+		   disp('worker should now have ackd cleanup')
                 else
-                    self.client.job_failed([self.engine.ui.m_output.messageHistory{:}]);
+                    msgHistory = [self.engine.ui.m_output.messageHistory{:}];
+                    self.client.job_failed(msgHistory);
                     self.client.wait_for_cleanup(job.id, self.WAIT_TIME);
                 end
                 
@@ -98,6 +120,11 @@ classdef Worker
                 resultAsStruct = OI.Functions.obj2struct( lastEntry );
                 resultAsXmlString = OI.Functions.struct2xml( resultAsStruct ).to_string();
                 answer = resultAsXmlString;
+                try
+               disp(answer)
+               catch
+                1
+               end
                 base64answer = OI.Compatibility.base64encode(answer);
             end
         end % format_result

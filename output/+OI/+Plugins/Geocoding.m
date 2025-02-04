@@ -386,7 +386,8 @@ function this = run( this, engine, varargin )
     
     % save a preview kml
     projObj = engine.load( OI.Data.ProjectDefinition() );
-    previewDir = fullfile(projObj.WORK,'preview','geocoding');
+    workDir = OI.Data.DataObj().string_interpolation(projObj.WORK,engine);
+    previewDir = fullfile(workDir,'preview','geocoding');
     previewKmlPath = fullfile( previewDir, [result.id '.kml']);
     previewKmlPath = OI.Functions.abspath(previewKmlPath);
     OI.Functions.mkdirs( previewKmlPath );

@@ -387,7 +387,8 @@ classdef Blocking < OI.Plugins.PluginBase
         end
 
         function binary_dir = get_binary_dir(projObj)
-            binary_dir = fullfile(projObj.WORK, 'binary');
+            workDir = OI.Data.DataObj.deplaceholder_string(projObj.WORK,projObj);
+            binary_dir = fullfile(workDir, 'binary');
             if ~exist(binary_dir, 'dir')
                 mkdir(binary_dir);
             end
@@ -428,7 +429,7 @@ classdef Blocking < OI.Plugins.PluginBase
             blockExtent = blockExtent.make_counter_clockwise();
 
             % preview directory
-            previewDir = fullfile(projObj.WORK,'preview','block');
+            previewDir = fullfile(engine.get_work_directory(),'preview','block');
             blockName = sprintf('Stack_%i_%s_block_%i',blockInfo.stackIndex,POL,blockInfo.indexInStack);
 
             previewKmlPath = fullfile( previewDir, ...

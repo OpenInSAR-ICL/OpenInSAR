@@ -20,7 +20,8 @@ methods
         if ~exist(engine.database.fetch('ORBITS_DIR'),'dir')
             mkdir(engine.database.fetch('ORBITS_DIR'));
         end
-        oDir = engine.database.fetch('ORBITS_DIR');
+        oDirRelative = engine.database.fetch('ORBITS_DIR');
+        oDir = engine.resolve_path(oDirRelative);
         
         startDates=zeros(numel(this.filenames),1);
         endDates=startDates;
