@@ -259,9 +259,12 @@ classdef Leader
                 jobCreateTime = datenum(jobCreateTimeString,'yyyy-mm-ddTHH:MM:SS');
                 timeDiff = (currentTime - jobCreateTime)*daysToSeconds;
                 if timeDiff > 60
+                    fprintf(1,'Job has been dangling over %i seconds\n',timeDiff)
                     % if it's been dangling for more than 60 seconds, reassign
                     % the job and deregister the worker
                     self.handle_dangling_job(dj);
+                else
+                    fprintf(1,'not been dangling long.')
                 end
             end
         end

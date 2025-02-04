@@ -70,7 +70,7 @@ classdef BaseClient
                     error('Worker not found');
                 end
             else
-                self.worker_id = jsondecode(response).id;
+                self.worker_id = self.debugging_json_decode(response).id;
             end
         end
 
@@ -89,7 +89,7 @@ classdef BaseClient
                 error(response)
             end
             lines = strsplit(response,'#');
-            self.csrfToken = jsondecode(lines{1}).csrfToken;
+            self.csrfToken = self.debugging_json_decode(lines{1}).csrfToken;
             fields = strsplit(lines{end},'\t');
             self.sessionId = strip(fields{end});
         end
@@ -100,7 +100,7 @@ classdef BaseClient
                 error(status)
             end
             lines = strsplit(response,'#');
-            self.csrfToken = jsondecode(lines{1}).csrfToken;
+            self.csrfToken = self.debugging_json_decode(lines{1}).csrfToken;
         end
 
         function [self, status, result] = login(self, username, password)
@@ -124,7 +124,7 @@ classdef BaseClient
             % get the username from the json response
             lines=strsplit(result,'#');
             jsonRaw = lines{1};
-             json = jsondecode(jsonRaw);
+             json = self.debugging_json_decode(jsonRaw);
             self.username = json.username;
             self.userId = json.id;
 
@@ -151,7 +151,7 @@ classdef BaseClient
 
             % Display the response
             try
-                projects = jsondecode(projectsResponse);
+                projects = self.debugging_json_decode(projectsResponse);
             catch E
                 warning('response error %s - response was: %s', projectsResponse)
                 warning(E.identifier, '%s',E.message)
@@ -170,7 +170,7 @@ classdef BaseClient
             [status, jobsResponse] = system(curlCommand);
 
             % Display the response
-            jobs = jsondecode(jobsResponse);
+            jobs = self.debugging_json_decode(jobsResponse);
         end
 
         function aoiList = list_aois(self)
@@ -180,7 +180,7 @@ classdef BaseClient
                 [self.root_url 'sites/'], self.csrfToken, self.sessionId);
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
-            aoiList = jsondecode(response);
+            aoiList = self.debugging_json_decode(response);
         end
 
         function assignments = list_assignments(self)
@@ -195,7 +195,7 @@ classdef BaseClient
             [status, assignmentsResponse] = system(curlCommand);
 
             % Display the response
-            assignments = jsondecode(assignmentsResponse);
+            assignments = self.debugging_json_decode(assignmentsResponse);
         end
 
         function projectTemplates = list_templates(self)
@@ -211,7 +211,7 @@ classdef BaseClient
 
             % Display the response
             % disp(response);
-            projectTemplates = jsondecode(response);
+            projectTemplates = self.debugging_json_decode(response);
         end
 
         function workers = list_workers(self)
@@ -226,19 +226,29 @@ classdef BaseClient
             [status, response] = system(curlCommand);
 
             % Display the response
-            workers = jsondecode(response);
+            workers = self.debugging_json_decode(response);
         end
 
         function myJob = find_job(self)
             assert(~isempty(self.worker_id), 'Worker not registered');
             jobs = self.list_jobs();
-            matchJob = ...
-                arrayfun(@(x) x.worker == self.worker_id, jobs);
-            if any(matchJob)
-                matchJob = find(matchJob,1);
-                myJob = jobs(matchJob);
-            else
-                myJob = [];
+            try
+                matchJob = ...
+                    arrayfun(@(x) x.worker == self.worker_id, jobs);
+                if any(matchJob)
+                    matchJob = find(matchJob,1);
+                    myJob = jobs(matchJob);
+                else
+                    myJob = [];
+                end
+            catch ERR
+                myJob = []
+                jobs
+                disp(ERR)
+                for ii=1:numel(ERR.stack)
+                    ERR.stack(ii)
+                    fprintf(1,'%s %s %s\n',ERR.stack(ii).name,ERR.stack(ii).file,ERR.stack(ii).line)
+                end
             end
         end
 
@@ -302,7 +312,7 @@ classdef BaseClient
                 error('Assignment already exists');
             else
                 disp(response)
-                self.assignmentId = jsondecode(response).id;
+                self.assignmentId = self.debugging_json_decode(response).id;
             end
         end
 
@@ -466,7 +476,7 @@ classdef BaseClient
                 if startsWith(oiJob.arguments{ii}, magicPhrase)
                     % Remove the '@double:' prefix and decode the numeric array
                     numericStr = oiJob.arguments{ii}(length(magicPhrase)+1:end);
-                    oiJob.arguments{ii} = jsondecode(numericStr);
+                    oiJob.arguments{ii} = self.debugging_json_decode(numericStr);
                 end
             end
         end
@@ -588,7 +598,18 @@ classdef BaseClient
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, response] = system(curlCommand);
         end
-    end
+    end % methods
+
+    methods (Static = true)
+        function jsonResult = debugging_json_decode(jsonStr)
+            try
+                jsonResult = jsondecode(jsonStr);
+            catch ERR
+                warning(ERR.identifier, 'Error decoding JSON: %s', ERR.message);
+                error('JSON INPUT: %s', jsonStr);
+            end
+        end
+    end % static methods
 
 end
 
