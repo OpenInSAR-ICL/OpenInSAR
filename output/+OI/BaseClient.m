@@ -168,6 +168,10 @@ classdef BaseClient
             % Execute the command
             if self.isWindows;curlCommand=strrep(curlCommand,'env -u LD_LIBRARY_PATH ','');end
             [status, jobsResponse] = system(curlCommand);
+            if OI.Compatibility.contains(jobsResponse,'curl')
+                fprintf(1,'Curl error: %s\nWaiting a minute.\n',jobsResponse)
+                wait(60)
+            end
 
             % Display the response
             jobs = self.debugging_json_decode(jobsResponse);

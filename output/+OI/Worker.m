@@ -4,7 +4,7 @@ classdef Worker
         client = [];
         engine = [];
         data_directory = '';
-        WAIT_TIME = 0.1;
+        WAIT_TIME = 1;
     end
 
     methods

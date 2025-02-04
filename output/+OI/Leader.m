@@ -9,7 +9,7 @@ classdef Leader
         projectEngineCopies = {};
         projectIndex = []; % will become a map in ctor
 
-        WAIT_TIME = 0.1;
+        WAIT_TIME = 1;
     end % properties
 
     methods
