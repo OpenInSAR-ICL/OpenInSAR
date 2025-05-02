@@ -1,0 +1,21 @@
+name: Run Octave tests
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - dev-octave-actions
+
+jobs:
+  run-octave:
+    runs-on: ubuntu-latest
+    container:
+        image: gnuoctave/octave:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Octave script
+        run: |
+          octave-cli --eval "disp('Octave is running!');"  # Replace with your own command or script
